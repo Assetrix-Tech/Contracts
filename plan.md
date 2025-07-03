@@ -1,9 +1,9 @@
 # AssetrixInvestment Smart Contract Analysis Plan
 
 ## Notes
-- The AssetrixInvestment contract is for a crowdfunding/investment platform.
+- The AssetrixInvestment contract is for a investment platform.
 - Key features: campaign creation, investment, refunds, and fund disbursement.
-- The design in Figma likely maps to user flows like onboarding, dashboard, portfolio, and campaign management.
+- The design in Figma maps to user flows like onboarding, dashboard, portfolio, and campaign management.
 - Contract uses OpenZeppelin Ownable and ReentrancyGuard for security.
 - Property struct now splits metadata into multiple, clearly named IPFS hashes (basic info, financials, legal, media).
 - User suggested PropertyFeatures could be a flexible string array for developer input.
