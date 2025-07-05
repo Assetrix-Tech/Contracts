@@ -4,11 +4,14 @@ pragma solidity ^0.8.20;
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/security/Pausable.sol";
+import "@openzeppelin/contracts/utils/Address.sol";
 
-contract Assetrix is Ownable, ReentrancyGuard {
+contract Assetrix is Ownable, ReentrancyGuard, Pausable {
     IERC20 public stablecoin;
 
     constructor(address _stablecoin) {
+        require(_stablecoin != address(0), "Invalid stablecoin address");
         stablecoin = IERC20(_stablecoin);
     }
 
@@ -29,14 +32,12 @@ contract Assetrix is Ownable, ReentrancyGuard {
         Other
     }
 
-    // Property Use (Purpose/Usage)
+    
     enum PropertyUse {
-        // Residential Uses
         PrimaryResidence,
         SecondaryHome,
         ShortTermRental,
         LongTermRental,
-        // Commercial Uses
         Office,
         Retail,
         Restaurant,
@@ -45,7 +46,7 @@ contract Assetrix is Ownable, ReentrancyGuard {
         Other
     }
 
-    // Property status enum
+    
     enum PropertyStatus {
         PreConstruction,
         UnderConstruction,
@@ -55,8 +56,6 @@ contract Assetrix is Ownable, ReentrancyGuard {
         Leased,
         OffMarket
     }
-
-    // Legal and additional details are stored in IPFS metadata
 
     struct Property {
         // Basic Info
@@ -74,7 +73,7 @@ contract Assetrix is Ownable, ReentrancyGuard {
         uint256 zipCode;
         // Property Details
         uint256 yearBuilt;
-        uint256 size; // in square meters
+        uint256 size;
         uint256 bedrooms;
         uint256 bathrooms;
         // Investment Details
@@ -83,67 +82,69 @@ contract Assetrix is Ownable, ReentrancyGuard {
         uint256 totalInvestment;
         uint256 minInvestment;
         uint256 expectedROI; // in basis points (1% = 100)
-        uint256 investmentDuration; // in days
+        uint256 investmentDuration;
         InvestmentType investmentType;
         uint256 ownershipPercentage; // for equity investments (0-10000 for 0-100%)
         // Status
         uint256 currentFunding;
         bool isActive;
+        bool isFullyFunded;
         // Metadata
-        string ipfsImagesHash; // IPFS hash for property images
-        string ipfsMetadataHash; // Consolidated metadata (basic info, financials, legal, etc.)
-        // Relationships
-        uint256[] campaignIds;
+        string ipfsImagesHash; 
+        string ipfsMetadataHash; 
+        // Investment tracking
+        address[] investors;
+        mapping(address => uint256) investments;
+        uint256 investorCount;
         address developerAddress;
     }
 
-    struct Campaign {
-        uint256 campaignId;
-        uint256 propertyId;
-        address developer;
-        string developerName;
-        uint256 targetAmount;
-        uint256 totalRaised;
-        uint256 deadline;
-        bool isOpen;
-        bool isSuccessful;
+    struct Milestone {
+        uint256 id;
+        string title;
+        string description;
+        uint256 percentage; 
+        bool isCompleted;
+        string ipfsProofHash; 
+        uint256 completedAt;
     }
 
-    uint256 public propertyCount;
-    uint256 public campaignCount;
 
+    uint256 public propertyCount;
+
+    // --- MAPPINGS ---
     mapping(uint256 => Property) public properties;
-    mapping(uint256 => Campaign) public campaigns;
     mapping(address => uint256[]) public developerProperties;
-    mapping(uint256 => mapping(address => uint256)) public investorBalances;
-    mapping(address => uint256[]) private developerCampaigns; // developer => campaignIds[]
-    mapping(address => uint256[]) private investorCampaigns; // investor => campaignIds[]
-    mapping(address => mapping(uint256 => bool)) private hasInvested; // investor => campaignId => bool
+    mapping(address => uint256[]) public investorProperties; 
+    mapping(uint256 => Milestone[]) public propertyMilestones; // propertyId => Milestone[]
+    mapping(uint256 => uint256) public releasedFunds; // propertyId => amount
 
     // --- EVENTS ---
-    event PropertyCreated(uint256 propertyId, address developer, string title);
-    event PropertyUpdated(uint256 propertyId, string ipfsMetadataHash);
-    event PropertyDeactivated(uint256 propertyId);
+    event PropertyCreated(uint256 indexed propertyId, address indexed developer, string title);
+    event PropertyUpdated(uint256 indexed propertyId, string ipfsMetadataHash);
+    event PropertyDeactivated(uint256 indexed propertyId);
+    event Invested(uint256 indexed propertyId, address indexed investor, uint256 amount);
+    event Refunded(uint256 indexed propertyId, address indexed investor, uint256 amount);
+    event PayoutSent(uint256 indexed propertyId, address indexed developer, uint256 amount);
+    event PropertyFullyFunded(uint256 indexed propertyId, uint256 totalRaised);
+    event MilestoneCreated(uint256 indexed propertyId, uint256 milestoneId, string title, uint256 percentage);
+    event MilestoneCompleted(uint256 indexed propertyId, uint256 milestoneId, string ipfsProofHash);
+    event FundsReleased(uint256 indexed propertyId, uint256 milestoneId, uint256 amount);
 
-    event CampaignCreated(
-        uint256 campaignId,
-        uint256 propertyId,
-        uint256 targetAmount,
-        uint256 deadline
-    );
-    event Invested(uint256 campaignId, address investor, uint256 amount);
-    event Refunded(uint256 campaignId, address investor, uint256 amount);
-    event PayoutSent(
-        uint256 campaignId,
-        address developer,
-        uint256 totalRaised
-    );
-    event CampaignFullyFunded(uint256 indexed campaignId, uint256 totalRaised);
-    event InvestmentTracked(
-        address indexed investor,
-        uint256 campaignId,
-        uint256 amount
-    );
+    // Modifier to check if a property exists and is active
+    modifier propertyExists(uint256 _propertyId) {
+        require(_propertyId > 0 && _propertyId <= propertyCount, "Property does not exist");
+        require(properties[_propertyId].isActive, "Property is not active");
+        _;
+    }
+
+    function setStablecoin(address _newStablecoin) external onlyOwner {
+        require(_newStablecoin != address(0), "Invalid address");
+        require(Address.isContract(_newStablecoin), "Not a contract address");
+        stablecoin = IERC20(_newStablecoin);
+        emit StablecoinUpdated(_newStablecoin);
+    }
+
 
     function createProperty(
         // Basic info
@@ -160,9 +161,9 @@ contract Assetrix is Ownable, ReentrancyGuard {
         uint256 _zipCode,
         // Property details
         string memory _ipfsImagesHash,
-        string memory _ipfsMetadataHash, // Consolidated metadata hash
+        string memory _ipfsMetadataHash,
         uint256 _yearBuilt,
-        uint256 _size, // in square meters
+        uint256 _size,
         uint256 _bedrooms,
         uint256 _bathrooms,
         // Investment details
@@ -170,41 +171,29 @@ contract Assetrix is Ownable, ReentrancyGuard {
         uint256 _totalUnits,
         uint256 _totalInvestment,
         uint256 _minInvestment,
-        uint256 _expectedROI, // in basis points (1% = 100)
-        uint256 _investmentDuration, // in days
+        uint256 _expectedROI,
+        uint256 _investmentDuration,
         InvestmentType _investmentType,
-        uint256 _ownershipPercentage // for equity investments (0-10000 for 0-100%)
-    ) external returns (uint256) {
-        require(
-            _minInvestment >= _unitPrice,
-            "Min investment must be >= unit price"
-        );
-        require(
-            _totalInvestment == _unitPrice * _totalUnits,
-            "Total investment must equal unit price * total units"
-        );
-        require(
-            _investmentDuration > 0,
-            "Investment duration must be greater than 0"
-        );
-
+        uint256 _ownershipPercentage
+    ) external nonReentrant returns (uint256) {
         // Input validation
         require(bytes(_title).length > 0, "Title cannot be empty");
-        require(
-            uint8(_propertyType) <= uint8(PropertyType.Other),
-            "Invalid property type"
-        );
-        require(
-            uint8(_propertyUse) <= uint8(PropertyUse.Other),
-            "Invalid property use"
-        );
-        require(bytes(_location).length > 0, "Location cannot be empty");
-        require(bytes(_city).length > 0, "City cannot be empty");
-        require(bytes(_state).length > 0, "State cannot be empty");
-        require(bytes(_country).length > 0, "Country cannot be empty");
-        require(_zipCode > 0, "ZIP code must be greater than 0");
+        require(bytes(_developerName).length > 0, "Developer name required");
+        require(bytes(_location).length > 0, "Location required");
+        require(bytes(_city).length > 0, "City required");
+        require(bytes(_state).length > 0, "State required");
+        require(bytes(_country).length > 0, "Country required");
+        require(_zipCode > 0, "Invalid ZIP code");
+        require(_yearBuilt > 0, "Invalid year built");
+        require(_size > 0, "Size must be greater than 0");
+        require(_bedrooms >= 0, "Invalid bedrooms count");
+        require(_bathrooms >= 0, "Invalid bathrooms count");
+        
+        // Investment validation
         require(_unitPrice > 0, "Unit price must be greater than 0");
         require(_totalUnits > 0, "Total units must be greater than 0");
+        require(_totalInvestment > 0, "Total investment must be greater than 0");
+        require(_minInvestment >= _unitPrice, "Min investment must be >= unit price");
         require(
             _totalInvestment == _unitPrice * _totalUnits,
             "Total investment must equal unit price * total units"
@@ -213,33 +202,37 @@ contract Assetrix is Ownable, ReentrancyGuard {
             _investmentDuration > 0,
             "Investment duration must be greater than 0"
         );
+        require(
+            _investmentType != InvestmentType.Equity || _ownershipPercentage > 0,
+            "Ownership percentage required for equity investments"
+        );
 
+        // Increment property counter and create new property
         propertyCount++;
         Property storage prop = properties[propertyCount];
 
-        // Core identification
+        // Set basic property info
         prop.propertyId = propertyCount;
         prop.title = _title;
         prop.description = _description;
         prop.propertyType = _propertyType;
+        prop.propertyUse = _propertyUse;
         prop.developer = _developerName;
-        prop.developerAddress = msg.sender;
 
-        // Location details
+        // Set location details
         prop.location = _location;
         prop.city = _city;
         prop.state = _state;
         prop.country = _country;
         prop.zipCode = _zipCode;
 
-        // Property details
-        prop.ipfsImagesHash = _ipfsImagesHash; // Single hash for all images
+        // Set property details
         prop.yearBuilt = _yearBuilt;
-        prop.size = _size; // in square meters
+        prop.size = _size;
         prop.bedrooms = _bedrooms;
         prop.bathrooms = _bathrooms;
 
-        // Investment details
+        // Set investment details
         prop.unitPrice = _unitPrice;
         prop.totalUnits = _totalUnits;
         prop.totalInvestment = _totalInvestment;
@@ -250,8 +243,9 @@ contract Assetrix is Ownable, ReentrancyGuard {
         prop.investmentType = _investmentType;
         prop.ownershipPercentage = _ownershipPercentage;
 
-        // Status and metadata
+        // Set status and metadata
         prop.isActive = true;
+        prop.isFullyFunded = false;
 
         // IPFS hashes for metadata
         prop.ipfsImagesHash = _ipfsImagesHash;
@@ -259,133 +253,428 @@ contract Assetrix is Ownable, ReentrancyGuard {
 
         developerProperties[msg.sender].push(propertyCount);
 
-        emit PropertyCreated(propertyCount, msg.sender, _title);
+        emit PropertyCreated(propertyCount, msg.sender, _title);x
         return propertyCount;
     }
 
+    // Event for stablecoin address change
+    event StablecoinUpdated(address indexed newStablecoin);
+
+    function invest(uint256 _propertyId, uint256 _amount) external nonReentrant whenNotPaused propertyExists(_propertyId) {
+        Property storage prop = properties[_propertyId];
+        
+        require(!prop.isFullyFunded, "Property is already fully funded");
+        require(_amount > 0, "Investment amount must be greater than 0");
+        require(_amount >= prop.minInvestment, "Investment below minimum amount");
+        require(
+            _amount % prop.unitPrice == 0,
+            "Investment must be a multiple of unit price"
+        );
+        
+        uint256 newFunding = prop.currentFunding + _amount;
+        require(
+            newFunding <= prop.totalInvestment,
+            "Investment exceeds remaining funding needed"
+        );
+        
+        require(
+            stablecoin.transferFrom(msg.sender, address(this), _amount),
+            "Token transfer failed"
+        );
+        
+        if (prop.investments[msg.sender] == 0) {
+            // First investment from this address
+            prop.investors.push(msg.sender);
+            prop.investorCount++;
+            investorProperties[msg.sender].push(_propertyId);
+        }
+        prop.investments[msg.sender] += _amount;
+        prop.currentFunding = newFunding;
+        
+        // Check if property is now fully funded
+        if (newFunding == prop.totalInvestment) {
+            prop.isFullyFunded = true;
+            emit PropertyFullyFunded(_propertyId, newFunding);
+        }
+        
+        emit Invested(_propertyId, msg.sender, _amount);
+    }
+
+
+    function getInvestmentDetails(
+        uint256 _propertyId,
+        address _investor
+    ) external view returns (
+        uint256 investmentAmount,
+        uint256 ownershipShare,
+        uint256 estimatedReturns
+    ) {
+        Property storage prop = properties[_propertyId];
+        require(prop.propertyId > 0, "Property does not exist");
+        
+        investmentAmount = prop.investments[_investor];
+        
+        if (investmentAmount > 0) {
+            // Calculate ownership share (0-10000 for 0-100%)
+            if (prop.investmentType == InvestmentType.Equity) {
+                ownershipShare = (investmentAmount * prop.ownershipPercentage) / prop.unitPrice;
+            }
+            
+            // Calculate estimated returns based on ROI and duration
+            if (prop.expectedROI > 0 && prop.investmentDuration > 0) {
+                uint256 durationInYears = prop.investmentDuration / 365 days;
+                estimatedReturns = investmentAmount + 
+                    ((investmentAmount * prop.expectedROI * durationInYears) / 10000);
+            }
+        }
+        
+        return (investmentAmount, ownershipShare, estimatedReturns);
+    }
+
+    /**
+     * @notice Get all properties where the message sender has invested
+     */
+    function getMyInvestments() external view returns (
+        uint256[] memory propertyIds,
+        uint256[] memory amounts,
+        Property[] memory propertiesData
+    ) {
+        uint256[] memory myPropertyIds = investorProperties[msg.sender];
+        uint256 count = myPropertyIds.length;
+        
+        propertyIds = new uint256[](count);
+        amounts = new uint256[](count);
+        propertiesData = new Property[](count);
+        
+        for (uint256 i = 0; i < count; i++) {
+            uint256 propertyId = myPropertyIds[i];
+            Property storage prop = properties[propertyId];
+            
+            propertyIds[i] = propertyId;
+            amounts[i] = prop.investments[msg.sender];
+            propertiesData[i] = prop;
+        }
+        
+        return (propertyIds, amounts, propertiesData);
+    }
+    
+    /**
+     * @notice Get all investors for a specific property
+     */
+    function getPropertyInvestors(
+        uint256 _propertyId
+    ) external view returns (address[] memory) {
+        Property storage prop = properties[_propertyId];
+        require(prop.propertyId > 0, "Property does not exist");
+        return prop.investors;
+    }
+    
+    /**
+     * @notice Get investment amount for a specific property and investor
+     */
+    function getInvestorAmount(
+        uint256 _propertyId,
+        address _investor
+    ) external view returns (uint256) {
+        Property storage prop = properties[_propertyId];
+        require(prop.propertyId > 0, "Property does not exist");
+        return prop.investments[_investor];
+    }
+    
+    /**
+     * @notice Request a refund for an investment in a property
+     */
+    function requestRefund(uint256 _propertyId) external nonReentrant propertyExists(_propertyId) {
+        Property storage prop = properties[_propertyId];
+        require(!prop.isFullyFunded, "Property is already fully funded");
+        
+        uint256 investmentAmount = prop.investments[msg.sender];
+        require(investmentAmount > 0, "No investment found");
+        
+        // Reset investment tracking
+        delete prop.investments[msg.sender];
+        prop.currentFunding -= investmentAmount;
+        
+        // Remove from investors array if empty
+        if (investmentAmount > 0) {
+            for (uint256 i = 0; i < prop.investors.length; i++) {
+                if (prop.investors[i] == msg.sender) {
+                    prop.investors[i] = prop.investors[prop.investors.length - 1];
+                    prop.investors.pop();
+                    prop.investorCount--;
+                    break;
+                }
+            }
+            
+            // Remove from investor's properties
+            uint256[] storage investorProps = investorProperties[msg.sender];
+            for (uint256 i = 0; i < investorProps.length; i++) {
+                if (investorProps[i] == _propertyId) {
+                    investorProps[i] = investorProps[investorProps.length - 1];
+                    investorProps.pop();
+                    break;
+                }
+            }
+        }
+        
+        // Transfer tokens back to investor
+        require(
+            stablecoin.transfer(msg.sender, investmentAmount),
+            "Refund transfer failed"
+        );
+        
+        emit Refunded(_propertyId, msg.sender, investmentAmount);
+    }
+    
+    function addMilestone(
+        uint256 _propertyId,
+        string memory _title,
+        string memory _description,
+        uint256 _percentage
+    ) external propertyExists(_propertyId) {
+        Property storage prop = properties[_propertyId];
+        require(msg.sender == prop.developerAddress, "Only property developer can add milestones");
+        require(prop.isFullyFunded, "Property must be fully funded");
+        require(bytes(_title).length > 0, "Title cannot be empty");
+        require(_percentage > 0 && _percentage <= 100, "Invalid percentage");
+        
+        // Calculate total percentage including the new milestone
+        uint256 totalPercentage = _percentage;
+        for (uint i = 0; i < propertyMilestones[_propertyId].length; i++) {
+            totalPercentage += propertyMilestones[_propertyId][i].percentage;
+        }
+        require(totalPercentage <= 100, "Total percentage cannot exceed 100%");
+        
+        uint256 milestoneId = propertyMilestones[_propertyId].length;
+        propertyMilestones[_propertyId].push(Milestone({
+            id: milestoneId,
+            title: _title,
+            description: _description,
+            percentage: _percentage,
+            isCompleted: false,
+            ipfsProofHash: "",
+            completedAt: 0
+        }));
+        
+        emit MilestoneCreated(_propertyId, milestoneId, _title, _percentage);
+    }
+    
+    /**
+     * @notice Mark a milestone as completed (Developer or Admin)
+     */
+    function completeMilestone(
+        uint256 _propertyId,
+        uint256 _milestoneId,
+        string memory _ipfsProofHash
+    ) external propertyExists(_propertyId) {
+        Property storage prop = properties[_propertyId];
+        require(msg.sender == owner() || msg.sender == prop.developerAddress, "Only property developer or owner can complete milestones");
+        require(bytes(_ipfsProofHash).length > 0, "IPFS proof hash is required");
+        
+        Milestone[] storage milestones = propertyMilestones[_propertyId];
+        require(_milestoneId < milestones.length, "Invalid milestone ID");
+        
+        Milestone storage milestone = milestones[_milestoneId];
+        require(!milestone.isCompleted, "Milestone already completed");
+        
+        // Verify all previous milestones are completed
+        for (uint i = 0; i < _milestoneId; i++) {
+            require(milestones[i].isCompleted, "Previous milestones must be completed first");
+        }
+        
+        milestone.isCompleted = true;
+        milestone.ipfsProofHash = _ipfsProofHash;
+        milestone.completedAt = block.timestamp;
+        
+        emit MilestoneCompleted(_propertyId, _milestoneId, _ipfsProofHash);
+    }
+    
+    /**
+     * @notice Release funds for a completed milestone (Admin or Devloper)
+     */
+    function releaseMilestoneFunds(uint256 _propertyId, uint256 _milestoneId) external nonReentrant whenNotPaused propertyExists(_propertyId) {
+        require(msg.sender == owner() || msg.sender == properties[_propertyId].developerAddress, "Unauthorized");
+        Property storage prop = properties[_propertyId];
+        require(prop.isFullyFunded, "Property must be fully funded");
+        
+        Milestone[] storage milestones = propertyMilestones[_propertyId];
+        require(_milestoneId < milestones.length, "Invalid milestone ID");
+        
+        Milestone storage milestone = milestones[_milestoneId];
+        require(milestone.isCompleted, "Milestone not completed");
+        
+        // Calculate releasable amount
+        uint256 totalReleasable = (prop.totalInvestment * milestone.percentage) / 100;
+        uint256 alreadyReleased = releasedFunds[_propertyId];
+        uint256 remainingInContract = prop.currentFunding + alreadyReleased;
+        
+        require(remainingInContract >= totalReleasable, "Insufficient funds in contract");
+        
+        // Calculate actual amount to release (capped at remaining contract balance)
+        uint256 amountToRelease = totalReleasable - alreadyReleased;
+        require(amountToRelease > 0, "No funds to release for this milestone");
+        
+        // Update state before external call
+        releasedFunds[_propertyId] += amountToRelease;
+        prop.currentFunding = prop.currentFunding >= amountToRelease 
+            ? prop.currentFunding - amountToRelease 
+            : 0;
+        
+        // Transfer funds to developer
+        bool success = stablecoin.transfer(prop.developerAddress, amountToRelease);
+        require(success, "Fund transfer failed");
+        
+        emit FundsReleased(_propertyId, _milestoneId, amountToRelease);
+        emit PayoutSent(_propertyId, prop.developerAddress, amountToRelease);
+    }
+    
+    /**
+     * @notice Get all milestones for a property
+     */
+    function getPropertyMilestones(uint256 _propertyId) external view returns (Milestone[] memory) {
+        return propertyMilestones[_propertyId];
+    }
+    
+    /**
+     * @notice Get the amount of funds that can be released for a milestone
+     */
+    function getReleasableAmount(uint256 _propertyId, uint256 _milestoneId) external view returns (uint256 amount) {
+        Property storage prop = properties[_propertyId];
+        if (!prop.isFullyFunded) return 0;
+        
+        Milestone[] storage milestones = propertyMilestones[_propertyId];
+        if (_milestoneId >= milestones.length) return 0;
+        
+        Milestone storage milestone = milestones[_milestoneId];
+        if (!milestone.isCompleted) return 0;
+        
+        // Verify all previous milestones are completed
+        for (uint i = 0; i < _milestoneId; i++) {
+            if (!milestones[i].isCompleted) return 0;
+        }
+        
+        uint256 totalReleasable = (prop.totalInvestment * milestone.percentage) / 100;
+        uint256 alreadyReleased = releasedFunds[_propertyId];
+        
+        if (totalReleasable > alreadyReleased) {
+            return totalReleasable - alreadyReleased;
+        }
+        return 0;
+    }
+    
+    function updatePropertyStatus(
+        uint256 _propertyId,
+        bool _isActive
+    ) external propertyExists(_propertyId) {
+        Property storage prop = properties[_propertyId];
+        require(msg.sender == prop.developerAddress, "Only property developer can update status");
+        
+        // Prevent reactivating a fully funded property
+        if (_isActive && prop.isFullyFunded) {
+            revert("Cannot reactivate a fully funded property");
+        }
+        
+        prop.isActive = _isActive;
+        
+        if (!_isActive) {
+            emit PropertyDeactivated(_propertyId);
+        }
+    }
+    
+    function emergencyRefund(uint256 _propertyId) external onlyOwner propertyExists(_propertyId) {
+        Property storage prop = properties[_propertyId];
+        require(prop.isActive, "Property is not active");
+        
+        address[] memory investors = prop.investors;
+        uint256 totalRefunded = 0;
+        
+        for (uint256 i = 0; i < investors.length; i++) {
+            address investor = investors[i];
+            uint256 amount = prop.investments[investor];
+            
+            if (amount > 0) {
+                // Reset investment
+                delete prop.investments[investor];
+                totalRefunded += amount;
+                
+                // Remove from investor's properties
+                uint256[] storage investorProps = investorProperties[investor];
+                for (uint256 j = 0; j < investorProps.length; j++) {
+                    if (investorProps[j] == _propertyId) {
+                        investorProps[j] = investorProps[investorProps.length - 1];
+                        investorProps.pop();
+                        break;
+                    }
+                }
+                
+                require(
+                    stablecoin.transfer(investor, amount),
+                    "Refund transfer failed"
+                );
+                
+                emit Refunded(_propertyId, investor, amount);
+            }
+        }
+        
+        // Reset property state
+        delete prop.investors;
+        prop.investorCount = 0;
+        prop.currentFunding = 0;
+        prop.isFullyFunded = false;
+        prop.isActive = false;
+        
+        emit PropertyDeactivated(_propertyId);
+    }
+    }
+
+
     function updateProperty(
         uint256 _propertyId,
-        // Basic info (updatable)
         string memory _title,
         string memory _description,
         PropertyType _propertyType,
         PropertyUse _propertyUse,
-        // Location (updatable)
         string memory _location,
         string memory _city,
         string memory _state,
         string memory _country,
         uint256 _zipCode,
-        // Property details (updatable)
         string memory _ipfsImagesHash,
         string memory _ipfsMetadataHash,
         uint256 _yearBuilt,
         uint256 _size,
         uint256 _bedrooms,
         uint256 _bathrooms
-    ) external {
+    ) external propertyExists(_propertyId) {
         Property storage prop = properties[_propertyId];
+        
         require(
-            msg.sender == prop.developerAddress,
-            "Unauthorized: Only property developer can update"
+            msg.sender == prop.developerAddress || msg.sender == owner(),
+            "Unauthorized: Only property developer or owner can update"
         );
-        require(prop.isActive, "Property is inactive");
+        
+        require(!prop.isFullyFunded, "Cannot update a fully funded property");
 
-        // Check if any campaigns exist for this property
-        require(
-            prop.campaignIds.length == 0,
-            "Cannot update property with active campaigns"
-        );
-
-        // Update basic info if provided
-        if (bytes(_title).length > 0) {
-            prop.title = _title;
-        }
-        if (bytes(_description).length > 0) {
-            prop.description = _description;
-        }
-        if (uint8(_propertyType) != 0) {
-            // Default enum value is 0
-            prop.propertyType = _propertyType;
-        }
-        if (uint8(_propertyUse) != 0) {
-            // Default enum value is 0
-            prop.propertyUse = _propertyUse;
-        }
-
-        // Update location if provided
-        if (bytes(_location).length > 0) {
-            prop.location = _location;
-        }
-        if (bytes(_city).length > 0) {
-            prop.city = _city;
-        }
-        if (bytes(_state).length > 0) {
-            prop.state = _state;
-        }
-        if (bytes(_country).length > 0) {
-            prop.country = _country;
-        }
-        if (_zipCode > 0) {
-            prop.zipCode = _zipCode;
-        }
-
-        // Update property details if provided
-        if (bytes(_ipfsImagesHash).length > 0) {
-            prop.ipfsImagesHash = _ipfsImagesHash;
-        }
-        if (_yearBuilt > 0) {
-            prop.yearBuilt = _yearBuilt;
-        }
-        if (_size > 0) {
-            prop.size = _size;
-        }
-        if (_bedrooms > 0) {
-            prop.bedrooms = _bedrooms;
-        }
-        if (_bathrooms > 0) {
-            prop.bathrooms = _bathrooms;
-        }
-
-        // Update IPFS hashes if provided
-        if (bytes(_ipfsImagesHash).length > 0) {
-            prop.ipfsImagesHash = _ipfsImagesHash;
-        }
-        if (bytes(_ipfsMetadataHash).length > 0) {
-            prop.ipfsMetadataHash = _ipfsMetadataHash;
-        }
-
+       
         emit PropertyUpdated(
             _propertyId,
-            prop.title,
-            prop.location,
-            prop.city,
-            prop.state,
-            prop.country
+            prop.ipfsMetadataHash
         );
     }
 
-    function deactivateProperty(uint256 _propertyId) external {
+    function deactivateProperty(uint256 _propertyId) external propertyExists(_propertyId) {
         Property storage prop = properties[_propertyId];
         require(
             msg.sender == prop.developerAddress || msg.sender == owner(),
             "Unauthorized"
         );
+        
+        require(!prop.isFullyFunded, "Cannot deactivate a fully funded property");
+        
         prop.isActive = false;
         emit PropertyDeactivated(_propertyId);
     }
 
-    /**
-     * @notice Get investment details for a property
-     * @param _propertyId The ID of the property
-     * @return totalInvestment Total investment amount for the property
-     * @return minInvestment Minimum investment amount
-     * @return currentFunding Current funding amount
-     * @return expectedROI Expected return on investment (in basis points)
-     * @return investmentDuration Investment duration in months
-     * @return investmentType Type of investment
-     * @return ownershipPercentage Ownership percentage per unit (in basis points)
-     */
     function getInvestmentDetails(
         uint256 _propertyId
     )
@@ -419,10 +708,7 @@ contract Assetrix is Ownable, ReentrancyGuard {
         );
     }
 
-    /**
-     * @notice Get all properties owned by the message sender
-     * @return Array of Property structs owned by the sender
-     */
+  
     function getMyProperties() external view returns (Property[] memory) {
         uint256[] memory propertyIds = developerProperties[msg.sender];
         Property[] memory result = new Property[](propertyIds.length);
@@ -439,40 +725,7 @@ contract Assetrix is Ownable, ReentrancyGuard {
         return result;
     }
 
-    /**
-     * @notice Get campaign details by ID
-     * @param _campaignId The ID of the campaign
-     * @return The Campaign struct with campaign details
-     */
-    function getCampaign(
-        uint256 _campaignId
-    ) external view returns (Campaign memory) {
-        require(
-            _campaignId > 0 && _campaignId <= campaignCount,
-            "Campaign does not exist"
-        );
-        Campaign storage campaign = campaigns[_campaignId];
-        require(campaign.propertyId > 0, "Invalid campaign");
-        return campaign;
-    }
 
-    /**
-     * @notice Get investor's balance for a specific campaign
-     * @param _campaignId The ID of the campaign
-     * @param _user The address of the investor
-     * @return The investment amount
-     */
-    function getInvestorBalance(
-        uint256 _campaignId,
-        address _user
-    ) external view returns (uint256) {
-        require(
-            _campaignId > 0 && _campaignId <= campaignCount,
-            "Invalid campaign ID"
-        );
-        require(_user != address(0), "Invalid user address");
-        return investorBalances[_campaignId][_user];
-    }
 
     function getProperties(
         uint256 _offset,
@@ -496,156 +749,66 @@ contract Assetrix is Ownable, ReentrancyGuard {
         }
     }
 
-    function getMyCampaigns()
-        external
-        view
-        returns (
-            uint256[] memory campaignIds,
-            Campaign[] memory campaignsData,
-            Property[] memory propertiesData,
-            uint256[] memory fundingProgress,
-            uint256[] memory timeRemaining
-        )
-    {
-        campaignIds = developerCampaigns[msg.sender];
-        uint256 count = campaignIds.length;
 
-        campaignsData = new Campaign[](count);
-        propertiesData = new Property[](count);
-        fundingProgress = new uint256[](count);
-        timeRemaining = new uint256[](count);
-
-        for (uint256 i = 0; i < count; i++) {
-            uint256 campaignId = campaignIds[i];
-            Campaign storage campaign = campaigns[campaignId];
-            Property storage property = properties[campaign.propertyId];
-
-            campaignsData[i] = campaign;
-            propertiesData[i] = property;
-
-            // Calculate funding progress (0-100%)
-            if (property.totalInvestment > 0) {
-                fundingProgress[i] =
-                    (property.currentFunding * 100) /
-                    property.totalInvestment;
-            }
-
-            // Calculate time remaining (0 if expired)
-            if (block.timestamp < campaign.deadline) {
-                timeRemaining[i] = campaign.deadline - block.timestamp;
-            }
-        }
-
-        return (
-            campaignIds,
-            campaignsData,
-            propertiesData,
-            fundingProgress,
-            timeRemaining
-        );
-    }
 
     function getMyInvestments()
         external
         view
         returns (
-            uint256[] memory campaignIds,
+            uint256[] memory propertyIds,
             uint256[] memory amounts,
-            Campaign[] memory campaignsData,
             Property[] memory propertiesData,
             uint256[] memory ownershipShares,
             uint256[] memory estimatedReturns,
-            bool[] memory isCampaignActive
+            bool[] memory isActive
         )
     {
-        campaignIds = investorCampaigns[msg.sender];
-        uint256 count = campaignIds.length;
+        propertyIds = investorProperties[msg.sender];
+        uint256 count = propertyIds.length;
 
         amounts = new uint256[](count);
-        campaignsData = new Campaign[](count);
         propertiesData = new Property[](count);
         ownershipShares = new uint256[](count);
         estimatedReturns = new uint256[](count);
-        isCampaignActive = new bool[](count);
+        isActive = new bool[](count);
 
         for (uint256 i = 0; i < count; i++) {
-            uint256 campaignId = campaignIds[i];
-            Campaign storage campaign = campaigns[campaignId];
-            Property storage property = properties[campaign.propertyId];
+            uint256 propertyId = propertyIds[i];
+            Property storage property = properties[propertyId];
 
-            amounts[i] = investorBalances[campaignId][msg.sender];
-            campaignsData[i] = campaign;
+            amounts[i] = property.investments[msg.sender];
             propertiesData[i] = property;
-            isCampaignActive[i] =
-                campaign.isOpen &&
-                block.timestamp <= campaign.deadline;
+            isActive[i] = property.isActive;
 
             // Calculate ownership share (0-100%)
             if (property.totalInvestment > 0) {
-                ownershipShares[i] =
-                    (amounts[i] * 100) /
-                    property.totalInvestment;
+                ownershipShares[i] = (amounts[i] * 100) / property.totalInvestment;
             }
 
             // Calculate estimated returns based on ROI and investment duration
             if (property.investmentDuration > 0 && property.expectedROI > 0) {
-                uint256 durationInYears = property.investmentDuration /
-                    365 days;
-                estimatedReturns[i] =
-                    amounts[i] +
-                    ((amounts[i] * property.expectedROI * durationInYears) /
-                        10000);
+                uint256 durationInYears = property.investmentDuration / 365 days;
+                estimatedReturns[i] = amounts[i] + 
+                    ((amounts[i] * property.expectedROI * durationInYears) / 10000);
             }
         }
 
         return (
-            campaignIds,
+            propertyIds,
             amounts,
-            campaignsData,
             propertiesData,
             ownershipShares,
             estimatedReturns,
-            isCampaignActive
+            isActive
         );
     }
 
-    function getInvestorShare(
-        uint256 _campaignId,
-        address _investor
-    )
-        external
-        view
-        returns (
-            uint256 investmentAmount,
-            uint256 ownershipShare,
-            uint256 estimatedReturns
-        )
-    {
-        require(_campaignId <= campaignCount, "Invalid campaign ID");
-        Campaign storage camp = campaigns[_campaignId];
-        require(camp.propertyId != 0, "Campaign does not exist");
-
-        Property storage prop = properties[camp.propertyId];
-        investmentAmount = investorBalances[_campaignId][_investor];
-
-        if (investmentAmount > 0) {
-            if (prop.investmentType == InvestmentType.Equity) {
-                // For equity investments, calculate ownership percentage (scaled by 100)
-                ownershipShare =
-                    (investmentAmount * prop.ownershipPercentage * 100) /
-                    prop.totalInvestment;
-            }
-            // For debt investments, ownershipShare remains 0
-
-            // Calculate estimated returns based on ROI and investment duration
-            if (prop.expectedROI > 0 && prop.investmentDuration > 0) {
-                uint256 durationInYears = prop.investmentDuration / 365 days;
-                estimatedReturns =
-                    (investmentAmount * prop.expectedROI * durationInYears) /
-                    10000;
-            }
-        }
-
-        return (investmentAmount, ownershipShare, estimatedReturns);
+    function pauseContract() external onlyOwner {
+        _pause();
     }
+
+    function unpauseContract() external onlyOwner {
+        _unpause();
+    }
+
 }
