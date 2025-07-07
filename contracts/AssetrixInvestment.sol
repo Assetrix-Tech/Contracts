@@ -66,11 +66,9 @@ contract Assetrix is Ownable, ReentrancyGuard, Pausable {
         PropertyUse propertyUse;
         string developer;
         // Location
-        string location;
         string city;
         string state;
         string country;
-        uint256 zipCode;
         // Property Details
         uint256 yearBuilt;
         uint256 size;
@@ -154,11 +152,9 @@ contract Assetrix is Ownable, ReentrancyGuard, Pausable {
         PropertyUse _propertyUse,
         string memory _developerName,
         // Location
-        string memory _location,
         string memory _city,
         string memory _state,
         string memory _country,
-        uint256 _zipCode,
         // Property details
         string memory _ipfsImagesHash,
         string memory _ipfsMetadataHash,
@@ -179,19 +175,12 @@ contract Assetrix is Ownable, ReentrancyGuard, Pausable {
         // Input validation
         require(bytes(_title).length > 0, "Title cannot be empty");
         require(bytes(_developerName).length > 0, "Developer name required");
-        require(bytes(_location).length > 0, "Location required");
         require(bytes(_city).length > 0, "City required");
         require(bytes(_state).length > 0, "State required");
         require(bytes(_country).length > 0, "Country required");
-        require(_zipCode > 0, "Invalid ZIP code");
-        require(_yearBuilt > 0, "Invalid year built");
-        require(_size > 0, "Size must be greater than 0");
-        require(_bedrooms >= 0, "Invalid bedrooms count");
-        require(_bathrooms >= 0, "Invalid bathrooms count");
+
         
         // Investment validation
-        require(_unitPrice > 0, "Unit price must be greater than 0");
-        require(_totalUnits > 0, "Total units must be greater than 0");
         require(_totalInvestment > 0, "Total investment must be greater than 0");
         require(_minInvestment >= _unitPrice, "Min investment must be >= unit price");
         require(
@@ -220,11 +209,9 @@ contract Assetrix is Ownable, ReentrancyGuard, Pausable {
         prop.developer = _developerName;
 
         // Set location details
-        prop.location = _location;
         prop.city = _city;
         prop.state = _state;
         prop.country = _country;
-        prop.zipCode = _zipCode;
 
         // Set property details
         prop.yearBuilt = _yearBuilt;
@@ -266,11 +253,9 @@ contract Assetrix is Ownable, ReentrancyGuard, Pausable {
         string memory _description,
         PropertyType _propertyType,
         PropertyUse _propertyUse,
-        string memory _location,
         string memory _city,
         string memory _state,
         string memory _country,
-        uint256 _zipCode,
         string memory _ipfsImagesHash,
         string memory _ipfsMetadataHash,
         uint256 _yearBuilt,
@@ -306,9 +291,5 @@ contract Assetrix is Ownable, ReentrancyGuard, Pausable {
         prop.isActive = false;
         emit PropertyDeactivated(_propertyId);
     }
-
-    
-
-
 
 }
