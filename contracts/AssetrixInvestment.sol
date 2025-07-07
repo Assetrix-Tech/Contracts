@@ -81,10 +81,10 @@ contract Assetrix is Ownable, ReentrancyGuard, Pausable {
         uint256 totalUnits;
         uint256 totalInvestment;
         uint256 minInvestment;
-        uint256 expectedROI; // in basis points (1% = 100)
+        uint256 expectedROI;
         uint256 investmentDuration;
         InvestmentType investmentType;
-        uint256 ownershipPercentage; // for equity investments (0-10000 for 0-100%)
+        uint256 ownershipPercentage; 
         // Status
         uint256 currentFunding;
         bool isActive;
@@ -116,8 +116,8 @@ contract Assetrix is Ownable, ReentrancyGuard, Pausable {
     mapping(uint256 => Property) public properties;
     mapping(address => uint256[]) public developerProperties;
     mapping(address => uint256[]) public investorProperties; 
-    mapping(uint256 => Milestone[]) public propertyMilestones; // propertyId => Milestone[]
-    mapping(uint256 => uint256) public releasedFunds; // propertyId => amount
+    mapping(uint256 => Milestone[]) public propertyMilestones; 
+    mapping(uint256 => uint256) public releasedFunds; 
 
     // --- EVENTS ---
     event PropertyCreated(uint256 indexed propertyId, address indexed developer, string title);
@@ -257,4 +257,59 @@ contract Assetrix is Ownable, ReentrancyGuard, Pausable {
         emit PropertyCreated(propertyCount, msg.sender, _title);x
         return propertyCount;
     }
+
+
+
+
+    function updateProperty(
+        uint256 _propertyId,
+        string memory _title,
+        string memory _description,
+        PropertyType _propertyType,
+        PropertyUse _propertyUse,
+        string memory _location,
+        string memory _city,
+        string memory _state,
+        string memory _country,
+        uint256 _zipCode,
+        string memory _ipfsImagesHash,
+        string memory _ipfsMetadataHash,
+        uint256 _yearBuilt,
+        uint256 _size,
+        uint256 _bedrooms,
+        uint256 _bathrooms
+    ) external propertyExists(_propertyId) {
+        Property storage prop = properties[_propertyId];
+        
+        require(
+            msg.sender == prop.developerAddress || msg.sender == owner(),
+            "Unauthorized: Only property developer or owner can update"
+        );
+        
+        require(!prop.isFullyFunded, "Cannot update a fully funded property");
+
+       
+        emit PropertyUpdated(
+            _propertyId,
+            prop.ipfsMetadataHash
+        );
+    }
+
+    function deactivateProperty(uint256 _propertyId) external propertyExists(_propertyId) {
+        Property storage prop = properties[_propertyId];
+        require(
+            msg.sender == prop.developerAddress || msg.sender == owner(),
+            "Unauthorized"
+        );
+        
+        require(!prop.isFullyFunded, "Cannot deactivate a fully funded property");
+        
+        prop.isActive = false;
+        emit PropertyDeactivated(_propertyId);
+    }
+
+    
+
+
+
 }
