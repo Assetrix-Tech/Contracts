@@ -3,11 +3,13 @@ pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
 
 contract Assetrix is Ownable, ReentrancyGuard, Pausable {
+    using SafeERC20 for IERC20;
     IERC20 public stablecoin;
 
     constructor(address _stablecoin) {
@@ -347,11 +349,10 @@ function invest(uint256 _propertyId, uint256 _amount) external nonReentrant when
         "Investment exceeds remaining funding needed"
     );
     
-    require(
-        stablecoin.transferFrom(msg.sender, address(this), _amount),
-        "Token transfer failed"
-    );
+    // Transfer tokens from investor to contract
+    stablecoin.safeTransferFrom(msg.sender, address(this), _amount);
     
+    // Update investment tracking
     if (prop.investments[msg.sender] == 0) {
         // First investment from this address
         prop.investors.push(msg.sender);
@@ -505,10 +506,7 @@ function requestRefund(uint256 _propertyId) external nonReentrant propertyExists
     }
     
     // Transfer tokens back to investor
-    require(
-        stablecoin.transfer(msg.sender, investmentAmount),
-        "Refund transfer failed"
-    );
+    stablecoin.safeTransfer(msg.sender, investmentAmount);
     
     emit Refunded(_propertyId, msg.sender, investmentAmount);
 }
@@ -607,9 +605,8 @@ function releaseMilestoneFunds(uint256 _propertyId, uint256 _milestoneId) extern
         ? prop.currentFunding - amountToRelease 
         : 0;
     
-    // Transfer funds to developer
-    bool success = stablecoin.transfer(prop.developerAddress, amountToRelease);
-    require(success, "Fund transfer failed");
+    // Transfer funds to developer using safeTransfer
+    stablecoin.safeTransfer(prop.developerAddress, amountToRelease);
     
     emit FundsReleased(_propertyId, _milestoneId, amountToRelease);
     emit PayoutSent(_propertyId, prop.developerAddress, amountToRelease);
@@ -677,10 +674,8 @@ function emergencyRefund(uint256 _propertyId) external onlyOwner propertyExists(
                 }
             }
             
-            require(
-                stablecoin.transfer(investor, amount),
-                "Refund transfer failed"
-            );
+            // Transfer tokens back to investor using safeTransfer
+            stablecoin.safeTransfer(investor, amount);
             
             emit Refunded(_propertyId, investor, amount);
         }
@@ -694,38 +689,6 @@ function emergencyRefund(uint256 _propertyId) external onlyOwner propertyExists(
     prop.isActive = false;
     
     emit PropertyDeactivated(_propertyId);
-}
-
-
-function updateProperty(
-    uint256 _propertyId,
-    string memory _title,
-    string memory _description,
-    PropertyType _propertyType,
-    PropertyUse _propertyUse,
-    string memory _city,
-    string memory _state,
-    string memory _country,
-    string memory _ipfsImagesHash,
-    string memory _ipfsMetadataHash,
-    uint256 _size,
-    uint256 _bedrooms,
-    uint256 _bathrooms
-) external propertyExists(_propertyId) {
-    Property storage prop = properties[_propertyId];
-    
-    require(
-        msg.sender == prop.developerAddress || msg.sender == owner(),
-        "Unauthorized: Only property developer or owner can update"
-    );
-    
-    require(!prop.isFullyFunded, "Cannot update a fully funded property");
-
-   
-    emit PropertyUpdated(
-        _propertyId,
-        prop.ipfsMetadataHash
-    );
 }
 
 
