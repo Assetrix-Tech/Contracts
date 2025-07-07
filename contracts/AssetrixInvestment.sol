@@ -158,7 +158,6 @@ contract Assetrix is Ownable, ReentrancyGuard, Pausable {
         // Property details
         string memory _ipfsImagesHash,
         string memory _ipfsMetadataHash,
-        uint256 _yearBuilt,
         uint256 _size,
         uint256 _bedrooms,
         uint256 _bathrooms,
@@ -214,7 +213,6 @@ contract Assetrix is Ownable, ReentrancyGuard, Pausable {
         prop.country = _country;
 
         // Set property details
-        prop.yearBuilt = _yearBuilt;
         prop.size = _size;
         prop.bedrooms = _bedrooms;
         prop.bathrooms = _bathrooms;
@@ -258,7 +256,6 @@ contract Assetrix is Ownable, ReentrancyGuard, Pausable {
         string memory _country,
         string memory _ipfsImagesHash,
         string memory _ipfsMetadataHash,
-        uint256 _yearBuilt,
         uint256 _size,
         uint256 _bedrooms,
         uint256 _bathrooms
