@@ -148,7 +148,6 @@ contract Assetrix is Ownable, ReentrancyGuard, Pausable {
 
 
     function createProperty(
-        // Basic info
         string memory _title,
         string memory _description,
         PropertyType _propertyType,
