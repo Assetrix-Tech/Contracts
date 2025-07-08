@@ -242,6 +242,8 @@ contract Assetrix is Ownable, ReentrancyGuard, Pausable {
         // Input validation
         require(bytes(_title).length > 0, "Title cannot be empty");
         require(bytes(_developerName).length > 0, "Developer name required");
+        require(_developerAddress != address(0), "Invalid developer address");
+        require(msg.sender == _developerAddress, "Sender must be the developer");
         require(bytes(_city).length > 0, "City required");
         require(bytes(_state).length > 0, "State required");
         require(bytes(_country).length > 0, "Country required");
@@ -341,7 +343,21 @@ contract Assetrix is Ownable, ReentrancyGuard, Pausable {
 
         require(!prop.isFullyFunded, "Cannot update a fully funded property");
 
-        emit PropertyUpdated(_propertyId, prop.ipfsMetadataHash);
+        prop.title = _title;
+        prop.description = _description;
+        prop.propertyType = _propertyType;
+        prop.propertyUse = _propertyUse;
+        prop.city = _city;
+        prop.state = _state;
+        prop.country = _country;
+        prop.size = _size;
+        prop.bedrooms = _bedrooms;
+        prop.bathrooms = _bathrooms;
+
+        prop.ipfsImagesHash = _ipfsImagesHash;
+        prop.ipfsMetadataHash = _ipfsMetadataHash;
+
+        emit PropertyUpdated(_propertyId, _ipfsMetadataHash);
     }
 
     function deactivateProperty(
@@ -385,12 +401,9 @@ contract Assetrix is Ownable, ReentrancyGuard, Pausable {
             "Investment exceeds remaining funding needed"
         );
 
-        // Transfer tokens from investor to contract
         stablecoin.safeTransferFrom(msg.sender, address(this), _amount);
 
-        // Update investment tracking
         if (prop.investments[msg.sender] == 0) {
-            // First investment from this address
             prop.investors.push(msg.sender);
             prop.investorCount++;
             investorProperties[msg.sender].push(_propertyId);
@@ -398,7 +411,6 @@ contract Assetrix is Ownable, ReentrancyGuard, Pausable {
         prop.investments[msg.sender] += _amount;
         prop.currentFunding = newFunding;
 
-        // Check if property is now fully funded
         if (newFunding == prop.totalInvestment) {
             prop.isFullyFunded = true;
             emit PropertyFullyFunded(_propertyId, newFunding);
@@ -425,7 +437,6 @@ contract Assetrix is Ownable, ReentrancyGuard, Pausable {
         investmentAmount = prop.investments[_investor];
 
         if (investmentAmount > 0) {
-            // Calculate ownership share (0-10000 for 0-100%)
             if (prop.investmentType == InvestmentType.Equity) {
                 ownershipShare =
                     (investmentAmount * prop.ownershipPercentage) /
