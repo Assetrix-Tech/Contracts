@@ -239,43 +239,20 @@ contract Assetrix is Ownable, ReentrancyGuard, Pausable {
         InvestmentType _investmentType,
         uint256 _ownershipPercentage
     ) external nonReentrant returns (uint256) {
-        // Input validation
         require(bytes(_title).length > 0, "Title cannot be empty");
         require(bytes(_developerName).length > 0, "Developer name required");
         require(_developerAddress != address(0), "Invalid developer address");
-        require(msg.sender == _developerAddress, "Sender must be the developer");
+        require(
+            msg.sender == _developerAddress,
+            "Sender must be the developer"
+        );
         require(bytes(_city).length > 0, "City required");
         require(bytes(_state).length > 0, "State required");
         require(bytes(_country).length > 0, "Country required");
 
-        // Investment validation
-        require(
-            _totalInvestment > 0,
-            "Total investment must be greater than 0"
-        );
-        require(
-            _minInvestment >= _unitPrice,
-            "Min investment must be >= unit price"
-        );
-        require(
-            _totalInvestment == _unitPrice * _totalUnits,
-            "Total investment must equal unit price * total units"
-        );
-        require(
-            _investmentDuration > 0,
-            "Investment duration must be greater than 0"
-        );
-        require(
-            _investmentType != InvestmentType.Equity ||
-                _ownershipPercentage > 0,
-            "Ownership percentage required for equity investments"
-        );
-
-        // Increment property counter and create new property
         propertyCount++;
         Property storage prop = properties[propertyCount];
 
-        // Set basic property info
         prop.propertyId = propertyCount;
         prop.title = _title;
         prop.description = _description;
@@ -284,24 +261,20 @@ contract Assetrix is Ownable, ReentrancyGuard, Pausable {
         prop.developer = _developerName;
         prop.developerAddress = msg.sender;
 
-        // Set location details
         prop.city = _city;
         prop.state = _state;
         prop.country = _country;
-
-        // Set property details
         prop.size = _size;
         prop.bedrooms = _bedrooms;
         prop.bathrooms = _bathrooms;
 
-        // Set investment details
         prop.unitPrice = _unitPrice;
         prop.totalUnits = _totalUnits;
         prop.totalInvestment = _totalInvestment;
         prop.minInvestment = _minInvestment;
         prop.currentFunding = 0;
         prop.expectedROI = _expectedROI;
-        prop.investmentDuration = _investmentDuration * 1 days; // Convert days to seconds
+        prop.investmentDuration = _investmentDuration * 1 days; 
         prop.investmentType = _investmentType;
         prop.ownershipPercentage = _ownershipPercentage;
 
@@ -443,7 +416,6 @@ contract Assetrix is Ownable, ReentrancyGuard, Pausable {
                     prop.unitPrice;
             }
 
-            // Calculate estimated returns based on ROI and duration
             if (prop.expectedROI > 0 && prop.investmentDuration > 0) {
                 uint256 durationInYears = prop.investmentDuration / 365 days;
                 estimatedReturns =
@@ -456,9 +428,6 @@ contract Assetrix is Ownable, ReentrancyGuard, Pausable {
         return (investmentAmount, ownershipShare, estimatedReturns);
     }
 
-    /**
-     * @notice Get all properties where the message sender has invested
-     */
     function getMyInvestments()
         external
         view
@@ -512,9 +481,6 @@ contract Assetrix is Ownable, ReentrancyGuard, Pausable {
         );
     }
 
-    /**
-     * @notice Get all investors for a specific property
-     */
     function getPropertyInvestors(
         uint256 _propertyId
     ) external view returns (address[] memory) {
@@ -523,9 +489,6 @@ contract Assetrix is Ownable, ReentrancyGuard, Pausable {
         return prop.investors;
     }
 
-    /**
-     * @notice Get investment amount for a specific property and investor
-     */
     function getInvestorAmount(
         uint256 _propertyId,
         address _investor
@@ -535,9 +498,6 @@ contract Assetrix is Ownable, ReentrancyGuard, Pausable {
         return prop.investments[_investor];
     }
 
-    /**
-     * @notice Request a refund for an investment in a property
-     */
     function requestRefund(
         uint256 _propertyId
     ) external nonReentrant propertyExists(_propertyId) {
@@ -547,11 +507,9 @@ contract Assetrix is Ownable, ReentrancyGuard, Pausable {
         uint256 investmentAmount = prop.investments[msg.sender];
         require(investmentAmount > 0, "No investment found");
 
-        // Reset investment tracking
         delete prop.investments[msg.sender];
         prop.currentFunding -= investmentAmount;
 
-        // Remove from investors array if empty
         if (investmentAmount > 0) {
             for (uint256 i = 0; i < prop.investors.length; i++) {
                 if (prop.investors[i] == msg.sender) {
@@ -564,7 +522,6 @@ contract Assetrix is Ownable, ReentrancyGuard, Pausable {
                 }
             }
 
-            // Remove from investor's properties
             uint256[] storage investorProps = investorProperties[msg.sender];
             for (uint256 i = 0; i < investorProps.length; i++) {
                 if (investorProps[i] == _propertyId) {
@@ -575,7 +532,6 @@ contract Assetrix is Ownable, ReentrancyGuard, Pausable {
             }
         }
 
-        // Transfer tokens back to investor
         stablecoin.safeTransfer(msg.sender, investmentAmount);
 
         emit Refunded(_propertyId, msg.sender, investmentAmount);
@@ -596,7 +552,6 @@ contract Assetrix is Ownable, ReentrancyGuard, Pausable {
         require(bytes(_title).length > 0, "Title cannot be empty");
         require(_percentage > 0 && _percentage <= 100, "Invalid percentage");
 
-        // Calculate total percentage including the new milestone
         uint256 totalPercentage = _percentage;
         for (uint i = 0; i < propertyMilestones[_propertyId].length; i++) {
             totalPercentage += propertyMilestones[_propertyId][i].percentage;
@@ -643,7 +598,6 @@ contract Assetrix is Ownable, ReentrancyGuard, Pausable {
         Milestone storage milestone = milestones[_milestoneId];
         require(!milestone.isCompleted, "Milestone already completed");
 
-        // Verify all previous milestones are completed
         for (uint i = 0; i < _milestoneId; i++) {
             require(
                 milestones[i].isCompleted,
@@ -679,7 +633,6 @@ contract Assetrix is Ownable, ReentrancyGuard, Pausable {
         Milestone storage milestone = milestones[_milestoneId];
         require(milestone.isCompleted, "Milestone not completed");
 
-        // Calculate releasable amount
         uint256 totalReleasable = (prop.totalInvestment *
             milestone.percentage) / 100;
         uint256 alreadyReleased = releasedFunds[_propertyId];
@@ -690,26 +643,20 @@ contract Assetrix is Ownable, ReentrancyGuard, Pausable {
             "Insufficient funds in contract"
         );
 
-        // Calculate actual amount to release (capped at remaining contract balance)
         uint256 amountToRelease = totalReleasable - alreadyReleased;
         require(amountToRelease > 0, "No funds to release for this milestone");
 
-        // Update state before external call
         releasedFunds[_propertyId] += amountToRelease;
         prop.currentFunding = prop.currentFunding >= amountToRelease
             ? prop.currentFunding - amountToRelease
             : 0;
 
-        // Transfer funds to developer using safeTransfer
         stablecoin.safeTransfer(prop.developerAddress, amountToRelease);
 
         emit FundsReleased(_propertyId, _milestoneId, amountToRelease);
         emit PayoutSent(_propertyId, prop.developerAddress, amountToRelease);
     }
 
-    /**
-     * @notice Get all milestones for a property
-     */
     function getPropertyMilestones(
         uint256 _propertyId
     ) external view returns (Milestone[] memory) {
@@ -752,6 +699,7 @@ contract Assetrix is Ownable, ReentrancyGuard, Pausable {
     ) external onlyOwner propertyExists(_propertyId) {
         Property storage prop = properties[_propertyId];
         require(prop.isActive, "Property is not active");
+        require(releasedFunds[_propertyId] == 0, "Funds already released");
 
         address[] memory investors = prop.investors;
         uint256 totalRefunded = 0;
@@ -761,11 +709,8 @@ contract Assetrix is Ownable, ReentrancyGuard, Pausable {
             uint256 amount = prop.investments[investor];
 
             if (amount > 0) {
-                // Reset investment
                 delete prop.investments[investor];
                 totalRefunded += amount;
-
-                // Remove from investor's properties
                 uint256[] storage investorProps = investorProperties[investor];
                 for (uint256 j = 0; j < investorProps.length; j++) {
                     if (investorProps[j] == _propertyId) {
@@ -776,15 +721,12 @@ contract Assetrix is Ownable, ReentrancyGuard, Pausable {
                         break;
                     }
                 }
-
-                // Transfer tokens back to investor using safeTransfer
                 stablecoin.safeTransfer(investor, amount);
 
                 emit Refunded(_propertyId, investor, amount);
             }
         }
 
-        // Reset property state
         delete prop.investors;
         prop.investorCount = 0;
         prop.currentFunding = 0;
@@ -794,9 +736,6 @@ contract Assetrix is Ownable, ReentrancyGuard, Pausable {
         emit PropertyDeactivated(_propertyId);
     }
 
-    /**
-     * @notice Get all properties owned by the developer
-     */
     function getMyProperties() external view returns (PropertyView[] memory) {
         uint256[] memory propertyIds = developerProperties[msg.sender];
         PropertyView[] memory result = new PropertyView[](propertyIds.length);
@@ -844,9 +783,6 @@ contract Assetrix is Ownable, ReentrancyGuard, Pausable {
         return result;
     }
 
-    /**
-     * @notice Get all properties
-     */
     function getProperties(
         uint256 _offset,
         uint256 _limit
@@ -863,10 +799,13 @@ contract Assetrix is Ownable, ReentrancyGuard, Pausable {
         }
 
         propertyIds = new uint256[](resultCount);
-        // Populate property IDs array
         for (uint256 i = 0; i < resultCount; i++) {
             propertyIds[i] = _offset + i + 1;
         }
+    }
+
+    function getTotalProperties() external view returns (uint256) {
+        return propertyCount;
     }
 
     function pauseContract() external onlyOwner {
