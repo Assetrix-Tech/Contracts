@@ -1,21 +1,28 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
-import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
-import "@openzeppelin/contracts/security/Pausable.sol";
-import "@openzeppelin/contracts/utils/Address.sol";
+import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/AddressUpgradeable.sol";
 
-contract Assetrix is Ownable, ReentrancyGuard, Pausable {
-    using SafeERC20 for IERC20;
-    IERC20 public stablecoin;
+contract Assetrix is
+    Initializable,
+    OwnableUpgradeable,
+    ReentrancyGuardUpgradeable,
+    PausableUpgradeable,
+    UUPSUpgradeable
+{
+    using SafeERC20Upgradeable for IERC20Upgradeable;
+    using AddressUpgradeable for address;
 
-    constructor(address _stablecoin) {
-        require(_stablecoin != address(0), "Invalid stablecoin address");
-        stablecoin = IERC20(_stablecoin);
-    }
+    IERC20Upgradeable public stablecoin;
+
+   
 
     enum InvestmentType {
         Equity,
@@ -65,15 +72,12 @@ contract Assetrix is Ownable, ReentrancyGuard, Pausable {
         PropertyType propertyType;
         PropertyUse propertyUse;
         string developer;
-        // Location
         string city;
         string state;
         string country;
-        // Property Details
         uint256 size;
         uint256 bedrooms;
         uint256 bathrooms;
-        // Investment Details
         uint256 unitPrice;
         uint256 totalUnits;
         uint256 totalInvestment;
@@ -82,14 +86,11 @@ contract Assetrix is Ownable, ReentrancyGuard, Pausable {
         uint256 investmentDuration;
         InvestmentType investmentType;
         uint256 ownershipPercentage;
-        // Status
         uint256 currentFunding;
         bool isActive;
         bool isFullyFunded;
-        // Metadata
         string ipfsImagesHash;
         string ipfsMetadataHash;
-        // Investment tracking
         address[] investors;
         mapping(address => uint256) investments;
         uint256 investorCount;
@@ -97,22 +98,18 @@ contract Assetrix is Ownable, ReentrancyGuard, Pausable {
     }
 
     struct PropertyView {
-        // Basic Info
         uint256 propertyId;
         string title;
         string description;
         PropertyType propertyType;
         PropertyUse propertyUse;
         string developer;
-        // Location
         string city;
         string state;
         string country;
-        // Property Details
         uint256 size;
         uint256 bedrooms;
         uint256 bathrooms;
-        // Investment Details
         uint256 unitPrice;
         uint256 totalUnits;
         uint256 totalInvestment;
@@ -121,16 +118,12 @@ contract Assetrix is Ownable, ReentrancyGuard, Pausable {
         uint256 investmentDuration;
         InvestmentType investmentType;
         uint256 ownershipPercentage;
-        // Status
         uint256 currentFunding;
         bool isActive;
         bool isFullyFunded;
-        // Metadata
         string ipfsImagesHash;
         string ipfsMetadataHash;
-        // Developer address
         address developerAddress;
-        // Investor count
         uint256 investorCount;
     }
 
@@ -212,6 +205,16 @@ contract Assetrix is Ownable, ReentrancyGuard, Pausable {
         emit StablecoinUpdated(_newStablecoin);
     }
 
+    function initialize(address _stablecoin) public initializer {
+        require(_stablecoin != address(0), "Invalid stablecoin address");
+        stablecoin = IERC20Upgradeable(_stablecoin);
+
+        __Ownable_init();
+        __ReentrancyGuard_init();
+        __Pausable_init();
+        __UUPSUpgradeable_init();
+    }
+
     function createProperty(
         string memory _title,
         string memory _description,
@@ -274,7 +277,7 @@ contract Assetrix is Ownable, ReentrancyGuard, Pausable {
         prop.minInvestment = _minInvestment;
         prop.currentFunding = 0;
         prop.expectedROI = _expectedROI;
-        prop.investmentDuration = _investmentDuration * 1 days; 
+        prop.investmentDuration = _investmentDuration * 1 days;
         prop.investmentType = _investmentType;
         prop.ownershipPercentage = _ownershipPercentage;
 
