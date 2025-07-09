@@ -22,8 +22,6 @@ contract Assetrix is
 
     IERC20Upgradeable public stablecoin;
 
-   
-
     enum InvestmentType {
         Equity,
         Debt
