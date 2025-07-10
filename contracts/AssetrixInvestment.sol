@@ -2,14 +2,13 @@
 pragma solidity ^0.8.28;
 
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/utils/AddressUpgradeable.sol";
-
+import "@openzeppelin/contracts/utils/Address.sol";
 
 contract Assetrix is
     Initializable,
@@ -18,10 +17,10 @@ contract Assetrix is
     PausableUpgradeable,
     UUPSUpgradeable
 {
-    using SafeERC20Upgradeable for IERC20Upgradeable;
-    using AddressUpgradeable for address;
+    using SafeERC20 for IERC20;
+    using Address for address;
 
-    IERC20Upgradeable public stablecoin;
+    IERC20 public stablecoin;
 
     enum InvestmentType {
         Equity,
@@ -30,37 +29,21 @@ contract Assetrix is
 
     // Property Type
     enum PropertyType {
-        Apartment,
-        House,
-        Townhouse,
-        Condo,
-        Villa,
-        Bungalow,
-        Studio,
-        Other
+        ShortStay,
+        LuxuryResidentialTowers
     }
 
     enum PropertyUse {
-        PrimaryResidence,
-        SecondaryHome,
-        ShortTermRental,
-        LongTermRental,
-        Office,
-        Retail,
-        Restaurant,
-        HotelLodging,
-        Industrial,
-        Other
+        Commercial,
+        Hospitality,
+        MixedUse
     }
 
     enum PropertyStatus {
         PreConstruction,
         UnderConstruction,
         Completed,
-        Renovation,
-        UnderContract,
-        Leased,
-        OffMarket
+        Renovation
     }
 
     struct Property {
@@ -196,18 +179,22 @@ contract Assetrix is
         _;
     }
 
+    function _authorizeUpgrade(
+        address newImplementation
+    ) internal override onlyOwner {}
+
     function setStablecoin(address _newStablecoin) external onlyOwner {
         require(_newStablecoin != address(0), "Invalid address");
-        require(Address.isContract(_newStablecoin), "Not a contract address");
+        require(_newStablecoin.code.length > 0, "Not a contract address");
         stablecoin = IERC20(_newStablecoin);
         emit StablecoinUpdated(_newStablecoin);
     }
 
     function initialize(address _stablecoin) public initializer {
         require(_stablecoin != address(0), "Invalid stablecoin address");
-        stablecoin = IERC20Upgradeable(_stablecoin);
+        stablecoin = IERC20(_stablecoin);
 
-        __Ownable_init();
+        __Ownable_init(msg.sender);
         __ReentrancyGuard_init();
         __Pausable_init();
         __UUPSUpgradeable_init();

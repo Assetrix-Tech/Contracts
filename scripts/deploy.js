@@ -16,6 +16,7 @@ async function main() {
     if (!stablecoinAddress) {
       throw new Error('STABLECOIN_ADDRESS is not set in .env file')
     }
+    console.log('🪙 Using stablecoin address:', stablecoinAddress)
 
     console.log('Deploying Assetrix Investment...')
     
@@ -23,6 +24,7 @@ async function main() {
     const Assetrix = await ethers.getContractFactory('Assetrix')
     console.log('Deploying proxy and implementation...')
     
+    console.log('⏳ Deploying proxy contract...')
     const assetrix = await upgrades.deployProxy(
       Assetrix,
       [stablecoinAddress],
@@ -32,8 +34,13 @@ async function main() {
       }
     )
     
-    await assetrix.waitForDeployment()
+    // Get proxy address immediately after deployment starts
     const proxyAddress = await assetrix.getAddress()
+    console.log('🔗 Proxy address:', proxyAddress)
+    
+    console.log('⏳ Waiting for deployment confirmation...')
+    await assetrix.waitForDeployment()
+    console.log('⏳ Getting implementation address...')
     const implementationAddress = await upgrades.erc1967.getImplementationAddress(proxyAddress)
 
     console.log('✅ Assetrix deployed to:', proxyAddress)

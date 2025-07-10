@@ -1,12 +1,26 @@
-const { run } = require("hardhat");
+const { run, ethers } = require("hardhat");
+const fs = require('fs');
+const path = require('path');
 require('dotenv').config();
 
 async function main() {
-  const proxyAddress = process.env.PROXY_ADDRESS;
-  const implementationAddress = process.env.IMPLEMENTATION_ADDRESS;
+  let proxyAddress = process.env.PROXY_ADDRESS;
+  let implementationAddress = process.env.IMPLEMENTATION_ADDRESS;
   
+  // If not in env, try to get from deployment file
   if (!proxyAddress || !implementationAddress) {
-    throw new Error("PROXY_ADDRESS and IMPLEMENTATION_ADDRESS must be set in .env file");
+    const network = await ethers.provider.getNetwork();
+    const networkName = network.name === 'unknown' ? 'localhost' : network.name;
+    const deploymentPath = path.join(__dirname, '..', 'deployments', `deployment-${networkName}.json`);
+    
+    if (fs.existsSync(deploymentPath)) {
+      const deploymentData = JSON.parse(fs.readFileSync(deploymentPath));
+      proxyAddress = proxyAddress || deploymentData.proxy;
+      implementationAddress = implementationAddress || deploymentData.implementation;
+      console.log(`📁 Found addresses in deployment file: ${deploymentPath}`);
+    } else {
+      throw new Error("PROXY_ADDRESS and IMPLEMENTATION_ADDRESS must be set in .env file or deployment file must exist");
+    }
   }
 
   console.log("Verifying contracts...");
