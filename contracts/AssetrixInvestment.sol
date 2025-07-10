@@ -338,4 +338,126 @@ contract Assetrix is
         prop.isActive = false;
         emit PropertyDeactivated(_propertyId);
     }
+
+    function getProperties(
+        uint256 _offset,
+        uint256 _limit
+    ) external view returns (uint256[] memory propertyIds, uint256 totalCount) {
+        require(_limit > 0 && _limit <= 50, "Limit must be between 1 and 50");
+
+        totalCount = propertyCount;
+        uint256 resultCount = _limit;
+
+        if (_offset >= totalCount) {
+            resultCount = 0;
+        } else if (_offset + _limit > totalCount) {
+            resultCount = totalCount - _offset;
+        }
+
+        propertyIds = new uint256[](resultCount);
+        for (uint256 i = 0; i < resultCount; i++) {
+            propertyIds[i] = _offset + i + 1;
+        }
+    }
+
+    function getProperty(
+        uint256 _propertyId
+    ) public view returns (PropertyView memory) {
+        require(
+            _propertyId > 0 && _propertyId <= propertyCount,
+            "Property does not exist"
+        );
+
+        Property storage prop = properties[_propertyId];
+
+        return
+            PropertyView({
+                propertyId: prop.propertyId,
+                title: prop.title,
+                description: prop.description,
+                propertyType: prop.propertyType,
+                propertyUse: prop.propertyUse,
+                developer: prop.developer,
+                city: prop.city,
+                state: prop.state,
+                country: prop.country,
+                size: prop.size,
+                bedrooms: prop.bedrooms,
+                bathrooms: prop.bathrooms,
+                unitPrice: prop.unitPrice,
+                totalUnits: prop.totalUnits,
+                totalInvestment: prop.totalInvestment,
+                minInvestment: prop.minInvestment,
+                expectedROI: prop.expectedROI,
+                investmentDuration: prop.investmentDuration,
+                investmentType: prop.investmentType,
+                ownershipPercentage: prop.ownershipPercentage,
+                currentFunding: prop.currentFunding,
+                isActive: prop.isActive,
+                isFullyFunded: prop.isFullyFunded,
+                ipfsImagesHash: prop.ipfsImagesHash,
+                ipfsMetadataHash: prop.ipfsMetadataHash,
+                developerAddress: prop.developerAddress,
+                investorCount: prop.investorCount
+            });
+    }
+
+    function getMyProperties() external view returns (PropertyView[] memory) {
+        uint256[] memory propertyIds = developerProperties[msg.sender];
+        PropertyView[] memory result = new PropertyView[](propertyIds.length);
+
+        for (uint256 i = 0; i < propertyIds.length; i++) {
+            uint256 propertyId = propertyIds[i];
+            require(
+                propertyId > 0 && propertyId <= propertyCount,
+                "Invalid property ID"
+            );
+
+            Property storage prop = properties[propertyId];
+
+            result[i] = PropertyView({
+                propertyId: prop.propertyId,
+                title: prop.title,
+                description: prop.description,
+                propertyType: prop.propertyType,
+                propertyUse: prop.propertyUse,
+                developer: prop.developer,
+                city: prop.city,
+                state: prop.state,
+                country: prop.country,
+                size: prop.size,
+                bedrooms: prop.bedrooms,
+                bathrooms: prop.bathrooms,
+                unitPrice: prop.unitPrice,
+                totalUnits: prop.totalUnits,
+                totalInvestment: prop.totalInvestment,
+                minInvestment: prop.minInvestment,
+                expectedROI: prop.expectedROI,
+                investmentDuration: prop.investmentDuration,
+                investmentType: prop.investmentType,
+                ownershipPercentage: prop.ownershipPercentage,
+                currentFunding: prop.currentFunding,
+                isActive: prop.isActive,
+                isFullyFunded: prop.isFullyFunded,
+                ipfsImagesHash: prop.ipfsImagesHash,
+                ipfsMetadataHash: prop.ipfsMetadataHash,
+                developerAddress: prop.developerAddress,
+                investorCount: prop.investorCount
+            });
+        }
+
+        return result;
+    }
+
+    function getTotalProperties() external view returns (uint256) {
+        return propertyCount;
+    }
+
+    function getPropertyInvestors(
+        uint256 _propertyId
+    ) external view returns (address[] memory) {
+        require(_propertyId > 0 && _propertyId <= propertyCount, "Property does not exist");
+        Property storage prop = properties[_propertyId];
+        return prop.investors;
+    }
 }
