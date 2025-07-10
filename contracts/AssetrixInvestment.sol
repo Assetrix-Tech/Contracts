@@ -63,7 +63,6 @@ contract Assetrix is
     }
 
     struct Property {
-        // Basic Info
         uint256 propertyId;
         string title;
         string description;
