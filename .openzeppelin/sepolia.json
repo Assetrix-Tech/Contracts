@@ -1,0 +1,502 @@
+{
+  "manifestVersion": "3.2",
+  "proxies": [
+    {
+      "address": "0x02F71705534f3E770b895d70FCc60cb20DAFAf9F",
+      "txHash": "0x8e14c3637d6a5568938cdf8a8ebcbeceec269464e83c33afdca14707cb14a2e4",
+      "kind": "uups"
+    },
+    {
+      "address": "0xbd86AA6a50CC34E6F4251C468cE6c9aA5D84aE86",
+      "txHash": "0x88f52d1245751fa78e1023a7ae599414606922fef639471914a5921441a5bb5a",
+      "kind": "uups"
+    },
+    {
+      "address": "0xc8E3A087560374e60c5D5fDeF6754bAA6767c7C0",
+      "txHash": "0x61207629182f80c355b2ba23b26529e6272b5267d384488652a852089fc9f639",
+      "kind": "uups"
+    }
+  ],
+  "impls": {
+    "5cdb45598472b01c2a485d9c386300aa9a5a7c65b5656165bbae91ead8e0437e": {
+      "address": "0x5859145C325bC124fEDe38e606B432A59f5e17B6",
+      "txHash": "0xa32c9c3449291c3a757b85f3fe25b5575fea8cab5ec607e8f54f16947973b798",
+      "layout": {
+        "solcVersion": "0.8.28",
+        "storage": [
+          {
+            "label": "stablecoin",
+            "offset": 0,
+            "slot": "0",
+            "type": "t_contract(IERC20)1482",
+            "contract": "Assetrix",
+            "src": "contracts\\AssetrixInvestment.sol:23"
+          },
+          {
+            "label": "propertyCount",
+            "offset": 0,
+            "slot": "1",
+            "type": "t_uint256",
+            "contract": "Assetrix",
+            "src": "contracts\\AssetrixInvestment.sol:121"
+          },
+          {
+            "label": "properties",
+            "offset": 0,
+            "slot": "2",
+            "type": "t_mapping(t_uint256,t_struct(Property)2474_storage)",
+            "contract": "Assetrix",
+            "src": "contracts\\AssetrixInvestment.sol:124"
+          },
+          {
+            "label": "developerProperties",
+            "offset": 0,
+            "slot": "3",
+            "type": "t_mapping(t_address,t_array(t_uint256)dyn_storage)",
+            "contract": "Assetrix",
+            "src": "contracts\\AssetrixInvestment.sol:125"
+          },
+          {
+            "label": "investorProperties",
+            "offset": 0,
+            "slot": "4",
+            "type": "t_mapping(t_address,t_array(t_uint256)dyn_storage)",
+            "contract": "Assetrix",
+            "src": "contracts\\AssetrixInvestment.sol:126"
+          },
+          {
+            "label": "propertyMilestones",
+            "offset": 0,
+            "slot": "5",
+            "type": "t_mapping(t_uint256,t_array(t_struct(Milestone)2547_storage)dyn_storage)",
+            "contract": "Assetrix",
+            "src": "contracts\\AssetrixInvestment.sol:127"
+          },
+          {
+            "label": "releasedFunds",
+            "offset": 0,
+            "slot": "6",
+            "type": "t_mapping(t_uint256,t_uint256)",
+            "contract": "Assetrix",
+            "src": "contracts\\AssetrixInvestment.sol:128"
+          }
+        ],
+        "types": {
+          "t_address": {
+            "label": "address",
+            "numberOfBytes": "20"
+          },
+          "t_bool": {
+            "label": "bool",
+            "numberOfBytes": "1"
+          },
+          "t_struct(InitializableStorage)73_storage": {
+            "label": "struct Initializable.InitializableStorage",
+            "members": [
+              {
+                "label": "_initialized",
+                "type": "t_uint64",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "_initializing",
+                "type": "t_bool",
+                "offset": 8,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_struct(OwnableStorage)13_storage": {
+            "label": "struct OwnableUpgradeable.OwnableStorage",
+            "members": [
+              {
+                "label": "_owner",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_struct(PausableStorage)224_storage": {
+            "label": "struct PausableUpgradeable.PausableStorage",
+            "members": [
+              {
+                "label": "_paused",
+                "type": "t_bool",
+                "offset": 0,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_struct(ReentrancyGuardStorage)288_storage": {
+            "label": "struct ReentrancyGuardUpgradeable.ReentrancyGuardStorage",
+            "members": [
+              {
+                "label": "_status",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_uint256": {
+            "label": "uint256",
+            "numberOfBytes": "32"
+          },
+          "t_uint64": {
+            "label": "uint64",
+            "numberOfBytes": "8"
+          },
+          "t_array(t_address)dyn_storage": {
+            "label": "address[]",
+            "numberOfBytes": "32"
+          },
+          "t_array(t_struct(Milestone)2547_storage)dyn_storage": {
+            "label": "struct Assetrix.Milestone[]",
+            "numberOfBytes": "32"
+          },
+          "t_array(t_uint256)dyn_storage": {
+            "label": "uint256[]",
+            "numberOfBytes": "32"
+          },
+          "t_contract(IERC20)1482": {
+            "label": "contract IERC20",
+            "numberOfBytes": "20"
+          },
+          "t_enum(InvestmentType)2397": {
+            "label": "enum Assetrix.InvestmentType",
+            "members": [
+              "Equity",
+              "Debt"
+            ],
+            "numberOfBytes": "1"
+          },
+          "t_enum(PropertyType)2400": {
+            "label": "enum Assetrix.PropertyType",
+            "members": [
+              "ShortStay",
+              "LuxuryResidentialTowers"
+            ],
+            "numberOfBytes": "1"
+          },
+          "t_enum(PropertyUse)2404": {
+            "label": "enum Assetrix.PropertyUse",
+            "members": [
+              "Commercial",
+              "Hospitality",
+              "MixedUse"
+            ],
+            "numberOfBytes": "1"
+          },
+          "t_mapping(t_address,t_array(t_uint256)dyn_storage)": {
+            "label": "mapping(address => uint256[])",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_address,t_uint256)": {
+            "label": "mapping(address => uint256)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint256,t_array(t_struct(Milestone)2547_storage)dyn_storage)": {
+            "label": "mapping(uint256 => struct Assetrix.Milestone[])",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint256,t_struct(Property)2474_storage)": {
+            "label": "mapping(uint256 => struct Assetrix.Property)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint256,t_uint256)": {
+            "label": "mapping(uint256 => uint256)",
+            "numberOfBytes": "32"
+          },
+          "t_string_storage": {
+            "label": "string",
+            "numberOfBytes": "32"
+          },
+          "t_struct(Milestone)2547_storage": {
+            "label": "struct Assetrix.Milestone",
+            "members": [
+              {
+                "label": "id",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "title",
+                "type": "t_string_storage",
+                "offset": 0,
+                "slot": "1"
+              },
+              {
+                "label": "description",
+                "type": "t_string_storage",
+                "offset": 0,
+                "slot": "2"
+              },
+              {
+                "label": "percentage",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "3"
+              },
+              {
+                "label": "isCompleted",
+                "type": "t_bool",
+                "offset": 0,
+                "slot": "4"
+              },
+              {
+                "label": "ipfsProofHash",
+                "type": "t_string_storage",
+                "offset": 0,
+                "slot": "5"
+              },
+              {
+                "label": "completedAt",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "6"
+              }
+            ],
+            "numberOfBytes": "224"
+          },
+          "t_struct(Property)2474_storage": {
+            "label": "struct Assetrix.Property",
+            "members": [
+              {
+                "label": "propertyId",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "title",
+                "type": "t_string_storage",
+                "offset": 0,
+                "slot": "1"
+              },
+              {
+                "label": "description",
+                "type": "t_string_storage",
+                "offset": 0,
+                "slot": "2"
+              },
+              {
+                "label": "propertyType",
+                "type": "t_enum(PropertyType)2400",
+                "offset": 0,
+                "slot": "3"
+              },
+              {
+                "label": "propertyUse",
+                "type": "t_enum(PropertyUse)2404",
+                "offset": 1,
+                "slot": "3"
+              },
+              {
+                "label": "developer",
+                "type": "t_string_storage",
+                "offset": 0,
+                "slot": "4"
+              },
+              {
+                "label": "city",
+                "type": "t_string_storage",
+                "offset": 0,
+                "slot": "5"
+              },
+              {
+                "label": "state",
+                "type": "t_string_storage",
+                "offset": 0,
+                "slot": "6"
+              },
+              {
+                "label": "country",
+                "type": "t_string_storage",
+                "offset": 0,
+                "slot": "7"
+              },
+              {
+                "label": "size",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "8"
+              },
+              {
+                "label": "bedrooms",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "9"
+              },
+              {
+                "label": "bathrooms",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "10"
+              },
+              {
+                "label": "unitPrice",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "11"
+              },
+              {
+                "label": "totalUnits",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "12"
+              },
+              {
+                "label": "totalInvestment",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "13"
+              },
+              {
+                "label": "minInvestment",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "14"
+              },
+              {
+                "label": "expectedROI",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "15"
+              },
+              {
+                "label": "investmentDuration",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "16"
+              },
+              {
+                "label": "investmentType",
+                "type": "t_enum(InvestmentType)2397",
+                "offset": 0,
+                "slot": "17"
+              },
+              {
+                "label": "ownershipPercentage",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "18"
+              },
+              {
+                "label": "currentFunding",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "19"
+              },
+              {
+                "label": "isActive",
+                "type": "t_bool",
+                "offset": 0,
+                "slot": "20"
+              },
+              {
+                "label": "isFullyFunded",
+                "type": "t_bool",
+                "offset": 1,
+                "slot": "20"
+              },
+              {
+                "label": "ipfsImagesHash",
+                "type": "t_string_storage",
+                "offset": 0,
+                "slot": "21"
+              },
+              {
+                "label": "ipfsMetadataHash",
+                "type": "t_string_storage",
+                "offset": 0,
+                "slot": "22"
+              },
+              {
+                "label": "investors",
+                "type": "t_array(t_address)dyn_storage",
+                "offset": 0,
+                "slot": "23"
+              },
+              {
+                "label": "investments",
+                "type": "t_mapping(t_address,t_uint256)",
+                "offset": 0,
+                "slot": "24"
+              },
+              {
+                "label": "investorCount",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "25"
+              },
+              {
+                "label": "developerAddress",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "26"
+              }
+            ],
+            "numberOfBytes": "864"
+          }
+        },
+        "namespaces": {
+          "erc7201:openzeppelin.storage.Pausable": [
+            {
+              "contract": "PausableUpgradeable",
+              "label": "_paused",
+              "type": "t_bool",
+              "src": "@openzeppelin\\contracts-upgradeable\\utils\\PausableUpgradeable.sol:21",
+              "offset": 0,
+              "slot": "0"
+            }
+          ],
+          "erc7201:openzeppelin.storage.ReentrancyGuard": [
+            {
+              "contract": "ReentrancyGuardUpgradeable",
+              "label": "_status",
+              "type": "t_uint256",
+              "src": "@openzeppelin\\contracts-upgradeable\\utils\\ReentrancyGuardUpgradeable.sol:43",
+              "offset": 0,
+              "slot": "0"
+            }
+          ],
+          "erc7201:openzeppelin.storage.Ownable": [
+            {
+              "contract": "OwnableUpgradeable",
+              "label": "_owner",
+              "type": "t_address",
+              "src": "@openzeppelin\\contracts-upgradeable\\access\\OwnableUpgradeable.sol:24",
+              "offset": 0,
+              "slot": "0"
+            }
+          ],
+          "erc7201:openzeppelin.storage.Initializable": [
+            {
+              "contract": "Initializable",
+              "label": "_initialized",
+              "type": "t_uint64",
+              "src": "@openzeppelin\\contracts-upgradeable\\proxy\\utils\\Initializable.sol:69",
+              "offset": 0,
+              "slot": "0"
+            },
+            {
+              "contract": "Initializable",
+              "label": "_initializing",
+              "type": "t_bool",
+              "src": "@openzeppelin\\contracts-upgradeable\\proxy\\utils\\Initializable.sol:73",
+              "offset": 8,
+              "slot": "0"
+            }
+          ]
+        }
+      }
+    }
+  }
+}

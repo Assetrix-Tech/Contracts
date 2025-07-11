@@ -22,11 +22,6 @@ contract Assetrix is
 
     IERC20 public stablecoin;
 
-    enum InvestmentType {
-        Equity,
-        Debt
-    }
-
     // Property Type
     enum PropertyType {
         ShortStay,
@@ -42,8 +37,18 @@ contract Assetrix is
     enum PropertyStatus {
         PreConstruction,
         UnderConstruction,
-        Completed,
         Renovation
+    }
+
+    enum Duration {
+        OneMonth, // 0
+        ThreeMonths, // 1
+        FiveMonths, // 2
+        SevenMonths, // 3
+        EightMonths, // 4
+        NineMonths, // 5
+        TenMonths, // 6
+        TwelveMonths // 7
     }
 
     struct Property {
@@ -64,8 +69,7 @@ contract Assetrix is
         uint256 totalInvestment;
         uint256 minInvestment;
         uint256 expectedROI;
-        uint256 investmentDuration;
-        InvestmentType investmentType;
+        Duration investmentDuration;
         uint256 ownershipPercentage;
         uint256 currentFunding;
         bool isActive;
@@ -96,8 +100,7 @@ contract Assetrix is
         uint256 totalInvestment;
         uint256 minInvestment;
         uint256 expectedROI;
-        uint256 investmentDuration;
-        InvestmentType investmentType;
+        Duration investmentDuration;
         uint256 ownershipPercentage;
         uint256 currentFunding;
         bool isActive;
@@ -223,8 +226,7 @@ contract Assetrix is
         uint256 _totalInvestment,
         uint256 _minInvestment,
         uint256 _expectedROI,
-        uint256 _investmentDuration,
-        InvestmentType _investmentType,
+        Duration _investmentDuration,
         uint256 _ownershipPercentage
     ) external nonReentrant returns (uint256) {
         require(bytes(_title).length > 0, "Title cannot be empty");
@@ -262,8 +264,7 @@ contract Assetrix is
         prop.minInvestment = _minInvestment;
         prop.currentFunding = 0;
         prop.expectedROI = _expectedROI;
-        prop.investmentDuration = _investmentDuration * 1 days;
-        prop.investmentType = _investmentType;
+        prop.investmentDuration = _investmentDuration;
         prop.ownershipPercentage = _ownershipPercentage;
 
         // Set status and metadata
@@ -390,7 +391,6 @@ contract Assetrix is
                 minInvestment: prop.minInvestment,
                 expectedROI: prop.expectedROI,
                 investmentDuration: prop.investmentDuration,
-                investmentType: prop.investmentType,
                 ownershipPercentage: prop.ownershipPercentage,
                 currentFunding: prop.currentFunding,
                 isActive: prop.isActive,
@@ -434,7 +434,6 @@ contract Assetrix is
                 minInvestment: prop.minInvestment,
                 expectedROI: prop.expectedROI,
                 investmentDuration: prop.investmentDuration,
-                investmentType: prop.investmentType,
                 ownershipPercentage: prop.ownershipPercentage,
                 currentFunding: prop.currentFunding,
                 isActive: prop.isActive,
@@ -456,7 +455,10 @@ contract Assetrix is
     function getPropertyInvestors(
         uint256 _propertyId
     ) external view returns (address[] memory) {
-        require(_propertyId > 0 && _propertyId <= propertyCount, "Property does not exist");
+        require(
+            _propertyId > 0 && _propertyId <= propertyCount,
+            "Property does not exist"
+        );
         Property storage prop = properties[_propertyId];
         return prop.investors;
     }
