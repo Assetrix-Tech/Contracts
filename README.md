@@ -59,17 +59,61 @@ npx hardhat compile
 
 # Run tests
 npx hardhat test
+```
 
+## Deployment & Management
+
+### Initial Deployment
+```bash
 # Deploy to network
 npx hardhat run scripts/deploy.js --network [network-name]
 ```
 
+### Contract Upgrade
+```bash
+# Upgrade the contract (for UUPS upgradeable contracts)
+npx hardhat run scripts/upgrade.js --network [network-name]
+```
+
+### Contract Verification
+```bash
+# Verify contract on Etherscan/Block Explorer
+npx hardhat run scripts/verify.js --network [network-name]
+```
+
+### Script Details
+
+#### deploy.js
+- Deploys the initial Assetrix contract
+- Sets up the proxy contract
+- Initializes with stablecoin address
+- Saves deployment addresses to `deployments/deployment-[network].json`
+
+#### upgrade.js
+- Deploys new implementation contract
+- Upgrades the proxy to new implementation
+- Maintains all existing data and state
+- Updates deployment records
+
+#### verify.js
+- Verifies contract source code on Etherscan
+- Includes constructor arguments
+- Enables public contract interaction
+
+### Environment Variables
+Create a `.env` file with:
+```env
+PRIVATE_KEY=your_private_key_here
+ETHERSCAN_API_KEY=your_etherscan_api_key
+ALCHEMY_API_KEY=your_alchemy_api_key
+```
+
+
+```
 
 ## License
 
 MIT License
-
-
 
 ## Acknowledgements
 - [OpenZeppelin Contracts](https://openzeppelin.com/contracts/)
