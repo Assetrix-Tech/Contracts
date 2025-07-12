@@ -886,7 +886,11 @@ contract Assetrix is
 
         Property storage prop = properties[_propertyId];
         require(prop.isActive, "Property is not active");
-        require(!prop.isFullyFunded, "Property is already fully funded");
+        
+        // Check if property can accept investments (handles re-funding after early exits)
+        bool canAccept = this.canAcceptInvestments(_propertyId);
+        require(canAccept, "Property cannot accept investments at this time");
+        
         require(
             _amount >= prop.minInvestment,
             "Investment below minimum required"
@@ -1102,7 +1106,19 @@ contract Assetrix is
     function earlyExit(uint256 _propertyId) external nonReentrant {
         Property storage prop = properties[_propertyId];
         require(prop.investments[msg.sender] > 0, "No investment to exit");
-        require(!prop.isFullyFunded, "Cannot exit from fully funded property");
+        
+        // Allow early exit even after full funding, but with restrictions
+        if (prop.isFullyFunded) {
+            // Check if any milestone funds have been released
+            bool hasReleasedFunds = false;
+            for (uint256 i = 0; i < prop.milestones.length; i++) {
+                if (prop.milestones[i].fundsReleased) {
+                    hasReleasedFunds = true;
+                    break;
+                }
+            }
+            require(!hasReleasedFunds, "Cannot exit after milestone funds have been released");
+        }
 
         uint256 investmentAmount = prop.investments[msg.sender];
         uint256 exitFee = (investmentAmount * 5) / 100; // 5% exit fee
@@ -1122,6 +1138,14 @@ contract Assetrix is
 
         // Update property funding
         prop.currentFunding -= investmentAmount;
+        
+        // If property was fully funded and now isn't, update status
+        if (prop.isFullyFunded && prop.currentFunding < prop.totalInvestment) {
+            prop.isFullyFunded = false;
+        }
+
+        // Remove investor from property
+        _removeInvestorFromProperty(_propertyId, msg.sender);
 
         // Record transactions
         _recordTransaction(
@@ -1197,7 +1221,11 @@ contract Assetrix is
         require(!milestone.fundsReleased, "Funds already released for this milestone");
         require(!milestone.isCompleted, "Milestone already completed");
 
-        uint256 releaseAmount = (prop.totalInvestment * milestone.percentage) / 100;
+        // Calculate release amount based on current funding (not original total)
+        uint256 releaseAmount = (prop.currentFunding * milestone.percentage) / 100;
+        
+        // Ensure we don't release more than available funds
+        require(releaseAmount <= prop.currentFunding, "Insufficient funds for milestone release");
 
         // Transfer funds to developer
         require(
@@ -1246,7 +1274,62 @@ contract Assetrix is
         emit MilestoneMarkedCompleted(_propertyId, _milestoneId, "");
     }
 
+
+
     // ============ HELPER FUNCTIONS ============
+    // ============ FUNDING MANAGEMENT FUNCTIONS ============
+    
+    // Check if property can accept more investments (after early exits)
+    function canAcceptInvestments(uint256 _propertyId) external view returns (bool) {
+        require(
+            _propertyId > 0 && _propertyId <= propertyCount,
+            "Property does not exist"
+        );
+        Property storage prop = properties[_propertyId];
+        
+        // Can accept investments if:
+        // 1. Property is active
+        // 2. Not fully funded OR was fully funded but had early exits
+        // 3. No milestone funds have been released yet
+        if (!prop.isActive) return false;
+        
+        bool hasReleasedFunds = false;
+        for (uint256 i = 0; i < prop.milestones.length; i++) {
+            if (prop.milestones[i].fundsReleased) {
+                hasReleasedFunds = true;
+                break;
+            }
+        }
+        
+        return !hasReleasedFunds && prop.currentFunding < prop.totalInvestment;
+    }
+    
+    // Get funding gap (how much more funding is needed)
+    function getFundingGap(uint256 _propertyId) external view returns (uint256) {
+        require(
+            _propertyId > 0 && _propertyId <= propertyCount,
+            "Property does not exist"
+        );
+        Property storage prop = properties[_propertyId];
+        
+        if (prop.currentFunding >= prop.totalInvestment) {
+            return 0;
+        }
+        
+        return prop.totalInvestment - prop.currentFunding;
+    }
+    
+    // Get current funding percentage
+    function getFundingPercentage(uint256 _propertyId) external view returns (uint256) {
+        require(
+            _propertyId > 0 && _propertyId <= propertyCount,
+            "Property does not exist"
+        );
+        Property storage prop = properties[_propertyId];
+        
+        return (prop.currentFunding * 100) / prop.totalInvestment;
+    }
+
     function _recordTransaction(
         uint256 _propertyId,
         address _from,
