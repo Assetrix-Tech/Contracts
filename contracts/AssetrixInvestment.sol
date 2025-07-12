@@ -25,6 +25,13 @@ contract Assetrix is
     IERC20 public stablecoin;
     uint256 public propertyCount;
     uint256 public transactionCount;
+    
+    // Fixed ROI percentage (15%)
+    uint256 public constant EXPECTED_ROI_PERCENTAGE = 15;
+    
+    // Tokenization parameters
+    uint256 public constant TOKENS_PER_PROPERTY = 10000; // 10,000 tokens per property
+    uint256 public constant MIN_TOKENS_PER_INVESTMENT = 50; // Minimum 50 token per investment
 
     // ============ ENUMS ============
     enum PropertyType {
@@ -81,23 +88,21 @@ contract Assetrix is
         uint256 size;
         uint256 bedrooms;
         uint256 bathrooms;
-        uint256 unitPrice;
-        uint256 totalUnits;
-        uint256 totalInvestment;
-        uint256 minInvestment;
-        uint256 expectedROI;
+        uint256 tokenPrice; // Price per token in stablecoin
+        uint256 totalTokens; // Total tokens available (fixed at 10,000)
+        uint256 tokensSold; // Tokens sold to investors
+        uint256 tokensLeft; // Tokens remaining for sale
         Duration investmentDuration;
-        uint256 currentFunding;
         bool isActive;
         bool isFullyFunded;
         string ipfsImagesHash;
         string ipfsMetadataHash;
-        address[] investors;
-        mapping(address => uint256) investments;
-        uint256 investorCount;
+        address[] tokenHolders;
+        mapping(address => uint256) tokenBalance; // Number of tokens held by each address
+        uint256 holderCount;
         address developerAddress;
         Milestone[] milestones;
-        uint256 createdAt; // Add this field
+        uint256 createdAt;
     }
 
     struct PropertyView {
@@ -113,19 +118,17 @@ contract Assetrix is
         uint256 size;
         uint256 bedrooms;
         uint256 bathrooms;
-        uint256 unitPrice;
-        uint256 totalUnits;
-        uint256 totalInvestment;
-        uint256 minInvestment;
-        uint256 expectedROI;
+        uint256 tokenPrice; // Price per token in stablecoin
+        uint256 totalTokens; // Total tokens available
+        uint256 tokensSold; // Tokens sold to investors
+        uint256 tokensLeft; // Tokens remaining for sale
         Duration investmentDuration;
-        uint256 currentFunding;
         bool isActive;
         bool isFullyFunded;
         string ipfsImagesHash;
         string ipfsMetadataHash;
         address developerAddress;
-        uint256 investorCount;
+        uint256 holderCount;
         Milestone[] milestones;
     }
 
@@ -153,7 +156,7 @@ contract Assetrix is
         uint256 timestamp;
         string description;
         bool isSuccessful;
-        string metadata; // IPFS hash for additional data
+        string metadata;
         uint256 blockNumber;
         bytes32 transactionHash;
     }
@@ -161,7 +164,7 @@ contract Assetrix is
     // ============ MAPPINGS ============
     mapping(uint256 => Property) public properties;
     mapping(address => uint256[]) public developerProperties;
-    mapping(address => uint256[]) public investorProperties;
+    mapping(address => uint256[]) public tokenHolderProperties;
     mapping(uint256 => uint256) public releasedFunds;
     mapping(uint256 => Transaction) public transactions;
     mapping(address => uint256[]) public userTransactions;
@@ -175,10 +178,11 @@ contract Assetrix is
     );
     event PropertyUpdated(uint256 indexed propertyId, string ipfsMetadataHash);
     event PropertyDeactivated(uint256 indexed propertyId);
-    event Invested(
+    event TokensPurchased(
         uint256 indexed propertyId,
-        address indexed investor,
-        uint256 amount
+        address indexed tokenHolder,
+        uint256 tokenAmount,
+        uint256 totalCost
     );
     event Refunded(
         uint256 indexed propertyId,
@@ -190,7 +194,7 @@ contract Assetrix is
         address indexed developer,
         uint256 amount
     );
-    event PropertyFullyFunded(uint256 indexed propertyId, uint256 totalRaised);
+    event PropertyFullyFunded(uint256 indexed propertyId, uint256 totalTokensSold);
     event MilestoneCreated(
         uint256 indexed propertyId,
         uint256 milestoneId,
@@ -272,12 +276,8 @@ contract Assetrix is
         uint256 _size,
         uint256 _bedrooms,
         uint256 _bathrooms,
-        // Investment details
-        uint256 _unitPrice,
-        uint256 _totalUnits,
-        uint256 _totalInvestment,
-        uint256 _minInvestment,
-        uint256 _expectedROI,
+        // Tokenization details
+        uint256 _tokenPrice, // Price per token in stablecoin
         Duration _investmentDuration,
         string[] memory _milestoneTitles,
         string[] memory _milestoneDescriptions,
@@ -293,6 +293,7 @@ contract Assetrix is
         require(bytes(_city).length > 0, "City required");
         require(bytes(_state).length > 0, "State required");
         require(bytes(_country).length > 0, "Country required");
+        require(_tokenPrice > 0, "Token price must be greater than 0");
         require(
             _milestoneTitles.length == _milestoneDescriptions.length &&
                 _milestoneTitles.length == _milestonePercentages.length,
@@ -322,12 +323,11 @@ contract Assetrix is
         prop.bedrooms = _bedrooms;
         prop.bathrooms = _bathrooms;
 
-        prop.unitPrice = _unitPrice;
-        prop.totalUnits = _totalUnits;
-        prop.totalInvestment = _totalInvestment;
-        prop.minInvestment = _minInvestment;
-        prop.currentFunding = 0;
-        prop.expectedROI = _expectedROI;
+        // Tokenization setup
+        prop.tokenPrice = _tokenPrice;
+        prop.totalTokens = TOKENS_PER_PROPERTY;
+        prop.tokensSold = 0;
+        prop.tokensLeft = TOKENS_PER_PROPERTY;
         prop.investmentDuration = _investmentDuration;
 
         // Set status and metadata
@@ -511,19 +511,17 @@ contract Assetrix is
                 size: prop.size,
                 bedrooms: prop.bedrooms,
                 bathrooms: prop.bathrooms,
-                unitPrice: prop.unitPrice,
-                totalUnits: prop.totalUnits,
-                totalInvestment: prop.totalInvestment,
-                minInvestment: prop.minInvestment,
-                expectedROI: prop.expectedROI,
+                tokenPrice: prop.tokenPrice,
+                totalTokens: prop.totalTokens,
+                tokensSold: prop.tokensSold,
+                tokensLeft: prop.tokensLeft,
                 investmentDuration: prop.investmentDuration,
-                currentFunding: prop.currentFunding,
                 isActive: prop.isActive,
                 isFullyFunded: prop.isFullyFunded,
                 ipfsImagesHash: prop.ipfsImagesHash,
                 ipfsMetadataHash: prop.ipfsMetadataHash,
                 developerAddress: prop.developerAddress,
-                investorCount: prop.investorCount,
+                holderCount: prop.holderCount,
                 milestones: prop.milestones
             });
     }
@@ -554,19 +552,17 @@ contract Assetrix is
                 size: prop.size,
                 bedrooms: prop.bedrooms,
                 bathrooms: prop.bathrooms,
-                unitPrice: prop.unitPrice,
-                totalUnits: prop.totalUnits,
-                totalInvestment: prop.totalInvestment,
-                minInvestment: prop.minInvestment,
-                expectedROI: prop.expectedROI,
+                tokenPrice: prop.tokenPrice,
+                totalTokens: prop.totalTokens,
+                tokensSold: prop.tokensSold,
+                tokensLeft: prop.tokensLeft,
                 investmentDuration: prop.investmentDuration,
-                currentFunding: prop.currentFunding,
                 isActive: prop.isActive,
                 isFullyFunded: prop.isFullyFunded,
                 ipfsImagesHash: prop.ipfsImagesHash,
                 ipfsMetadataHash: prop.ipfsMetadataHash,
                 developerAddress: prop.developerAddress,
-                investorCount: prop.investorCount,
+                holderCount: prop.holderCount,
                 milestones: prop.milestones
             });
         }
@@ -574,12 +570,12 @@ contract Assetrix is
         return result;
     }
 
-    function getMyInvestedProperties()
+    function getMyTokenProperties()
         external
         view
         returns (PropertyView[] memory)
     {
-        uint256[] memory propertyIds = investorProperties[msg.sender];
+        uint256[] memory propertyIds = tokenHolderProperties[msg.sender];
         PropertyView[] memory result = new PropertyView[](propertyIds.length);
 
         for (uint256 i = 0; i < propertyIds.length; i++) {
@@ -604,19 +600,17 @@ contract Assetrix is
                 size: prop.size,
                 bedrooms: prop.bedrooms,
                 bathrooms: prop.bathrooms,
-                unitPrice: prop.unitPrice,
-                totalUnits: prop.totalUnits,
-                totalInvestment: prop.totalInvestment,
-                minInvestment: prop.minInvestment,
-                expectedROI: prop.expectedROI,
+                tokenPrice: prop.tokenPrice,
+                totalTokens: prop.totalTokens,
+                tokensSold: prop.tokensSold,
+                tokensLeft: prop.tokensLeft,
                 investmentDuration: prop.investmentDuration,
-                currentFunding: prop.currentFunding,
                 isActive: prop.isActive,
                 isFullyFunded: prop.isFullyFunded,
                 ipfsImagesHash: prop.ipfsImagesHash,
                 ipfsMetadataHash: prop.ipfsMetadataHash,
                 developerAddress: prop.developerAddress,
-                investorCount: prop.investorCount,
+                holderCount: prop.holderCount,
                 milestones: prop.milestones
             });
         }
@@ -659,19 +653,17 @@ contract Assetrix is
                 size: prop.size,
                 bedrooms: prop.bedrooms,
                 bathrooms: prop.bathrooms,
-                unitPrice: prop.unitPrice,
-                totalUnits: prop.totalUnits,
-                totalInvestment: prop.totalInvestment,
-                minInvestment: prop.minInvestment,
-                expectedROI: prop.expectedROI,
+                tokenPrice: prop.tokenPrice,
+                totalTokens: prop.totalTokens,
+                tokensSold: prop.tokensSold,
+                tokensLeft: prop.tokensLeft,
                 investmentDuration: prop.investmentDuration,
-                currentFunding: prop.currentFunding,
                 isActive: prop.isActive,
                 isFullyFunded: prop.isFullyFunded,
                 ipfsImagesHash: prop.ipfsImagesHash,
                 ipfsMetadataHash: prop.ipfsMetadataHash,
                 developerAddress: prop.developerAddress,
-                investorCount: prop.investorCount,
+                holderCount: prop.holderCount,
                 milestones: prop.milestones
             });
         }
@@ -683,7 +675,7 @@ contract Assetrix is
         return propertyCount;
     }
 
-    function getPropertyInvestors(
+    function getPropertyTokenHolders(
         uint256 _propertyId
     ) external view returns (address[] memory) {
         require(
@@ -691,31 +683,31 @@ contract Assetrix is
             "Property does not exist"
         );
         Property storage prop = properties[_propertyId];
-        return prop.investors;
+        return prop.tokenHolders;
     }
 
-    function _removeInvestorFromProperty(uint256 _propertyId, address _investor) internal {
+    function _removeTokenHolderFromProperty(uint256 _propertyId, address _tokenHolder) internal {
         Property storage prop = properties[_propertyId];
-        // Remove from investors array
-        for (uint256 i = 0; i < prop.investors.length; i++) {
-            if (prop.investors[i] == _investor) {
-                prop.investors[i] = prop.investors[prop.investors.length - 1];
-                prop.investors.pop();
+        // Remove from token holders array
+        for (uint256 i = 0; i < prop.tokenHolders.length; i++) {
+            if (prop.tokenHolders[i] == _tokenHolder) {
+                prop.tokenHolders[i] = prop.tokenHolders[prop.tokenHolders.length - 1];
+                prop.tokenHolders.pop();
                 break;
             }
         }
-        // Remove from investor properties
-        uint256[] storage investorProps = investorProperties[_investor];
-        for (uint256 i = 0; i < investorProps.length; i++) {
-            if (investorProps[i] == _propertyId) {
-                investorProps[i] = investorProps[investorProps.length - 1];
-                investorProps.pop();
+        // Remove from token holder properties
+        uint256[] storage tokenHolderProps = tokenHolderProperties[_tokenHolder];
+        for (uint256 i = 0; i < tokenHolderProps.length; i++) {
+            if (tokenHolderProps[i] == _propertyId) {
+                tokenHolderProps[i] = tokenHolderProps[tokenHolderProps.length - 1];
+                tokenHolderProps.pop();
                 break;
             }
         }
-        // Clear investment amount
-        prop.investments[_investor] = 0;
-        prop.investorCount--;
+        // Clear token balance
+        prop.tokenBalance[_tokenHolder] = 0;
+        prop.holderCount--;
     }
 
     // ============ MILESTONE QUERIES ============
@@ -863,68 +855,31 @@ contract Assetrix is
     }
 
     // ============ INVESTMENT FUNCTION ============
-    function invest(
-        uint256 _propertyId,
-        uint256 _amount
-    ) external nonReentrant whenNotPaused {
-        require(_amount > 0, "Investment amount must be greater than 0");
-        require(
-            _propertyId > 0 && _propertyId <= propertyCount,
-            "Property does not exist"
-        );
-
+    function purchaseTokens(uint256 _propertyId, uint256 _tokenAmount) external nonReentrant whenNotPaused {
+        require(_tokenAmount > 0, "Must purchase at least 1 token");
+        require(_propertyId > 0 && _propertyId <= propertyCount, "Property does not exist");
         Property storage prop = properties[_propertyId];
         require(prop.isActive, "Property is not active");
-        
-        // Add this validation:
-        require(
-            block.timestamp <= getInvestmentEndTime(_propertyId),
-            "Investment period has ended"
-        );
-        
-        // Check if property can accept investments (handles re-funding after early exits)
-        bool canAccept = this.canAcceptInvestments(_propertyId);
-        require(canAccept, "Property cannot accept investments at this time");
-        
-        require(
-            _amount >= prop.minInvestment,
-            "Investment below minimum required"
-        );
+        require(_tokenAmount <= prop.tokensLeft, "Not enough tokens left");
 
-        // Check if property will be fully funded after this investment
-        bool willBeFullyFunded = (prop.currentFunding + _amount) >=
-            prop.totalInvestment;
-        uint256 actualInvestment = willBeFullyFunded
-            ? (prop.totalInvestment - prop.currentFunding)
-            : _amount;
+        uint256 totalCost = _tokenAmount * prop.tokenPrice;
+        require(stablecoin.transferFrom(msg.sender, address(this), totalCost), "Transfer failed");
 
-        // Transfer stablecoin from investor to contract
-        require(
-            stablecoin.transferFrom(
-                msg.sender,
-                address(this),
-                actualInvestment
-            ),
-            "Transfer failed"
-        );
-
-        // Update property funding
-        prop.currentFunding += actualInvestment;
-
-        // Add investor to property if not already invested
-        if (prop.investments[msg.sender] == 0) {
-            prop.investors.push(msg.sender);
-            prop.investorCount++;
-            investorProperties[msg.sender].push(_propertyId);
+        // Add token holder if new
+        if (prop.tokenBalance[msg.sender] == 0) {
+            prop.tokenHolders.push(msg.sender);
+            prop.holderCount++;
+            tokenHolderProperties[msg.sender].push(_propertyId);
         }
+        // Update token balance
+        prop.tokenBalance[msg.sender] += _tokenAmount;
+        prop.tokensSold += _tokenAmount;
+        prop.tokensLeft -= _tokenAmount;
 
-        // Update investor's investment amount
-        prop.investments[msg.sender] += actualInvestment;
-
-        // Mark property as fully funded if needed
-        if (willBeFullyFunded) {
+        // Mark property as fully funded if all tokens sold
+        if (prop.tokensLeft == 0) {
             prop.isFullyFunded = true;
-            emit PropertyFullyFunded(_propertyId, prop.currentFunding);
+            emit PropertyFullyFunded(_propertyId, prop.tokensSold);
         }
 
         // Record transaction
@@ -933,26 +888,17 @@ contract Assetrix is
             msg.sender,
             prop.developerAddress,
             TransactionType.Investment,
-            actualInvestment,
-            "Investment in property"
+            totalCost,
+            "Token purchase in property"
         );
 
-        emit Invested(_propertyId, msg.sender, actualInvestment);
-
-        // Refund excess amount if any
-        if (willBeFullyFunded && _amount > actualInvestment) {
-            uint256 excess = _amount - actualInvestment;
-            require(
-                stablecoin.transfer(msg.sender, excess),
-                "Excess refund failed"
-            );
-        }
+        emit TokensPurchased(_propertyId, msg.sender, _tokenAmount, totalCost);
     }
 
     // ============ ROI PAYOUT FUNCTION ============
     function payoutROI(
         uint256 _propertyId,
-        address _investor,
+        address _tokenHolder,
         uint256 _amount
     ) external nonReentrant {
         Property storage prop = properties[_propertyId];
@@ -962,40 +908,33 @@ contract Assetrix is
         );
         require(prop.isFullyFunded, "Property must be fully funded");
         require(
-            prop.investments[_investor] > 0,
-            "Investor has no investment in this property"
+            prop.tokenBalance[_tokenHolder] > 0,
+            "Token holder has no tokens in this property"
         );
         require(_amount > 0, "Payout amount must be greater than 0");
-
-        // Add this validation:
         require(
             block.timestamp <= getInvestmentEndTime(_propertyId),
             "Investment period has ended, use final payout instead"
         );
-
-        // Transfer stablecoin from developer to investor
         require(
-            stablecoin.transferFrom(msg.sender, _investor, _amount),
+            stablecoin.transferFrom(msg.sender, _tokenHolder, _amount),
             "ROI transfer failed"
         );
-
-        // Record transaction
         _recordTransaction(
             _propertyId,
             msg.sender,
-            _investor,
+            _tokenHolder,
             TransactionType.ROIPayout,
             _amount,
-            "ROI payout to investor"
+            "ROI payout to token holder"
         );
-
-        emit PayoutSent(_propertyId, _investor, _amount);
+        emit PayoutSent(_propertyId, _tokenHolder, _amount);
     }
 
     // ============ FINAL PAYOUT FUNCTION ============
     function payoutFinal(
         uint256 _propertyId,
-        address _investor,
+        address _tokenHolder,
         uint256 _amount
     ) external nonReentrant {
         Property storage prop = properties[_propertyId];
@@ -1005,40 +944,33 @@ contract Assetrix is
         );
         require(prop.isFullyFunded, "Property must be fully funded");
         require(
-            prop.investments[_investor] > 0,
-            "Investor has no investment in this property"
+            prop.tokenBalance[_tokenHolder] > 0,
+            "Token holder has no tokens in this property"
         );
         require(_amount > 0, "Payout amount must be greater than 0");
-
-        // Add this validation:
         require(
             block.timestamp >= getInvestmentEndTime(_propertyId),
             "Investment period has not ended yet"
         );
-
-        // Transfer stablecoin from developer to investor
         require(
-            stablecoin.transferFrom(msg.sender, _investor, _amount),
+            stablecoin.transferFrom(msg.sender, _tokenHolder, _amount),
             "Final payout transfer failed"
         );
-
-        // Record transaction
         _recordTransaction(
             _propertyId,
             msg.sender,
-            _investor,
+            _tokenHolder,
             TransactionType.FinalPayout,
             _amount,
-            "Final payout to investor"
+            "Final payout to token holder"
         );
-
-        emit PayoutSent(_propertyId, _investor, _amount);
+        emit PayoutSent(_propertyId, _tokenHolder, _amount);
     }
 
     // ============ REFUND FUNCTION ============
     function refund(
         uint256 _propertyId,
-        address _investor
+        address _tokenHolder
     ) external nonReentrant {
         Property storage prop = properties[_propertyId];
         require(
@@ -1046,77 +978,64 @@ contract Assetrix is
             "Only developer or owner can refund"
         );
         require(
-            prop.investments[_investor] > 0,
-            "Investor has no investment to refund"
+            prop.tokenBalance[_tokenHolder] > 0,
+            "Token holder has no tokens to refund"
         );
-
-        uint256 refundAmount = prop.investments[_investor];
-
-        // Transfer stablecoin from contract to investor
+        uint256 refundTokens = prop.tokenBalance[_tokenHolder];
+        uint256 refundAmount = refundTokens * prop.tokenPrice;
         require(
-            stablecoin.transfer(_investor, refundAmount),
+            stablecoin.transfer(_tokenHolder, refundAmount),
             "Refund transfer failed"
         );
-
-        // Update property funding
-        prop.currentFunding -= refundAmount;
-
-        // Record transaction
+        prop.tokensSold -= refundTokens;
+        prop.tokensLeft += refundTokens;
+        _removeTokenHolderFromProperty(_propertyId, _tokenHolder);
         _recordTransaction(
             _propertyId,
             address(this),
-            _investor,
+            _tokenHolder,
             TransactionType.Refund,
             refundAmount,
-            "Refund to investor"
+            "Refund to token holder"
         );
-
-        emit Refunded(_propertyId, _investor, refundAmount);
+        emit Refunded(_propertyId, _tokenHolder, refundAmount);
     }
 
     // ============ EMERGENCY REFUND FUNCTION ============
     function emergencyRefund(
         uint256 _propertyId,
-        address _investor
+        address _tokenHolder
     ) external nonReentrant onlyOwner {
         Property storage prop = properties[_propertyId];
         require(
-            prop.investments[_investor] > 0,
-            "Investor has no investment to refund"
+            prop.tokenBalance[_tokenHolder] > 0,
+            "Token holder has no tokens to refund"
         );
-
-        uint256 refundAmount = prop.investments[_investor];
-
-        // Transfer stablecoin from contract to investor
+        uint256 refundTokens = prop.tokenBalance[_tokenHolder];
+        uint256 refundAmount = refundTokens * prop.tokenPrice;
         require(
-            stablecoin.transfer(_investor, refundAmount),
+            stablecoin.transfer(_tokenHolder, refundAmount),
             "Emergency refund transfer failed"
         );
-
-        // Update property funding
-        prop.currentFunding -= refundAmount;
-
-        // Record transaction
+        prop.tokensSold -= refundTokens;
+        prop.tokensLeft += refundTokens;
+        _removeTokenHolderFromProperty(_propertyId, _tokenHolder);
         _recordTransaction(
             _propertyId,
             address(this),
-            _investor,
+            _tokenHolder,
             TransactionType.EmergencyRefund,
             refundAmount,
-            "Emergency refund to investor"
+            "Emergency refund to token holder"
         );
-
-        emit Refunded(_propertyId, _investor, refundAmount);
+        emit Refunded(_propertyId, _tokenHolder, refundAmount);
     }
 
     // ============ EARLY EXIT FUNCTION ============
     function earlyExit(uint256 _propertyId) external nonReentrant {
         Property storage prop = properties[_propertyId];
-        require(prop.investments[msg.sender] > 0, "No investment to exit");
-        
-        // Allow early exit even after full funding, but with restrictions
+        require(prop.tokenBalance[msg.sender] > 0, "No tokens to exit");
         if (prop.isFullyFunded) {
-            // Check if any milestone funds have been released
             bool hasReleasedFunds = false;
             for (uint256 i = 0; i < prop.milestones.length; i++) {
                 if (prop.milestones[i].fundsReleased) {
@@ -1126,41 +1045,28 @@ contract Assetrix is
             }
             require(!hasReleasedFunds, "Cannot exit after milestone funds have been released");
         }
-
-        // Add this validation (optional - depends on business rules):
         require(
             block.timestamp < getInvestmentEndTime(_propertyId),
             "Investment period has ended, use final payout instead"
         );
-
-        uint256 investmentAmount = prop.investments[msg.sender];
+        uint256 tokenAmount = prop.tokenBalance[msg.sender];
+        uint256 investmentAmount = tokenAmount * prop.tokenPrice;
         uint256 exitFee = (investmentAmount * 5) / 100; // 5% exit fee
         uint256 refundAmount = investmentAmount - exitFee;
-
-        // Transfer refund to investor
         require(
             stablecoin.transfer(msg.sender, refundAmount),
             "Early exit refund failed"
         );
-
-        // Transfer fee to platform (owner)
         require(
             stablecoin.transfer(owner(), exitFee),
             "Exit fee transfer failed"
         );
-
-        // Update property funding
-        prop.currentFunding -= investmentAmount;
-        
-        // If property was fully funded and now isn't, update status
-        if (prop.isFullyFunded && prop.currentFunding < prop.totalInvestment) {
+        prop.tokensSold -= tokenAmount;
+        prop.tokensLeft += tokenAmount;
+        if (prop.isFullyFunded && prop.tokensLeft > 0) {
             prop.isFullyFunded = false;
         }
-
-        // Remove investor from property
-        _removeInvestorFromProperty(_propertyId, msg.sender);
-
-        // Record transactions
+        _removeTokenHolderFromProperty(_propertyId, msg.sender);
         _recordTransaction(
             _propertyId,
             address(this),
@@ -1169,7 +1075,6 @@ contract Assetrix is
             refundAmount,
             "Early exit refund"
         );
-
         _recordTransaction(
             _propertyId,
             msg.sender,
@@ -1178,7 +1083,6 @@ contract Assetrix is
             exitFee,
             "Early exit fee"
         );
-
         emit Refunded(_propertyId, msg.sender, refundAmount);
     }
 
@@ -1234,11 +1138,12 @@ contract Assetrix is
         require(!milestone.fundsReleased, "Funds already released for this milestone");
         require(!milestone.isCompleted, "Milestone already completed");
 
-        // Calculate release amount based on current funding (not original total)
-        uint256 releaseAmount = (prop.currentFunding * milestone.percentage) / 100;
+        // Calculate release amount based on tokens sold (not original total)
+        uint256 totalFunds = prop.tokensSold * prop.tokenPrice;
+        uint256 releaseAmount = (totalFunds * milestone.percentage) / 100;
         
         // Ensure we don't release more than available funds
-        require(releaseAmount <= prop.currentFunding, "Insufficient funds for milestone release");
+        require(releaseAmount <= totalFunds, "Insufficient funds for milestone release");
 
         // Transfer funds to developer
         require(
@@ -1292,15 +1197,15 @@ contract Assetrix is
     // ============ HELPER FUNCTIONS ============
     // ============ FUNDING MANAGEMENT FUNCTIONS ============
     
-    // Check if property can accept more investments (after early exits)
-    function canAcceptInvestments(uint256 _propertyId) external view returns (bool) {
+    // Check if property can accept more token purchases (after early exits)
+    function canAcceptTokenPurchases(uint256 _propertyId) external view returns (bool) {
         require(
             _propertyId > 0 && _propertyId <= propertyCount,
             "Property does not exist"
         );
         Property storage prop = properties[_propertyId];
         
-        // Can accept investments if:
+        // Can accept token purchases if:
         // 1. Property is active
         // 2. Not fully funded OR was fully funded but had early exits
         // 3. No milestone funds have been released yet
@@ -1314,33 +1219,51 @@ contract Assetrix is
             }
         }
         
-        return !hasReleasedFunds && prop.currentFunding < prop.totalInvestment;
+        return !hasReleasedFunds && prop.tokensLeft > 0;
     }
     
-    // Get funding gap (how much more funding is needed)
-    function getFundingGap(uint256 _propertyId) external view returns (uint256) {
+    // Get token gap (how many more tokens are needed)
+    function getTokenGap(uint256 _propertyId) external view returns (uint256) {
         require(
             _propertyId > 0 && _propertyId <= propertyCount,
             "Property does not exist"
         );
         Property storage prop = properties[_propertyId];
         
-        if (prop.currentFunding >= prop.totalInvestment) {
-            return 0;
-        }
-        
-        return prop.totalInvestment - prop.currentFunding;
+        return prop.tokensLeft;
     }
     
-    // Get current funding percentage
-    function getFundingPercentage(uint256 _propertyId) external view returns (uint256) {
+    // Get current token sale percentage
+    function getTokenSalePercentage(uint256 _propertyId) external view returns (uint256) {
         require(
             _propertyId > 0 && _propertyId <= propertyCount,
             "Property does not exist"
         );
         Property storage prop = properties[_propertyId];
         
-        return (prop.currentFunding * 100) / prop.totalInvestment;
+        return (prop.tokensSold * 100) / prop.totalTokens;
+    }
+
+    // Get token balance for a specific address
+    function getTokenBalance(uint256 _propertyId, address _tokenHolder) external view returns (uint256) {
+        require(
+            _propertyId > 0 && _propertyId <= propertyCount,
+            "Property does not exist"
+        );
+        Property storage prop = properties[_propertyId];
+        
+        return prop.tokenBalance[_tokenHolder];
+    }
+
+    // Get total value of tokens held by an address
+    function getTokenValue(uint256 _propertyId, address _tokenHolder) external view returns (uint256) {
+        require(
+            _propertyId > 0 && _propertyId <= propertyCount,
+            "Property does not exist"
+        );
+        Property storage prop = properties[_propertyId];
+        
+        return prop.tokenBalance[_tokenHolder] * prop.tokenPrice;
     }
 
     // Helper function to calculate investment end time
