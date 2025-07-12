@@ -135,9 +135,13 @@ contract Assetrix is
         string title;
         string description;
         uint256 percentage;
+        bool fundsRequested;
+        bool fundsReleased;
         bool isCompleted;
         string ipfsProofHash;
         uint256 completedAt;
+        uint256 requestedAt;
+        uint256 releasedAt;
     }
 
     // --- TRANSACTION TRACKING ---
@@ -204,6 +208,22 @@ contract Assetrix is
         uint256 indexed propertyId,
         uint256 milestoneId,
         uint256 amount
+    );
+    event MilestoneFundsRequested(
+        uint256 indexed propertyId,
+        uint256 milestoneId,
+        address indexed developer
+    );
+    event MilestoneFundsReleased(
+        uint256 indexed propertyId,
+        uint256 milestoneId,
+        uint256 amount,
+        address indexed developer
+    );
+    event MilestoneMarkedCompleted(
+        uint256 indexed propertyId,
+        uint256 milestoneId,
+        string ipfsProofHash
     );
     event StablecoinUpdated(address indexed newStablecoin);
 
@@ -336,9 +356,13 @@ contract Assetrix is
                 title: _milestoneTitles[i],
                 description: _milestoneDescriptions[i],
                 percentage: _milestonePercentages[i],
+                fundsRequested: false,
+                fundsReleased: false,
                 isCompleted: false,
                 ipfsProofHash: "",
-                completedAt: 0
+                completedAt: 0,
+                requestedAt: 0,
+                releasedAt: 0
             }));
 
             emit MilestoneCreated(propertyCount, i, _milestoneTitles[i], _milestonePercentages[i]);
@@ -415,9 +439,13 @@ contract Assetrix is
                 title: _milestoneTitles[i],
                 description: _milestoneDescriptions[i],
                 percentage: _milestonePercentages[i],
+                fundsRequested: false,
+                fundsReleased: false,
                 isCompleted: false,
                 ipfsProofHash: "",
-                completedAt: 0
+                completedAt: 0,
+                requestedAt: 0,
+                releasedAt: 0
             }));
 
             emit MilestoneCreated(_propertyId, i, _milestoneTitles[i], _milestonePercentages[i]);
@@ -713,6 +741,138 @@ contract Assetrix is
         return prop.milestones;
     }
 
+    // ============ MILESTONE QUERY FUNCTIONS ============
+    
+    // Get milestone status for a specific milestone
+    function getMilestoneStatus(
+        uint256 _propertyId,
+        uint256 _milestoneId
+    ) external view returns (
+        bool fundsRequested,
+        bool fundsReleased,
+        bool isCompleted,
+        uint256 requestedAt,
+        uint256 releasedAt,
+        uint256 completedAt
+    ) {
+        require(
+            _propertyId > 0 && _propertyId <= propertyCount,
+            "Property does not exist"
+        );
+        Property storage prop = properties[_propertyId];
+        require(
+            _milestoneId < prop.milestones.length,
+            "Milestone does not exist"
+        );
+
+        Milestone storage milestone = prop.milestones[_milestoneId];
+        return (
+            milestone.fundsRequested,
+            milestone.fundsReleased,
+            milestone.isCompleted,
+            milestone.requestedAt,
+            milestone.releasedAt,
+            milestone.completedAt
+        );
+    }
+
+    // Get next milestone that can be requested
+    function getNextRequestableMilestone(
+        uint256 _propertyId
+    ) external view returns (uint256) {
+        require(
+            _propertyId > 0 && _propertyId <= propertyCount,
+            "Property does not exist"
+        );
+        Property storage prop = properties[_propertyId];
+        
+        for (uint256 i = 0; i < prop.milestones.length; i++) {
+            Milestone storage milestone = prop.milestones[i];
+            
+            // If this milestone is already completed, check the next one
+            if (milestone.isCompleted) {
+                continue;
+            }
+            
+            // If this milestone already has funds requested or released, check the next one
+            if (milestone.fundsRequested || milestone.fundsReleased) {
+                continue;
+            }
+            
+            // For the first milestone, it can always be requested
+            if (i == 0) {
+                return i;
+            }
+            
+            // For subsequent milestones, check if the previous one is completed
+            Milestone storage prevMilestone = prop.milestones[i - 1];
+            if (prevMilestone.isCompleted) {
+                return i;
+            }
+        }
+        
+        // Return a high number if no milestone can be requested
+        return type(uint256).max;
+    }
+
+    // Get milestones that are ready for fund release (requested but not released)
+    function getMilestonesReadyForRelease(
+        uint256 _propertyId
+    ) external view returns (uint256[] memory) {
+        require(
+            _propertyId > 0 && _propertyId <= propertyCount,
+            "Property does not exist"
+        );
+        Property storage prop = properties[_propertyId];
+        
+        uint256[] memory tempArray = new uint256[](prop.milestones.length);
+        uint256 count = 0;
+        
+        for (uint256 i = 0; i < prop.milestones.length; i++) {
+            Milestone storage milestone = prop.milestones[i];
+            if (milestone.fundsRequested && !milestone.fundsReleased && !milestone.isCompleted) {
+                tempArray[count] = i;
+                count++;
+            }
+        }
+        
+        uint256[] memory result = new uint256[](count);
+        for (uint256 i = 0; i < count; i++) {
+            result[i] = tempArray[i];
+        }
+        
+        return result;
+    }
+
+    // Get milestones that are ready for completion marking (released but not completed)
+    function getMilestonesReadyForCompletion(
+        uint256 _propertyId
+    ) external view returns (uint256[] memory) {
+        require(
+            _propertyId > 0 && _propertyId <= propertyCount,
+            "Property does not exist"
+        );
+        Property storage prop = properties[_propertyId];
+        
+        uint256[] memory tempArray = new uint256[](prop.milestones.length);
+        uint256 count = 0;
+        
+        for (uint256 i = 0; i < prop.milestones.length; i++) {
+            Milestone storage milestone = prop.milestones[i];
+            if (milestone.fundsReleased && !milestone.isCompleted) {
+                tempArray[count] = i;
+                count++;
+            }
+        }
+        
+        uint256[] memory result = new uint256[](count);
+        for (uint256 i = 0; i < count; i++) {
+            result[i] = tempArray[i];
+        }
+        
+        return result;
+    }
+
     // ============ INVESTMENT FUNCTION ============
     function invest(
         uint256 _propertyId,
@@ -985,7 +1145,42 @@ contract Assetrix is
         emit Refunded(_propertyId, msg.sender, refundAmount);
     }
 
-    // ============ MILESTONE RELEASE FUNCTION ============
+    // ============ MILESTONE WORKFLOW FUNCTIONS ============
+    
+    // Step 1: Developer requests funds for a milestone
+    function requestMilestoneFunds(
+        uint256 _propertyId,
+        uint256 _milestoneId
+    ) external nonReentrant {
+        Property storage prop = properties[_propertyId];
+        require(prop.isFullyFunded, "Property must be fully funded");
+        require(
+            msg.sender == prop.developerAddress,
+            "Only property developer can request funds"
+        );
+        require(
+            _milestoneId < prop.milestones.length,
+            "Milestone does not exist"
+        );
+
+        Milestone storage milestone = prop.milestones[_milestoneId];
+        require(!milestone.fundsRequested, "Funds already requested for this milestone");
+        require(!milestone.fundsReleased, "Funds already released for this milestone");
+        require(!milestone.isCompleted, "Milestone already completed");
+
+        // Check if previous milestone is completed (if not the first milestone)
+        if (_milestoneId > 0) {
+            Milestone storage prevMilestone = prop.milestones[_milestoneId - 1];
+            require(prevMilestone.isCompleted, "Previous milestone must be completed first");
+        }
+
+        milestone.fundsRequested = true;
+        milestone.requestedAt = block.timestamp;
+
+        emit MilestoneFundsRequested(_propertyId, _milestoneId, msg.sender);
+    }
+
+    // Step 2: Admin releases funds to developer
     function releaseMilestoneFunds(
         uint256 _propertyId,
         uint256 _milestoneId
@@ -997,13 +1192,12 @@ contract Assetrix is
             "Milestone does not exist"
         );
 
-        Milestone storage milestone = prop.milestones[
-            _milestoneId
-        ];
+        Milestone storage milestone = prop.milestones[_milestoneId];
+        require(milestone.fundsRequested, "Funds must be requested before release");
+        require(!milestone.fundsReleased, "Funds already released for this milestone");
         require(!milestone.isCompleted, "Milestone already completed");
 
-        uint256 releaseAmount = (prop.totalInvestment * milestone.percentage) /
-            100;
+        uint256 releaseAmount = (prop.totalInvestment * milestone.percentage) / 100;
 
         // Transfer funds to developer
         require(
@@ -1011,9 +1205,8 @@ contract Assetrix is
             "Milestone fund release failed"
         );
 
-        // Mark milestone as completed
-        milestone.isCompleted = true;
-        milestone.completedAt = block.timestamp;
+        milestone.fundsReleased = true;
+        milestone.releasedAt = block.timestamp;
 
         // Update released funds tracking
         releasedFunds[_propertyId] += releaseAmount;
@@ -1028,8 +1221,29 @@ contract Assetrix is
             string(abi.encodePacked("Milestone release: ", milestone.title))
         );
 
-        emit MilestoneCompleted(_propertyId, _milestoneId, "");
-        emit FundsReleased(_propertyId, _milestoneId, releaseAmount);
+        emit MilestoneFundsReleased(_propertyId, _milestoneId, releaseAmount, prop.developerAddress);
+    }
+
+    // Step 3: Admin marks milestone as completed after offline inspection
+        function markMilestoneCompleted(
+        uint256 _propertyId,
+        uint256 _milestoneId
+    ) external nonReentrant onlyOwner {
+        Property storage prop = properties[_propertyId];
+        require(prop.isFullyFunded, "Property must be fully funded");
+        require(
+            _milestoneId < prop.milestones.length,
+            "Milestone does not exist"
+        );
+
+        Milestone storage milestone = prop.milestones[_milestoneId];
+        require(milestone.fundsReleased, "Funds must be released before marking as completed");
+        require(!milestone.isCompleted, "Milestone already completed");
+
+        milestone.isCompleted = true;
+        milestone.completedAt = block.timestamp;
+
+        emit MilestoneMarkedCompleted(_propertyId, _milestoneId, "");
     }
 
     // ============ HELPER FUNCTIONS ============
