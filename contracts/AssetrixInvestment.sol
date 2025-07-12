@@ -87,7 +87,6 @@ contract Assetrix is
         uint256 minInvestment;
         uint256 expectedROI;
         Duration investmentDuration;
-        uint256 ownershipPercentage;
         uint256 currentFunding;
         bool isActive;
         bool isFullyFunded;
@@ -98,6 +97,7 @@ contract Assetrix is
         uint256 investorCount;
         address developerAddress;
         Milestone[] milestones;
+        uint256 createdAt; // Add this field
     }
 
     struct PropertyView {
@@ -119,7 +119,6 @@ contract Assetrix is
         uint256 minInvestment;
         uint256 expectedROI;
         Duration investmentDuration;
-        uint256 ownershipPercentage;
         uint256 currentFunding;
         bool isActive;
         bool isFullyFunded;
@@ -138,7 +137,6 @@ contract Assetrix is
         bool fundsRequested;
         bool fundsReleased;
         bool isCompleted;
-        string ipfsProofHash;
         uint256 completedAt;
         uint256 requestedAt;
         uint256 releasedAt;
@@ -201,8 +199,7 @@ contract Assetrix is
     );
     event MilestoneCompleted(
         uint256 indexed propertyId,
-        uint256 milestoneId,
-        string ipfsProofHash
+        uint256 milestoneId
     );
     event FundsReleased(
         uint256 indexed propertyId,
@@ -222,8 +219,7 @@ contract Assetrix is
     );
     event MilestoneMarkedCompleted(
         uint256 indexed propertyId,
-        uint256 milestoneId,
-        string ipfsProofHash
+        uint256 milestoneId
     );
     event StablecoinUpdated(address indexed newStablecoin);
 
@@ -283,7 +279,6 @@ contract Assetrix is
         uint256 _minInvestment,
         uint256 _expectedROI,
         Duration _investmentDuration,
-        uint256 _ownershipPercentage,
         string[] memory _milestoneTitles,
         string[] memory _milestoneDescriptions,
         uint256[] memory _milestonePercentages
@@ -318,6 +313,7 @@ contract Assetrix is
         prop.propertyUse = _propertyUse;
         prop.developer = _developerName;
         prop.developerAddress = msg.sender;
+        prop.createdAt = block.timestamp; // Add this field
 
         prop.city = _city;
         prop.state = _state;
@@ -333,7 +329,6 @@ contract Assetrix is
         prop.currentFunding = 0;
         prop.expectedROI = _expectedROI;
         prop.investmentDuration = _investmentDuration;
-        prop.ownershipPercentage = _ownershipPercentage;
 
         // Set status and metadata
         prop.isActive = true;
@@ -359,7 +354,6 @@ contract Assetrix is
                 fundsRequested: false,
                 fundsReleased: false,
                 isCompleted: false,
-                ipfsProofHash: "",
                 completedAt: 0,
                 requestedAt: 0,
                 releasedAt: 0
@@ -442,7 +436,6 @@ contract Assetrix is
                 fundsRequested: false,
                 fundsReleased: false,
                 isCompleted: false,
-                ipfsProofHash: "",
                 completedAt: 0,
                 requestedAt: 0,
                 releasedAt: 0
@@ -524,7 +517,6 @@ contract Assetrix is
                 minInvestment: prop.minInvestment,
                 expectedROI: prop.expectedROI,
                 investmentDuration: prop.investmentDuration,
-                ownershipPercentage: prop.ownershipPercentage,
                 currentFunding: prop.currentFunding,
                 isActive: prop.isActive,
                 isFullyFunded: prop.isFullyFunded,
@@ -568,7 +560,6 @@ contract Assetrix is
                 minInvestment: prop.minInvestment,
                 expectedROI: prop.expectedROI,
                 investmentDuration: prop.investmentDuration,
-                ownershipPercentage: prop.ownershipPercentage,
                 currentFunding: prop.currentFunding,
                 isActive: prop.isActive,
                 isFullyFunded: prop.isFullyFunded,
@@ -619,7 +610,6 @@ contract Assetrix is
                 minInvestment: prop.minInvestment,
                 expectedROI: prop.expectedROI,
                 investmentDuration: prop.investmentDuration,
-                ownershipPercentage: prop.ownershipPercentage,
                 currentFunding: prop.currentFunding,
                 isActive: prop.isActive,
                 isFullyFunded: prop.isFullyFunded,
@@ -675,7 +665,6 @@ contract Assetrix is
                 minInvestment: prop.minInvestment,
                 expectedROI: prop.expectedROI,
                 investmentDuration: prop.investmentDuration,
-                ownershipPercentage: prop.ownershipPercentage,
                 currentFunding: prop.currentFunding,
                 isActive: prop.isActive,
                 isFullyFunded: prop.isFullyFunded,
@@ -887,6 +876,12 @@ contract Assetrix is
         Property storage prop = properties[_propertyId];
         require(prop.isActive, "Property is not active");
         
+        // Add this validation:
+        require(
+            block.timestamp <= getInvestmentEndTime(_propertyId),
+            "Investment period has ended"
+        );
+        
         // Check if property can accept investments (handles re-funding after early exits)
         bool canAccept = this.canAcceptInvestments(_propertyId);
         require(canAccept, "Property cannot accept investments at this time");
@@ -972,6 +967,12 @@ contract Assetrix is
         );
         require(_amount > 0, "Payout amount must be greater than 0");
 
+        // Add this validation:
+        require(
+            block.timestamp <= getInvestmentEndTime(_propertyId),
+            "Investment period has ended, use final payout instead"
+        );
+
         // Transfer stablecoin from developer to investor
         require(
             stablecoin.transferFrom(msg.sender, _investor, _amount),
@@ -1008,6 +1009,12 @@ contract Assetrix is
             "Investor has no investment in this property"
         );
         require(_amount > 0, "Payout amount must be greater than 0");
+
+        // Add this validation:
+        require(
+            block.timestamp >= getInvestmentEndTime(_propertyId),
+            "Investment period has not ended yet"
+        );
 
         // Transfer stablecoin from developer to investor
         require(
@@ -1119,6 +1126,12 @@ contract Assetrix is
             }
             require(!hasReleasedFunds, "Cannot exit after milestone funds have been released");
         }
+
+        // Add this validation (optional - depends on business rules):
+        require(
+            block.timestamp < getInvestmentEndTime(_propertyId),
+            "Investment period has ended, use final payout instead"
+        );
 
         uint256 investmentAmount = prop.investments[msg.sender];
         uint256 exitFee = (investmentAmount * 5) / 100; // 5% exit fee
@@ -1271,7 +1284,7 @@ contract Assetrix is
         milestone.isCompleted = true;
         milestone.completedAt = block.timestamp;
 
-        emit MilestoneMarkedCompleted(_propertyId, _milestoneId, "");
+        emit MilestoneMarkedCompleted(_propertyId, _milestoneId);
     }
 
 
@@ -1328,6 +1341,25 @@ contract Assetrix is
         Property storage prop = properties[_propertyId];
         
         return (prop.currentFunding * 100) / prop.totalInvestment;
+    }
+
+    // Helper function to calculate investment end time
+    function getInvestmentEndTime(uint256 _propertyId) public view returns (uint256) {
+        Property storage prop = properties[_propertyId];
+        uint256 durationInSeconds = getDurationInSeconds(prop.investmentDuration);
+        return prop.createdAt + durationInSeconds; // Need to add createdAt field
+    }
+
+    function getDurationInSeconds(Duration _duration) internal pure returns (uint256) {
+        if (_duration == Duration.OneMonth) return 30 days;
+        if (_duration == Duration.ThreeMonths) return 90 days;
+        if (_duration == Duration.FiveMonths) return 150 days;
+        if (_duration == Duration.SevenMonths) return 210 days;
+        if (_duration == Duration.EightMonths) return 240 days;
+        if (_duration == Duration.NineMonths) return 270 days;
+        if (_duration == Duration.TenMonths) return 300 days;
+        if (_duration == Duration.TwelveMonths) return 365 days;
+        revert("Invalid duration");
     }
 
     function _recordTransaction(
@@ -1406,5 +1438,15 @@ contract Assetrix is
 
     function getTotalTransactions() external view returns (uint256) {
         return transactionCount;
+    }
+
+    function isInvestmentPeriodActive(uint256 _propertyId) external view returns (bool) {
+        return block.timestamp <= getInvestmentEndTime(_propertyId);
+    }
+
+    function getInvestmentPeriodRemaining(uint256 _propertyId) external view returns (uint256) {
+        uint256 endTime = getInvestmentEndTime(_propertyId);
+        if (block.timestamp >= endTime) return 0;
+        return endTime - block.timestamp;
     }
 }
