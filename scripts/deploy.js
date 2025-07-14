@@ -13,10 +13,16 @@ async function main() {
 
     // Validate environment variables
     const stablecoinAddress = process.env.STABLECOIN_ADDRESS
+    const initialTokenPrice = process.env.INITIAL_TOKEN_PRICE || '100000' // N100,000 default
+    const initialROIPercentage = process.env.INITIAL_ROI_PERCENTAGE || '15' // 15% default
+    
     if (!stablecoinAddress) {
       throw new Error('STABLECOIN_ADDRESS is not set in .env file')
     }
+    
     console.log('🪙 Using stablecoin address:', stablecoinAddress)
+    console.log('💰 Initial token price:', initialTokenPrice, '(Naira)')
+    console.log('📈 Initial ROI percentage:', initialROIPercentage, '%')
 
     console.log('Deploying Assetrix Investment...')
     
@@ -27,7 +33,7 @@ async function main() {
     console.log('⏳ Deploying proxy contract...')
     const assetrix = await upgrades.deployProxy(
       Assetrix,
-      [stablecoinAddress],
+      [stablecoinAddress, initialTokenPrice, initialROIPercentage],
       {
         initializer: 'initialize',
         kind: 'uups'
@@ -46,6 +52,12 @@ async function main() {
     console.log('✅ Assetrix deployed to:', proxyAddress)
     console.log('✅ Implementation address:', implementationAddress)
 
+    // Verify the contract was initialized correctly
+    const globalTokenPrice = await assetrix.getGlobalTokenPrice()
+    const expectedROI = await assetrix.getExpectedROIPercentage()
+    console.log('✅ Global token price set to:', globalTokenPrice.toString())
+    console.log('✅ Expected ROI percentage set to:', expectedROI.toString(), '%')
+
     // Save the contract addresses
     const contractsDir = path.join(__dirname, '..', 'deployments')
     if (!fs.existsSync(contractsDir)) {
@@ -60,6 +72,9 @@ async function main() {
       proxy: proxyAddress,
       implementation: implementationAddress,
       deployer: deployer.address,
+      stablecoinAddress: stablecoinAddress,
+      initialTokenPrice: initialTokenPrice,
+      initialROIPercentage: initialROIPercentage,
       timestamp: new Date().toISOString()
     }
 
@@ -78,7 +93,6 @@ async function main() {
     throw error
   }
 }
-
 
 main()
   .then(() => process.exit(0))

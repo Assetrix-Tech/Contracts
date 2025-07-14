@@ -43,6 +43,16 @@ async function main() {
     console.log('✅ Proxy upgraded successfully')
     console.log('✅ New implementation address:', implementationAddress)
 
+    // Verify the contract is working after upgrade
+    try {
+      const globalTokenPrice = await assetrix.getGlobalTokenPrice()
+      const expectedROI = await assetrix.getExpectedROIPercentage()
+      console.log('✅ Global token price after upgrade:', globalTokenPrice.toString())
+      console.log('✅ Expected ROI percentage after upgrade:', expectedROI.toString(), '%')
+    } catch (error) {
+      console.log('⚠️ Warning: Could not verify contract state after upgrade:', error.message)
+    }
+
     // Update the deployment file
     const contractsDir = path.join(__dirname, '..', 'deployments')
     if (!fs.existsSync(contractsDir)) {
@@ -52,13 +62,22 @@ async function main() {
     const network = await ethers.provider.getNetwork()
     const networkName = network.name === 'unknown' ? 'localhost' : network.name
     
+    // Read existing deployment data to preserve initialization parameters
+    const existingDeploymentPath = path.join(contractsDir, `deployment-${networkName}.json`)
+    let existingData = {}
+    if (fs.existsSync(existingDeploymentPath)) {
+      existingData = JSON.parse(fs.readFileSync(existingDeploymentPath))
+    }
+    
     const deploymentData = {
+      ...existingData,
       network: networkName,
       proxy: proxyAddress,
       implementation: implementationAddress,
       deployer: deployer.address,
       timestamp: new Date().toISOString(),
-      upgraded: true
+      upgraded: true,
+      upgradeTimestamp: new Date().toISOString()
     }
 
     const deploymentPath = path.join(contractsDir, `deployment-${networkName}.json`)

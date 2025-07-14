@@ -39,6 +39,21 @@ async function main() {
     console.log(`Proxy: ${proxyAddress}`);
     console.log(`Implementation: ${implementationAddress}`);
     
+    // Display contract configuration
+    try {
+      const Assetrix = await ethers.getContractFactory('Assetrix');
+      const assetrix = Assetrix.attach(proxyAddress);
+      
+      const globalTokenPrice = await assetrix.getGlobalTokenPrice();
+      const expectedROI = await assetrix.getExpectedROIPercentage();
+      
+      console.log("\n📋 Contract Configuration:");
+      console.log(`Global Token Price: ${globalTokenPrice.toString()} Naira`);
+      console.log(`Expected ROI: ${expectedROI.toString()}%`);
+    } catch (error) {
+      console.log("⚠️ Could not fetch contract configuration:", error.message);
+    }
+    
   } catch (error) {
     if (error.message.toLowerCase().includes("already verified")) {
       console.log("✅ Contract is already verified");
