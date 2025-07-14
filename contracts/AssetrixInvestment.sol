@@ -98,7 +98,7 @@ contract Assetrix is
         string ipfsImagesHash;
         string ipfsMetadataHash;
         address[] tokenHolders;
-        mapping(address => uint256) tokenBalance; // Number of tokens held by each address
+        mapping(address => uint256) tokenBalance;
         uint256 holderCount;
         address developerAddress;
         Milestone[] milestones;
