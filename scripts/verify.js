@@ -45,11 +45,11 @@ async function main() {
       const assetrix = Assetrix.attach(proxyAddress);
       
       const globalTokenPrice = await assetrix.getGlobalTokenPrice();
-      const expectedROI = await assetrix.getExpectedROIPercentage();
+      // REMOVE: const expectedROI = await assetrix.getExpectedROIPercentage();
       
       console.log("\n📋 Contract Configuration:");
       console.log(`Global Token Price: ${globalTokenPrice.toString()} Naira`);
-      console.log(`Expected ROI: ${expectedROI.toString()}%`);
+      // REMOVE: console.log(`Expected ROI: ${expectedROI.toString()}%`);
     } catch (error) {
       console.log("⚠️ Could not fetch contract configuration:", error.message);
     }

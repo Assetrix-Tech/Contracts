@@ -26,8 +26,7 @@ contract Assetrix is
     uint256 public propertyCount;
     uint256 public transactionCount;
     
-    // Updatable ROI percentage (was constant)
-    uint256 public expectedROIPercentage; // Updatable ROI percentage
+
     
     // Tokenization parameters - NEW APPROACH
     uint256 public constant MIN_TOKENS_PER_PROPERTY = 100; // Minimum 100 tokens per property
@@ -104,6 +103,7 @@ contract Assetrix is
         address developerAddress;
         Milestone[] milestones;
         uint256 createdAt;
+        uint256 roiPercentage;
     }
 
     struct PropertyView {
@@ -131,6 +131,7 @@ contract Assetrix is
         address developerAddress;
         uint256 holderCount;
         Milestone[] milestones;
+        uint256 roiPercentage;
     }
 
     struct Milestone {
@@ -228,7 +229,6 @@ contract Assetrix is
     );
     event StablecoinUpdated(address indexed newStablecoin);
     event GlobalTokenPriceUpdated(uint256 newTokenPrice);
-    event ExpectedROIPercentageUpdated(uint256 newROIPercentage);
 
     // ============ MODIFIERS ============
     // Modifier to check if a property exists and is active
@@ -259,20 +259,13 @@ contract Assetrix is
         emit GlobalTokenPriceUpdated(_newTokenPrice);
     }
 
-    function setExpectedROIPercentage(uint256 _newROIPercentage) external onlyOwner {
-        require(_newROIPercentage > 0 && _newROIPercentage <= 100, "ROI percentage must be between 1 and 100");
-        expectedROIPercentage = _newROIPercentage;
-        emit ExpectedROIPercentageUpdated(_newROIPercentage);
-    }
 
-    function initialize(address _stablecoin, uint256 _initialTokenPrice, uint256 _initialROIPercentage) public initializer {
+    function initialize(address _stablecoin, uint256 _initialTokenPrice) public initializer {
         require(_stablecoin != address(0), "Invalid stablecoin address");
         require(_initialTokenPrice > 0, "Invalid token price");
-        require(_initialROIPercentage > 0 && _initialROIPercentage <= 100, "Invalid ROI percentage");
         
         stablecoin = IERC20(_stablecoin);
         globalTokenPrice = _initialTokenPrice;
-        expectedROIPercentage = _initialROIPercentage; // Set initial ROI percentage
         
         __Ownable_init(msg.sender);
         __ReentrancyGuard_init();
@@ -303,7 +296,8 @@ contract Assetrix is
         Duration _investmentDuration,
         string[] memory _milestoneTitles,
         string[] memory _milestoneDescriptions,
-        uint256[] memory _milestonePercentages
+        uint256[] memory _milestonePercentages,
+        uint256 _roiPercentage // NEW
     ) external nonReentrant returns (uint256) {
         require(bytes(_title).length > 0, "Title cannot be empty");
         require(bytes(_developerName).length > 0, "Developer name required");
@@ -314,6 +308,7 @@ contract Assetrix is
         require(bytes(_country).length > 0, "Country required");
         require(_amountToRaise > 0, "Amount to raise must be greater than 0");
         require(_amountToRaise % globalTokenPrice == 0, "Amount must be divisible by token price");
+        require(_roiPercentage > 0 && _roiPercentage <= 100, "ROI percentage must be between 1 and 100");
         require(_milestoneTitles.length == _milestoneDescriptions.length && 
                 _milestoneTitles.length == _milestonePercentages.length, 
                 "Milestone arrays must have matching lengths");
@@ -344,8 +339,8 @@ contract Assetrix is
         prop.bathrooms = _bathrooms;
 
         // Tokenization setup - NEW APPROACH
-        prop.tokenPrice = globalTokenPrice; // Lock in current global price for this property
-        prop.totalTokens = calculatedTokens; // Calculated based on amount to raise
+        prop.tokenPrice = globalTokenPrice; 
+        prop.totalTokens = calculatedTokens;
         prop.tokensSold = 0;
         prop.tokensLeft = calculatedTokens;
         prop.investmentDuration = _investmentDuration;
@@ -353,6 +348,7 @@ contract Assetrix is
         prop.isFullyFunded = false;
         prop.ipfsImagesHash = _ipfsImagesHash;
         prop.ipfsMetadataHash = _ipfsMetadataHash;
+        prop.roiPercentage = _roiPercentage;
 
         developerProperties[msg.sender].push(propertyCount);
 
@@ -400,7 +396,8 @@ contract Assetrix is
         uint256 _bathrooms,
         string[] memory _milestoneTitles,
         string[] memory _milestoneDescriptions,
-        uint256[] memory _milestonePercentages
+        uint256[] memory _milestonePercentages,
+        uint256 _roiPercentage // NEW
     ) external propertyExists(_propertyId) {
         Property storage prop = properties[_propertyId];
 
@@ -421,6 +418,7 @@ contract Assetrix is
             _milestoneTitles.length <= 4,
             "Maximum 4 milestones allowed"
         );
+        require(_roiPercentage > 0 && _roiPercentage <= 100, "ROI percentage must be between 1 and 100");
 
         prop.title = _title;
         prop.description = _description;
@@ -435,6 +433,7 @@ contract Assetrix is
 
         prop.ipfsImagesHash = _ipfsImagesHash;
         prop.ipfsMetadataHash = _ipfsMetadataHash;
+        prop.roiPercentage = _roiPercentage;
 
         // Clear existing milestones
         delete prop.milestones;
@@ -539,7 +538,8 @@ contract Assetrix is
                 ipfsMetadataHash: prop.ipfsMetadataHash,
                 developerAddress: prop.developerAddress,
                 holderCount: prop.holderCount,
-                milestones: prop.milestones
+                milestones: prop.milestones,
+                roiPercentage: prop.roiPercentage
             });
     }
 
@@ -580,7 +580,8 @@ contract Assetrix is
                 ipfsMetadataHash: prop.ipfsMetadataHash,
                 developerAddress: prop.developerAddress,
                 holderCount: prop.holderCount,
-                milestones: prop.milestones
+                milestones: prop.milestones,
+                roiPercentage: prop.roiPercentage
             });
         }
 
@@ -628,7 +629,8 @@ contract Assetrix is
                 ipfsMetadataHash: prop.ipfsMetadataHash,
                 developerAddress: prop.developerAddress,
                 holderCount: prop.holderCount,
-                milestones: prop.milestones
+                milestones: prop.milestones,
+                roiPercentage: prop.roiPercentage
             });
         }
 
@@ -681,7 +683,8 @@ contract Assetrix is
                 ipfsMetadataHash: prop.ipfsMetadataHash,
                 developerAddress: prop.developerAddress,
                 holderCount: prop.holderCount,
-                milestones: prop.milestones
+                milestones: prop.milestones,
+                roiPercentage: prop.roiPercentage
             });
         }
 
@@ -1354,8 +1357,10 @@ contract Assetrix is
         return endTime - block.timestamp;
     }
 
-    function getExpectedROIPercentage() external view returns (uint256) {
-        return expectedROIPercentage;
+    function getExpectedROIPercentage(uint256 _propertyId) external view returns (uint256) {
+        require(_propertyId > 0 && _propertyId <= propertyCount, "Property does not exist");
+        Property storage prop = properties[_propertyId];
+        return prop.roiPercentage;
     }
 
     function getGlobalTokenPrice() external view returns (uint256) {
@@ -1372,8 +1377,10 @@ contract Assetrix is
         return _tokens * globalTokenPrice;
     }
 
-    function calculateExpectedROI(uint256 _investmentAmount) external view returns (uint256) {
-        return (_investmentAmount * expectedROIPercentage) / 100;
+    function calculateExpectedROI(uint256 _propertyId, uint256 _investmentAmount) external view returns (uint256) {
+        require(_propertyId > 0 && _propertyId <= propertyCount, "Property does not exist");
+        Property storage prop = properties[_propertyId];
+        return (_investmentAmount * prop.roiPercentage) / 100;
     }
 
     function getPropertyAmountToRaise(uint256 _propertyId) external view returns (uint256) {

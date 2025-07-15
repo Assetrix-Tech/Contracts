@@ -46,9 +46,7 @@ async function main() {
     // Verify the contract is working after upgrade
     try {
       const globalTokenPrice = await assetrix.getGlobalTokenPrice()
-      const expectedROI = await assetrix.getExpectedROIPercentage()
       console.log('✅ Global token price after upgrade:', globalTokenPrice.toString())
-      console.log('✅ Expected ROI percentage after upgrade:', expectedROI.toString(), '%')
     } catch (error) {
       console.log('⚠️ Warning: Could not verify contract state after upgrade:', error.message)
     }
