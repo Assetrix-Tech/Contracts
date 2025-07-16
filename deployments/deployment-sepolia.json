@@ -1,7 +1,7 @@
 {
   "network": "sepolia",
-  "proxy": "0xc8E3A087560374e60c5D5fDeF6754bAA6767c7C0",
-  "implementation": "0x5859145C325bC124fEDe38e606B432A59f5e17B6",
+  "proxy": "0xA4C855cbeEd71Fb2ba82c907AF10cde5b9b2e67b",
+  "implementation": "0x50Ffe6E900DeBc7Ef81a327Ce2eB1EeDA506ad19",
   "deployer": "0x4f950FAA97B1A7fad9C78cA03B1e99539C8E5cf3",
-  "timestamp": "2025-07-10T15:59:53.490Z"
+  "timestamp": "2025-07-16T18:10:37.870Z"
 }
