@@ -297,7 +297,7 @@ contract Assetrix is
         string[] memory _milestoneTitles,
         string[] memory _milestoneDescriptions,
         uint256[] memory _milestonePercentages,
-        uint256 _roiPercentage // NEW
+        uint256 _roiPercentage
     ) external nonReentrant returns (uint256) {
         require(bytes(_title).length > 0, "Title cannot be empty");
         require(bytes(_developerName).length > 0, "Developer name required");
