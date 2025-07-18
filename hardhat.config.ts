@@ -2,6 +2,7 @@ require("@nomicfoundation/hardhat-toolbox");
 require("@openzeppelin/hardhat-upgrades");
 require("@nomicfoundation/hardhat-verify");
 require("dotenv").config();
+import "hardhat-contract-sizer"
 
 /** @type import('hardhat/config').HardhatUserConfig */
 module.exports = {
@@ -37,4 +38,9 @@ module.exports = {
   mocha: {
     timeout: 40000,
   },
+  contractSizer: {
+    alphaSort: true,
+    runOnCompile: true,
+    disambiguatePaths: false,
+  }
 };

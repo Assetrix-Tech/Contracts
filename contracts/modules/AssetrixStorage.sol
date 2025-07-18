@@ -22,8 +22,8 @@ contract AssetrixStorage {
 
     // ============ MODIFIERS ============
     modifier propertyExists(uint256 _propertyId) {
-        require(_propertyId > 0 && _propertyId <= propertyCount, "Property does not exist");
-        require(properties[_propertyId].isActive, "Property is not active");
+        require(_propertyId > 0 && _propertyId <= propertyCount, "Don't exist");
+        require(properties[_propertyId].isActive, "Not active");
         _;
     }
 }
