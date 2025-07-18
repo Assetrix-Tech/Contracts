@@ -800,7 +800,6 @@ contract Assetrix is
                 continue;
             }
             
-            // For the first milestone, it can always be requested
             if (i == 0) {
                 return i;
             }
