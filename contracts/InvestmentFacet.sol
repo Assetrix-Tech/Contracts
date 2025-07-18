@@ -281,4 +281,25 @@ contract InvestmentFacet {
         if (_duration == AssetrixStorage.Duration.TwelveMonths) return 365 days;
         revert("Invalid duration");
     }
+
+    function isInvestmentPeriodActive(uint256 _propertyId) external view returns (bool) {
+        return block.timestamp <= getInvestmentEndTime(_propertyId);
+    }
+
+    function getInvestmentPeriodRemaining(uint256 _propertyId) external view returns (uint256) {
+        uint256 endTime = getInvestmentEndTime(_propertyId);
+        if (block.timestamp >= endTime) return 0;
+        return endTime - block.timestamp;
+    }
+
+    function getExpectedROIPercentage(uint256 _propertyId) external view returns (uint256) {
+        AssetrixStorage.Layout storage s = AssetrixStorage.layout();
+        AssetrixStorage.Property storage prop = s.properties[_propertyId];
+        return prop.roiPercentage;
+    }
+
+    function getGlobalTokenPrice() external view returns (uint256) {
+        AssetrixStorage.Layout storage s = AssetrixStorage.layout();
+        return s.globalTokenPrice;
+    }
 } 
