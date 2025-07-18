@@ -6,12 +6,12 @@ import "../libraries/AssetrixEnums.sol";
 import "../libraries/AssetrixStructs.sol";
 import "./AssetrixStorage.sol";
 import "../interfaces/IAssetrixEvents.sol";
+import "../libraries/AssetrixUtils.sol";
 
 contract AssetrixPropertyManagement is AssetrixModuleBase,AssetrixStorage, IAssetrixEvents {
     using AssetrixEnums for *;
     using AssetrixStructs for *;
 
-    // ============ PROPERTY MANAGEMENT ============
     function __AssetrixPropertyManagement_init(address initialOwner) internal onlyInitializing {
         __AssetrixModuleBase_init(initialOwner);
     }
@@ -48,8 +48,6 @@ contract AssetrixPropertyManagement is AssetrixModuleBase,AssetrixStorage, IAsse
         require(bytes(_country).length > 0, "Country required");
         require(_tokenPrice > 0, "Token price must be greater than 0");
         require(_totalTokens > 0, "Total tokens must be greater than 0");
-        require(_milestoneTitles.length == _milestoneDescriptions.length && _milestoneTitles.length == _milestonePercentages.length, "Milestone arrays must have matching lengths");
-        require(_milestoneTitles.length > 0 && _milestoneTitles.length <= 4, "Maximum 4 milestones allowed");
         require(_roiPercentage > 0 && _roiPercentage <= 100, "ROI percentage must be between 1 and 100");
 
         propertyCount++;
@@ -80,25 +78,11 @@ contract AssetrixPropertyManagement is AssetrixModuleBase,AssetrixStorage, IAsse
         prop.roiPercentage = _roiPercentage;
         developerProperties[msg.sender].push(propertyCount);
 
-        uint256 totalPercentage = 0;
-        for (uint256 i = 0; i < _milestoneTitles.length; i++) {
-            require(_milestonePercentages[i] > 0 && _milestonePercentages[i] <= 100, "Invalid milestone percentage");
-            totalPercentage += _milestonePercentages[i];
-            prop.milestones.push(AssetrixStructs.Milestone({
-                id: i,
-                title: _milestoneTitles[i],
-                description: _milestoneDescriptions[i],
-                percentage: _milestonePercentages[i],
-                fundsRequested: false,
-                fundsReleased: false,
-                isCompleted: false,
-                completedAt: 0,
-                requestedAt: 0,
-                releasedAt: 0
-            }));
-            emit MilestoneCreated(propertyCount, i, _milestoneTitles[i], _milestonePercentages[i]);
+        (AssetrixStructs.Milestone[] memory milestones, ) = AssetrixUtils.buildMilestones(_milestoneTitles, _milestoneDescriptions, _milestonePercentages);
+        for (uint256 i = 0; i < milestones.length; i++) {
+            prop.milestones.push(milestones[i]);
+            emit MilestoneCreated(propertyCount, i, milestones[i].title, milestones[i].percentage);
         }
-        require(totalPercentage <= 100, "Total milestone percentage cannot exceed 100%");
         emit PropertyCreated(propertyCount, msg.sender, _title);
         return propertyCount;
     }
@@ -125,8 +109,6 @@ contract AssetrixPropertyManagement is AssetrixModuleBase,AssetrixStorage, IAsse
         AssetrixStructs.Property storage prop = properties[_propertyId];
         require(msg.sender == prop.developerAddress || msg.sender == owner(), "Only property developer or owner can update");
         require(!prop.isFullyFunded, "Cannot update a fully funded property");
-        require(_milestoneTitles.length == _milestoneDescriptions.length && _milestoneTitles.length == _milestonePercentages.length, "Milestone arrays must have matching lengths");
-        require(_milestoneTitles.length <= 4, "Maximum 4 milestones allowed");
         require(_roiPercentage > 0 && _roiPercentage <= 100, "ROI percentage must be between 1 and 100");
         prop.title = _title;
         prop.description = _description;
@@ -142,25 +124,11 @@ contract AssetrixPropertyManagement is AssetrixModuleBase,AssetrixStorage, IAsse
         prop.ipfsMetadataHash = _ipfsMetadataHash;
         prop.roiPercentage = _roiPercentage;
         delete prop.milestones;
-        uint256 totalPercentage = 0;
-        for (uint256 i = 0; i < _milestoneTitles.length; i++) {
-            require(_milestonePercentages[i] > 0 && _milestonePercentages[i] <= 100, "Invalid milestone percentage");
-            totalPercentage += _milestonePercentages[i];
-            prop.milestones.push(AssetrixStructs.Milestone({
-                id: i,
-                title: _milestoneTitles[i],
-                description: _milestoneDescriptions[i],
-                percentage: _milestonePercentages[i],
-                fundsRequested: false,
-                fundsReleased: false,
-                isCompleted: false,
-                completedAt: 0,
-                requestedAt: 0,
-                releasedAt: 0
-            }));
-            emit MilestoneCreated(_propertyId, i, _milestoneTitles[i], _milestonePercentages[i]);
+        (AssetrixStructs.Milestone[] memory milestones, ) = AssetrixUtils.buildMilestones(_milestoneTitles, _milestoneDescriptions, _milestonePercentages);
+        for (uint256 i = 0; i < milestones.length; i++) {
+            prop.milestones.push(milestones[i]);
+            emit MilestoneCreated(_propertyId, i, milestones[i].title, milestones[i].percentage);
         }
-        require(totalPercentage <= 100, "Total milestone percentage cannot exceed 100%");
         emit PropertyUpdated(_propertyId, _ipfsMetadataHash);
     }
 
@@ -172,83 +140,26 @@ contract AssetrixPropertyManagement is AssetrixModuleBase,AssetrixStorage, IAsse
         emit PropertyDeactivated(_propertyId);
     }
 
-    // ============ PROPERTY QUERIES ============
-    // function getProperty(uint256 _propertyId) public view propertyExists(_propertyId) returns (AssetrixStructs.Property memory) {
-    //     return properties[_propertyId];
+    // function getProperty(uint256 _propertyId) public view propertyExists(_propertyId) returns (AssetrixStructs.PropertyView memory) {
+    //     AssetrixStructs.Property storage prop = properties[_propertyId];
+    //     return AssetrixUtils.toPropertyView(prop);
     // }
 
-    function getProperty(uint256 _propertyId) public view propertyExists(_propertyId) returns (AssetrixStructs.PropertyView memory) {
-    AssetrixStructs.Property storage prop = properties[_propertyId];
-    return AssetrixStructs.PropertyView({
-        propertyId: prop.propertyId,
-        title: prop.title,
-        description: prop.description,
-        propertyType: prop.propertyType,
-        propertyUse: prop.propertyUse,
-        developer: prop.developer,
-        city: prop.city,
-        state: prop.state,
-        country: prop.country,
-        size: prop.size,
-        bedrooms: prop.bedrooms,
-        bathrooms: prop.bathrooms,
-        tokenPrice: prop.tokenPrice,
-        totalTokens: prop.totalTokens,
-        tokensSold: prop.tokensSold,
-        tokensLeft: prop.tokensLeft,
-        investmentDuration: prop.investmentDuration,
-        isActive: prop.isActive,
-        isFullyFunded: prop.isFullyFunded,
-        ipfsImagesHash: prop.ipfsImagesHash,
-        ipfsMetadataHash: prop.ipfsMetadataHash,
-        developerAddress: prop.developerAddress,
-        holderCount: prop.holderCount,
-        milestones: prop.milestones,
-        roiPercentage: prop.roiPercentage
-    });
-}
-
-    function getPropertiesByDeveloper(address _developer) external view returns (AssetrixStructs.PropertyView[] memory) {
-        uint256[] memory propertyIds = developerProperties[_developer];
-        AssetrixStructs.PropertyView[] memory result = new AssetrixStructs.PropertyView[](propertyIds.length);
-        for (uint256 i = 0; i < propertyIds.length; i++) {
-            AssetrixStructs.Property storage prop = properties[propertyIds[i]];
-            result[i] = AssetrixStructs.PropertyView({
-                propertyId: prop.propertyId,
-                title: prop.title,
-                description: prop.description,
-                propertyType: prop.propertyType,
-                propertyUse: prop.propertyUse,
-                developer: prop.developer,
-                city: prop.city,
-                state: prop.state,
-                country: prop.country,
-                size: prop.size,
-                bedrooms: prop.bedrooms,
-                bathrooms: prop.bathrooms,
-                tokenPrice: prop.tokenPrice,
-                totalTokens: prop.totalTokens,
-                tokensSold: prop.tokensSold,
-                tokensLeft: prop.tokensLeft,
-                investmentDuration: prop.investmentDuration,
-                isActive: prop.isActive,
-                isFullyFunded: prop.isFullyFunded,
-                ipfsImagesHash: prop.ipfsImagesHash,
-                ipfsMetadataHash: prop.ipfsMetadataHash,
-                developerAddress: prop.developerAddress,
-                holderCount: prop.holderCount,
-                milestones: prop.milestones,
-                roiPercentage: prop.roiPercentage
-            });
-        }
-        return result;
-    }
+    // function getPropertiesByDeveloper(address _developer) external view returns (AssetrixStructs.PropertyView[] memory) {
+    //     uint256[] memory propertyIds = developerProperties[_developer];
+    //     AssetrixStructs.PropertyView[] memory result = new AssetrixStructs.PropertyView[](propertyIds.length);
+    //     for (uint256 i = 0; i < propertyIds.length; i++) {
+    //         AssetrixStructs.Property storage prop = properties[propertyIds[i]];
+    //         result[i] = AssetrixUtils.toPropertyView(prop);
+    //     }
+    //     return result;
+    // }
 
     function getTotalProperties() external view returns (uint256) {
         return propertyCount;
     }
 
-    function getPropertyMilestones(uint256 _propertyId) external view propertyExists(_propertyId) returns (AssetrixStructs.Milestone[] memory) {
-        return properties[_propertyId].milestones;
-    }
+    // function getPropertyMilestones(uint256 _propertyId) external view propertyExists(_propertyId) returns (AssetrixStructs.Milestone[] memory) {
+    //     return properties[_propertyId].milestones;
+    // }
 } 
