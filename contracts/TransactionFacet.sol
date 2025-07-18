@@ -33,7 +33,10 @@ contract TransactionFacet {
 
     modifier nonReentrant() {
         AssetrixStorage.Layout storage s = AssetrixStorage.layout();
-        require(s.reentrancyStatus != _ENTERED, "ReentrancyGuard: reentrant call");
+        require(
+            s.reentrancyStatus != _ENTERED,
+            "ReentrancyGuard: reentrant call"
+        );
         s.reentrancyStatus = _ENTERED;
         _;
         s.reentrancyStatus = _NOT_ENTERED;
@@ -81,27 +84,37 @@ contract TransactionFacet {
         );
     }
 
-    function getUserTransactionHistory(address _user) external view returns (AssetrixStorage.Transaction[] memory) {
+    function getUserTransactionHistory(
+        address _user
+    ) external view returns (AssetrixStorage.Transaction[] memory) {
         AssetrixStorage.Layout storage s = AssetrixStorage.layout();
         uint256[] storage userTxIds = s.userTransactions[_user];
-        AssetrixStorage.Transaction[] memory result = new AssetrixStorage.Transaction[](userTxIds.length);
+        AssetrixStorage.Transaction[]
+            memory result = new AssetrixStorage.Transaction[](userTxIds.length);
         for (uint256 i = 0; i < userTxIds.length; i++) {
             result[i] = s.transactions[userTxIds[i]];
         }
         return result;
     }
 
-    function getPropertyTransactionHistory(uint256 _propertyId) external view returns (AssetrixStorage.Transaction[] memory) {
+    function getPropertyTransactionHistory(
+        uint256 _propertyId
+    ) external view returns (AssetrixStorage.Transaction[] memory) {
         AssetrixStorage.Layout storage s = AssetrixStorage.layout();
         uint256[] storage propertyTxIds = s.propertyTransactions[_propertyId];
-        AssetrixStorage.Transaction[] memory result = new AssetrixStorage.Transaction[](propertyTxIds.length);
+        AssetrixStorage.Transaction[]
+            memory result = new AssetrixStorage.Transaction[](
+                propertyTxIds.length
+            );
         for (uint256 i = 0; i < propertyTxIds.length; i++) {
             result[i] = s.transactions[propertyTxIds[i]];
         }
         return result;
     }
 
-    function getTransaction(uint256 _transactionId) external view returns (AssetrixStorage.Transaction memory) {
+    function getTransaction(
+        uint256 _transactionId
+    ) external view returns (AssetrixStorage.Transaction memory) {
         AssetrixStorage.Layout storage s = AssetrixStorage.layout();
         return s.transactions[_transactionId];
     }
@@ -110,4 +123,4 @@ contract TransactionFacet {
         AssetrixStorage.Layout storage s = AssetrixStorage.layout();
         return s.transactionCount;
     }
-} 
+}
