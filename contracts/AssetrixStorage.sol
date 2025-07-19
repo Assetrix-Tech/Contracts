@@ -96,6 +96,48 @@ library AssetrixStorage {
         bytes32 transactionHash;
     }
 
+    struct PropertyCreationData {
+        string title;
+        string description;
+        PropertyType propertyType;
+        PropertyUse propertyUse;
+        string developerName;
+        address developerAddress;
+        string city;
+        string state;
+        string country;
+        string ipfsImagesHash;
+        string ipfsMetadataHash;
+        uint256 size;
+        uint256 bedrooms;
+        uint256 bathrooms;
+        uint256 amountToRaise;
+        Duration investmentDuration;
+        string[] milestoneTitles;
+        string[] milestoneDescriptions;
+        uint256[] milestonePercentages;
+        uint256 roiPercentage;
+    }
+
+    struct PropertyUpdateData {
+        string title;
+        string description;
+        PropertyType propertyType;
+        PropertyUse propertyUse;
+        string city;
+        string state;
+        string country;
+        string ipfsImagesHash;
+        string ipfsMetadataHash;
+        uint256 size;
+        uint256 bedrooms;
+        uint256 bathrooms;
+        string[] milestoneTitles;
+        string[] milestoneDescriptions;
+        uint256[] milestonePercentages;
+        uint256 roiPercentage;
+    }
+
     struct Layout {
         // State variables
         address stablecoin;
