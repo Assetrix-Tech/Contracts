@@ -4,63 +4,80 @@ const path = require('path');
 require('dotenv').config();
 
 async function main() {
-  let proxyAddress = process.env.PROXY_ADDRESS;
-  let implementationAddress = process.env.IMPLEMENTATION_ADDRESS;
+  let diamondAddress = process.env.DIAMOND_ADDRESS;
+  let facetAddresses = {};
   
   // If not in env, try to get from deployment file
-  if (!proxyAddress || !implementationAddress) {
+  if (!diamondAddress) {
     const network = await ethers.provider.getNetwork();
     const networkName = network.name === 'unknown' ? 'localhost' : network.name;
     const deploymentPath = path.join(__dirname, '..', 'deployments', `deployment-${networkName}.json`);
     
     if (fs.existsSync(deploymentPath)) {
       const deploymentData = JSON.parse(fs.readFileSync(deploymentPath));
-      proxyAddress = proxyAddress || deploymentData.proxy;
-      implementationAddress = implementationAddress || deploymentData.implementation;
+      diamondAddress = deploymentData.diamond;
+      facetAddresses = deploymentData.facets;
       console.log(`📁 Found addresses in deployment file: ${deploymentPath}`);
     } else {
-      throw new Error("PROXY_ADDRESS and IMPLEMENTATION_ADDRESS must be set in .env file or deployment file must exist");
+      throw new Error("DIAMOND_ADDRESS must be set in .env file or deployment file must exist");
     }
   }
 
-  console.log("Verifying contracts...");
+  console.log("Verifying diamond pattern contracts...");
   
   try {
-    // Verify implementation contract
-    console.log(`\nVerifying implementation contract at ${implementationAddress}...`);
-    await run("verify:verify", {
-      address: implementationAddress,
-      constructorArguments: [],
-    });
-    console.log("✅ Implementation contract verified");
+    // Verify all facets
+    console.log(`\n🔍 Verifying facets...`);
     
-    // Note: The proxy contract is verified automatically by Etherscan
+    const facets = [
+      { name: 'AdminFacet', address: facetAddresses.admin },
+      { name: 'PropertyFacet', address: facetAddresses.property },
+      { name: 'InvestmentFacet', address: facetAddresses.investment },
+      { name: 'MilestoneFacet', address: facetAddresses.milestone },
+      { name: 'TransactionFacet', address: facetAddresses.transaction }
+    ];
+
+    for (const facet of facets) {
+      if (facet.address) {
+        console.log(`\nVerifying ${facet.name} at ${facet.address}...`);
+        try {
+          await run("verify:verify", {
+            address: facet.address,
+            constructorArguments: [],
+          });
+          console.log(`✅ ${facet.name} verified`);
+        } catch (error) {
+          if (error.message.toLowerCase().includes("already verified")) {
+            console.log(`✅ ${facet.name} is already verified`);
+          } else {
+            console.log(`⚠️ Failed to verify ${facet.name}:`, error.message);
+          }
+        }
+      }
+    }
+    
+    // Note: The diamond contract is verified automatically by Etherscan
     console.log("\n✅ Verification completed!");
-    console.log(`Proxy: ${proxyAddress}`);
-    console.log(`Implementation: ${implementationAddress}`);
+    console.log(`Diamond: ${diamondAddress}`);
+    console.log(`Facets:`, facetAddresses);
     
     // Display contract configuration
     try {
-      const Assetrix = await ethers.getContractFactory('Assetrix');
-      const assetrix = Assetrix.attach(proxyAddress);
+      const AdminFacet = await ethers.getContractFactory('AdminFacet');
+      const adminFacet = AdminFacet.attach(diamondAddress);
       
-      const globalTokenPrice = await assetrix.getGlobalTokenPrice();
-      // REMOVE: const expectedROI = await assetrix.getExpectedROIPercentage();
+      const globalTokenPrice = await adminFacet.getGlobalTokenPrice();
       
       console.log("\n📋 Contract Configuration:");
       console.log(`Global Token Price: ${globalTokenPrice.toString()} Naira`);
-      // REMOVE: console.log(`Expected ROI: ${expectedROI.toString()}%`);
+      console.log(`Diamond Owner: ${await adminFacet.owner()}`);
     } catch (error) {
       console.log("⚠️ Could not fetch contract configuration:", error.message);
     }
     
   } catch (error) {
-    if (error.message.toLowerCase().includes("already verified")) {
-      console.log("✅ Contract is already verified");
-    } else {
-      console.error("Verification failed:", error);
-      process.exit(1);
-    }
+    console.error("Verification failed:", error);
+    process.exit(1);
   }
 }
 

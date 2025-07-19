@@ -43,80 +43,59 @@ contract PropertyFacet {
         s.reentrancyStatus = _NOT_ENTERED;
     }
 
-    function createProperty(
-        string memory _title,
-        string memory _description,
-        AssetrixStorage.PropertyType _propertyType,
-        AssetrixStorage.PropertyUse _propertyUse,
-        string memory _developerName,
-        address _developerAddress,
-        string memory _city,
-        string memory _state,
-        string memory _country,
-        string memory _ipfsImagesHash,
-        string memory _ipfsMetadataHash,
-        uint256 _size,
-        uint256 _bedrooms,
-        uint256 _bathrooms,
-        uint256 _amountToRaise,
-        AssetrixStorage.Duration _investmentDuration,
-        string[] memory _milestoneTitles,
-        string[] memory _milestoneDescriptions,
-        uint256[] memory _milestonePercentages,
-        uint256 _roiPercentage
-    ) external whenNotPaused nonReentrant returns (uint256) {
+    function createProperty(AssetrixStorage.PropertyCreationData memory _data) external whenNotPaused nonReentrant returns (uint256) {
         AssetrixStorage.Layout storage s = AssetrixStorage.layout();
-        require(bytes(_title).length > 0, "Title cannot be empty");
-        require(bytes(_developerName).length > 0, "Developer name required");
-        require(_developerAddress != address(0), "Invalid developer address");
-        require(msg.sender == _developerAddress, "Sender must be the developer");
-        require(bytes(_city).length > 0, "City required");
-        require(bytes(_state).length > 0, "State required");
-        require(bytes(_country).length > 0, "Country required");
-        require(_amountToRaise > 0, "Amount to raise must be greater than 0");
-        require(_amountToRaise % s.globalTokenPrice == 0, "Amount must be divisible by token price");
-        require(_roiPercentage > 0 && _roiPercentage <= 100, "ROI percentage must be between 1 and 100");
-        require(_milestoneTitles.length == _milestoneDescriptions.length && _milestoneTitles.length == _milestonePercentages.length, "Milestone arrays must have matching lengths");
-        require(_milestoneTitles.length > 0 && _milestoneTitles.length <= 4, "Maximum 4 milestones allowed");
-        uint256 calculatedTokens = _amountToRaise / s.globalTokenPrice;
+        require(bytes(_data.title).length > 0, "Title cannot be empty");
+        require(bytes(_data.developerName).length > 0, "Developer name required");
+        require(_data.developerAddress != address(0), "Invalid developer address");
+        require(msg.sender == _data.developerAddress, "Sender must be the developer");
+        require(bytes(_data.city).length > 0, "City required");
+        require(bytes(_data.state).length > 0, "State required");
+        require(bytes(_data.country).length > 0, "Country required");
+        require(_data.amountToRaise > 0, "Amount to raise must be greater than 0");
+        require(_data.amountToRaise % s.globalTokenPrice == 0, "Amount must be divisible by token price");
+        require(_data.roiPercentage > 0 && _data.roiPercentage <= 100, "ROI percentage must be between 1 and 100");
+        require(_data.milestoneTitles.length == _data.milestoneDescriptions.length && _data.milestoneTitles.length == _data.milestonePercentages.length, "Milestone arrays must have matching lengths");
+        require(_data.milestoneTitles.length > 0 && _data.milestoneTitles.length <= 4, "Maximum 4 milestones allowed");
+        uint256 calculatedTokens = _data.amountToRaise / s.globalTokenPrice;
         require(calculatedTokens >= 100 && calculatedTokens <= 100000, "Calculated token count out of bounds");
         s.propertyCount++;
         AssetrixStorage.Property storage prop = s.properties[s.propertyCount];
         prop.propertyId = s.propertyCount;
-        prop.title = _title;
-        prop.description = _description;
-        prop.propertyType = _propertyType;
-        prop.propertyUse = _propertyUse;
-        prop.developer = _developerName;
+        prop.title = _data.title;
+        prop.description = _data.description;
+        prop.propertyType = _data.propertyType;
+        prop.propertyUse = _data.propertyUse;
+        prop.developer = _data.developerName;
         prop.developerAddress = msg.sender;
         prop.createdAt = block.timestamp;
-        prop.city = _city;
-        prop.state = _state;
-        prop.country = _country;
-        prop.size = _size;
-        prop.bedrooms = _bedrooms;
-        prop.bathrooms = _bathrooms;
+        prop.city = _data.city;
+        prop.state = _data.state;
+        prop.country = _data.country;
+        prop.size = _data.size;
+        prop.bedrooms = _data.bedrooms;
+        prop.bathrooms = _data.bathrooms;
         prop.tokenPrice = s.globalTokenPrice;
         prop.totalTokens = calculatedTokens;
         prop.tokensSold = 0;
         prop.tokensLeft = calculatedTokens;
-        prop.investmentDuration = _investmentDuration;
+        prop.investmentDuration = _data.investmentDuration;
         prop.isActive = true;
         prop.isFullyFunded = false;
-        prop.ipfsImagesHash = _ipfsImagesHash;
-        prop.ipfsMetadataHash = _ipfsMetadataHash;
-        prop.roiPercentage = _roiPercentage;
+        prop.ipfsImagesHash = _data.ipfsImagesHash;
+        prop.ipfsMetadataHash = _data.ipfsMetadataHash;
+        prop.roiPercentage = _data.roiPercentage;
         s.developerProperties[msg.sender].push(s.propertyCount);
         // Milestone creation logic
         uint256 totalPercentage = 0;
-        for (uint256 i = 0; i < _milestoneTitles.length; i++) {
-            require(_milestonePercentages[i] > 0 && _milestonePercentages[i] <= 100, "Invalid milestone percentage");
-            totalPercentage += _milestonePercentages[i];
+        for (uint256 i = 0; i < _data.milestoneTitles.length; i++) {
+            require(_data.milestonePercentages[i] > 0 && _data.milestonePercentages[i] <= 100, "Invalid milestone percentage");
+            totalPercentage += _data.milestonePercentages[i];
             prop.milestones.push(AssetrixStorage.Milestone({
                 id: i,
-                title: _milestoneTitles[i],
-                description: _milestoneDescriptions[i],
-                percentage: _milestonePercentages[i],
+                title: _data.milestoneTitles[i],
+                description: _data.milestoneDescriptions[i],
+                percentage: _data.milestonePercentages[i],
                 fundsRequested: false,
                 fundsReleased: false,
                 isCompleted: false,
@@ -124,63 +103,45 @@ contract PropertyFacet {
                 requestedAt: 0,
                 releasedAt: 0
             }));
-            emit MilestoneCreated(s.propertyCount, i, _milestoneTitles[i], _milestonePercentages[i]);
+            emit MilestoneCreated(s.propertyCount, i, _data.milestoneTitles[i], _data.milestonePercentages[i]);
         }
         require(totalPercentage <= 100, "Total milestone percentage cannot exceed 100%");
-        emit PropertyCreated(s.propertyCount, msg.sender, _title);
+        emit PropertyCreated(s.propertyCount, msg.sender, _data.title);
         return s.propertyCount;
     }
 
-    function updateProperty(
-        uint256 _propertyId,
-        string memory _title,
-        string memory _description,
-        AssetrixStorage.PropertyType _propertyType,
-        AssetrixStorage.PropertyUse _propertyUse,
-        string memory _city,
-        string memory _state,
-        string memory _country,
-        string memory _ipfsImagesHash,
-        string memory _ipfsMetadataHash,
-        uint256 _size,
-        uint256 _bedrooms,
-        uint256 _bathrooms,
-        string[] memory _milestoneTitles,
-        string[] memory _milestoneDescriptions,
-        uint256[] memory _milestonePercentages,
-        uint256 _roiPercentage
-    ) external onlyDeveloperOrOwner(_propertyId) whenNotPaused nonReentrant {
+    function updateProperty(uint256 _propertyId, AssetrixStorage.PropertyUpdateData memory _data) external onlyDeveloperOrOwner(_propertyId) whenNotPaused nonReentrant {
         AssetrixStorage.Layout storage s = AssetrixStorage.layout();
         AssetrixStorage.Property storage prop = s.properties[_propertyId];
         require(!prop.isFullyFunded, "Cannot update a fully funded property");
-        require(_milestoneTitles.length == _milestoneDescriptions.length && _milestoneTitles.length == _milestonePercentages.length, "Milestone arrays must have matching lengths");
-        require(_milestoneTitles.length <= 4, "Maximum 4 milestones allowed");
-        require(_roiPercentage > 0 && _roiPercentage <= 100, "ROI percentage must be between 1 and 100");
-        prop.title = _title;
-        prop.description = _description;
-        prop.propertyType = _propertyType;
-        prop.propertyUse = _propertyUse;
-        prop.city = _city;
-        prop.state = _state;
-        prop.country = _country;
-        prop.size = _size;
-        prop.bedrooms = _bedrooms;
-        prop.bathrooms = _bathrooms;
-        prop.ipfsImagesHash = _ipfsImagesHash;
-        prop.ipfsMetadataHash = _ipfsMetadataHash;
-        prop.roiPercentage = _roiPercentage;
-        // Clear existing milestones
+        require(_data.milestoneTitles.length == _data.milestoneDescriptions.length && _data.milestoneTitles.length == _data.milestonePercentages.length, "Milestone arrays must have matching lengths");
+        require(_data.milestoneTitles.length <= 4, "Maximum 4 milestones allowed");
+        require(_data.roiPercentage > 0 && _data.roiPercentage <= 100, "ROI percentage must be between 1 and 100");
+        prop.title = _data.title;
+        prop.description = _data.description;
+        prop.propertyType = _data.propertyType;
+        prop.propertyUse = _data.propertyUse;
+        prop.city = _data.city;
+        prop.state = _data.state;
+        prop.country = _data.country;
+        prop.size = _data.size;
+        prop.bedrooms = _data.bedrooms;
+        prop.bathrooms = _data.bathrooms;
+        prop.ipfsImagesHash = _data.ipfsImagesHash;
+        prop.ipfsMetadataHash = _data.ipfsMetadataHash;
+        prop.roiPercentage = _data.roiPercentage;
+        // Clear existing milestones before adding new ones
         delete prop.milestones;
         // Add new milestones
         uint256 totalPercentage = 0;
-        for (uint256 i = 0; i < _milestoneTitles.length; i++) {
-            require(_milestonePercentages[i] > 0 && _milestonePercentages[i] <= 100, "Invalid milestone percentage");
-            totalPercentage += _milestonePercentages[i];
+        for (uint256 i = 0; i < _data.milestoneTitles.length; i++) {
+            require(_data.milestonePercentages[i] > 0 && _data.milestonePercentages[i] <= 100, "Invalid milestone percentage");
+            totalPercentage += _data.milestonePercentages[i];
             prop.milestones.push(AssetrixStorage.Milestone({
                 id: i,
-                title: _milestoneTitles[i],
-                description: _milestoneDescriptions[i],
-                percentage: _milestonePercentages[i],
+                title: _data.milestoneTitles[i],
+                description: _data.milestoneDescriptions[i],
+                percentage: _data.milestonePercentages[i],
                 fundsRequested: false,
                 fundsReleased: false,
                 isCompleted: false,
@@ -188,10 +149,10 @@ contract PropertyFacet {
                 requestedAt: 0,
                 releasedAt: 0
             }));
-            emit MilestoneCreated(_propertyId, i, _milestoneTitles[i], _milestonePercentages[i]);
+            emit MilestoneCreated(_propertyId, i, _data.milestoneTitles[i], _data.milestonePercentages[i]);
         }
         require(totalPercentage <= 100, "Total milestone percentage cannot exceed 100%");
-        emit PropertyUpdated(_propertyId, _ipfsMetadataHash);
+        emit PropertyUpdated(_propertyId, _data.ipfsMetadataHash);
     }
 
     function deactivateProperty(uint256 _propertyId) external onlyDeveloperOrOwner(_propertyId) whenNotPaused nonReentrant {

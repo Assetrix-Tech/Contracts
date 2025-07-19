@@ -1,0 +1,30 @@
+{
+  "upgradeFacets": [
+    "property",
+    "investment", 
+    "milestone",
+    "admin",
+    "transaction"
+  ],
+  "addFacets": [
+    "insurance",
+    "analytics",
+    "governance",
+    "liquidity",
+    "staking",
+    "rewards",
+    "voting",
+    "oracle",
+    "bridge",
+    "nft"
+  ],
+  "skipFacets": [
+    "admin"
+  ],
+  "description": "Configuration for diamond pattern upgrade and feature addition",
+  "notes": {
+    "upgradeFacets": "Existing facets to upgrade with new versions",
+    "addFacets": "New facets to add to the diamond",
+    "skipFacets": "Facets to skip (won't be upgraded or added)"
+  }
+} 

@@ -1,97 +1,304 @@
 require('dotenv').config()
-const { ethers, upgrades } = require('hardhat')
+const { ethers } = require('hardhat')
 const fs = require('fs')
 const path = require('path')
 
 async function main() {
-  console.log('Starting upgrade process')
+  console.log('Starting diamond pattern upgrade and feature addition process')
   
   try {
     const [deployer] = await ethers.getSigners()
-    console.log('Upgrading contract with the account:', deployer.address)
+    console.log('Upgrading diamond with the account:', deployer.address)
     console.log('Account balance:', (await ethers.provider.getBalance(deployer.address)).toString())
 
-    // Get the proxy address from environment variables or deployment file
-    let proxyAddress = process.env.PROXY_ADDRESS
+    // Get the diamond address from environment variables or deployment file
+    let diamondAddress = process.env.DIAMOND_ADDRESS
     
     // If not in env, try to get from deployment file
-    if (!proxyAddress) {
+    if (!diamondAddress) {
       const network = await ethers.provider.getNetwork()
       const networkName = network.name === 'unknown' ? 'localhost' : network.name
       const deploymentPath = path.join(__dirname, '..', 'deployments', `deployment-${networkName}.json`)
       
       if (fs.existsSync(deploymentPath)) {
         const deploymentData = JSON.parse(fs.readFileSync(deploymentPath))
-        proxyAddress = deploymentData.proxy
-        console.log(`Found proxy address in deployment file: ${proxyAddress}`)
+        diamondAddress = deploymentData.diamond
+        console.log(`Found diamond address in deployment file: ${diamondAddress}`)
       } else {
-        throw new Error('PROXY_ADDRESS not found in .env file and no deployment file found')
+        throw new Error('DIAMOND_ADDRESS not found in .env file and no deployment file found')
       }
     }
 
-    console.log(`Upgrading Assetrix at ${proxyAddress}...`)
+    console.log(`Upgrading diamond at ${diamondAddress}...`)
     
-    // Get the new contract factory
-    const AssetrixV2 = await ethers.getContractFactory('Assetrix')
-    
-    // Upgrade the proxy
-    console.log('Upgrading proxy...')
-    const assetrix = await upgrades.upgradeProxy(proxyAddress, AssetrixV2)
-    await assetrix.waitForDeployment()
-    
-    const implementationAddress = await upgrades.erc1967.getImplementationAddress(proxyAddress)
-    console.log('✅ Proxy upgraded successfully')
-    console.log('✅ New implementation address:', implementationAddress)
-
-    // Verify the contract is working after upgrade
-    try {
-      const globalTokenPrice = await assetrix.getGlobalTokenPrice()
-      console.log('✅ Global token price after upgrade:', globalTokenPrice.toString())
-    } catch (error) {
-      console.log('⚠️ Warning: Could not verify contract state after upgrade:', error.message)
-    }
-
-    // Update the deployment file
-    const contractsDir = path.join(__dirname, '..', 'deployments')
-    if (!fs.existsSync(contractsDir)) {
-      fs.mkdirSync(contractsDir, { recursive: true })
-    }
-
+    // Get current facet addresses from deployment file
     const network = await ethers.provider.getNetwork()
     const networkName = network.name === 'unknown' ? 'localhost' : network.name
+    const deploymentPath = path.join(__dirname, '..', 'deployments', `deployment-${networkName}.json`)
     
-    // Read existing deployment data to preserve initialization parameters
-    const existingDeploymentPath = path.join(contractsDir, `deployment-${networkName}.json`)
-    let existingData = {}
-    if (fs.existsSync(existingDeploymentPath)) {
-      existingData = JSON.parse(fs.readFileSync(existingDeploymentPath))
+    if (!fs.existsSync(deploymentPath)) {
+      throw new Error('Deployment file not found')
     }
     
-    const deploymentData = {
-      ...existingData,
-      network: networkName,
-      proxy: proxyAddress,
-      implementation: implementationAddress,
-      deployer: deployer.address,
-      timestamp: new Date().toISOString(),
-      upgraded: true,
-      upgradeTimestamp: new Date().toISOString()
+    const deploymentData = JSON.parse(fs.readFileSync(deploymentPath))
+    const currentFacets = deploymentData.facets
+
+    // ===== LOAD UPGRADE CONFIGURATION =====
+    const configPath = path.join(__dirname, '..', 'upgrade-config.json')
+    let upgradeConfig = {
+      upgradeFacets: [],
+      addFacets: [],
+      skipFacets: []
     }
 
-    const deploymentPath = path.join(contractsDir, `deployment-${networkName}.json`)
+    if (fs.existsSync(configPath)) {
+      upgradeConfig = JSON.parse(fs.readFileSync(configPath))
+      console.log('📋 Loaded upgrade configuration from upgrade-config.json')
+    } else {
+      console.log('ℹ️ No upgrade-config.json found. Creating default configuration...')
+      // Create default config with all existing facets
+      upgradeConfig = {
+        upgradeFacets: Object.keys(currentFacets),
+        addFacets: [],
+        skipFacets: []
+      }
+      fs.writeFileSync(configPath, JSON.stringify(upgradeConfig, null, 2))
+      console.log('✅ Created default upgrade-config.json')
+    }
+
+    // ===== DEPLOY UPGRADED VERSIONS OF EXISTING FACETS =====
+    console.log('\n📦 Deploying upgraded facet versions...')
+    
+    const upgradedFacets = {}
+    const cut = []
+
+    // Check for mistakes: new facets in upgradeFacets
+    const newFacetsInUpgradeList = upgradeConfig.upgradeFacets.filter(facet => 
+      !currentFacets[facet]
+    )
+
+    if (newFacetsInUpgradeList.length > 0) {
+      console.log(`⚠️ Warning: These facets don't exist yet and should be in addFacets instead: ${newFacetsInUpgradeList.join(', ')}`)
+      console.log(`💡 Moving them to addFacets automatically...`)
+      
+      // Add them to addFacets if not already there
+      for (const facet of newFacetsInUpgradeList) {
+        if (!upgradeConfig.addFacets.includes(facet)) {
+          upgradeConfig.addFacets.push(facet)
+        }
+      }
+    }
+
+    // Get all facet names that should be upgraded
+    const facetsToUpgrade = upgradeConfig.upgradeFacets.filter(facet => 
+      !upgradeConfig.skipFacets.includes(facet) && currentFacets[facet]
+    )
+
+    // Show which facets are being skipped
+    const existingFacets = Object.keys(currentFacets)
+    const skippedFacets = existingFacets.filter(facet => 
+      !upgradeConfig.upgradeFacets.includes(facet) && !upgradeConfig.skipFacets.includes(facet)
+    )
+    const explicitlySkippedFacets = upgradeConfig.skipFacets.filter(facet => 
+      existingFacets.includes(facet)
+    )
+
+    console.log(`🔄 Facets to upgrade: ${facetsToUpgrade.length}`)
+    if (skippedFacets.length > 0) {
+      console.log(`⏭️ Facets not in config (auto-skipped): ${skippedFacets.join(', ')}`)
+    }
+    if (explicitlySkippedFacets.length > 0) {
+      console.log(`⏭️ Facets explicitly skipped: ${explicitlySkippedFacets.join(', ')}`)
+    }
+    
+    for (const facetName of facetsToUpgrade) {
+      console.log(`🔄 Upgrading ${facetName}Facet...`)
+      
+      try {
+        const FacetContract = await ethers.getContractFactory(`${facetName.charAt(0).toUpperCase() + facetName.slice(1)}Facet`)
+        const facetV2 = await FacetContract.deploy()
+        await facetV2.waitForDeployment()
+        const facetV2Address = await facetV2.getAddress()
+        console.log(`✅ ${facetName}FacetV2 deployed to: ${facetV2Address}`)
+        upgradedFacets[facetName] = facetV2Address
+
+        // Remove old facet and add new one
+        const facetSelectors = getSelectors(FacetContract.interface)
+        cut.push(
+          {
+            facetAddress: ethers.ZeroAddress, // Remove old facet
+            action: 1, // Remove
+            functionSelectors: facetSelectors
+          },
+          {
+            facetAddress: facetV2Address, // Add new facet
+            action: 0, // Add
+            functionSelectors: facetSelectors
+          }
+        )
+      } catch (error) {
+        console.log(`❌ Failed to upgrade ${facetName}Facet: ${error.message}`)
+        console.log(`⚠️ Skipping ${facetName}Facet upgrade`)
+      }
+    }
+
+    // ===== DEPLOY NEW FACETS =====
+    console.log('\n🆕 Deploying new facets...')
+    
+    const newFacets = {}
+
+    // Get all new facets to add (exclude existing ones)
+    const facetsToAdd = upgradeConfig.addFacets.filter(facet => 
+      !upgradeConfig.skipFacets.includes(facet) && !currentFacets[facet]
+    )
+
+    // Check for mistakes: facets in addFacets that already exist
+    const existingFacetsInAddList = upgradeConfig.addFacets.filter(facet => 
+      currentFacets[facet]
+    )
+
+    if (existingFacetsInAddList.length > 0) {
+      console.log(`⚠️ Warning: These facets already exist and should be in upgradeFacets instead: ${existingFacetsInAddList.join(', ')}`)
+      console.log(`💡 Moving them to upgradeFacets automatically...`)
+      
+      // Add them to upgradeFacets if not already there
+      for (const facet of existingFacetsInAddList) {
+        if (!upgradeConfig.upgradeFacets.includes(facet)) {
+          upgradeConfig.upgradeFacets.push(facet)
+        }
+      }
+    }
+
+    console.log(`🆕 Facets to add: ${facetsToAdd.length}`)
+    
+    for (const facetName of facetsToAdd) {
+      console.log(`🆕 Deploying ${facetName}Facet...`)
+      
+      try {
+        const FacetContract = await ethers.getContractFactory(`${facetName.charAt(0).toUpperCase() + facetName.slice(1)}Facet`)
+        const newFacet = await FacetContract.deploy()
+        await newFacet.waitForDeployment()
+        const newFacetAddress = await newFacet.getAddress()
+        console.log(`✅ ${facetName}Facet deployed to: ${newFacetAddress}`)
+        newFacets[facetName] = newFacetAddress
+
+        // Add new facet
+        const facetSelectors = getSelectors(FacetContract.interface)
+        cut.push({
+          facetAddress: newFacetAddress,
+          action: 0, // Add
+          functionSelectors: facetSelectors
+        })
+      } catch (error) {
+        console.log(`❌ Failed to deploy ${facetName}Facet: ${error.message}`)
+        console.log(`⚠️ Skipping ${facetName}Facet deployment`)
+      }
+    }
+
+    // ===== PERFORM DIAMOND CUT =====
+    if (cut.length > 0) {
+      console.log('\n🔧 Preparing diamond cut for upgrade and additions...')
+      console.log(`📋 Cut operations: ${cut.length}`)
+      
+      // Perform diamond cut
+      console.log('🔧 Performing diamond cut...')
+      const diamondCut = await ethers.getContractAt('IDiamondCut', diamondAddress)
+      await diamondCut.diamondCut(cut, ethers.ZeroAddress, "0x")
+      console.log('✅ Diamond cut completed successfully')
+
+      // Verify the changes
+      console.log('\n🔍 Verifying changes...')
+      
+      // Verify upgraded facets
+      for (const [facetName, facetAddress] of Object.entries(upgradedFacets)) {
+        try {
+          const facetContract = await ethers.getContractAt(facetName.charAt(0).toUpperCase() + facetName.slice(1) + 'Facet', diamondAddress)
+          console.log(`✅ ${facetName}Facet upgrade verified`)
+        } catch (error) {
+          console.log(`⚠️ Warning: Could not verify ${facetName}Facet after upgrade:`, error.message)
+        }
+      }
+
+      // Verify new facets
+      for (const [facetName, facetAddress] of Object.entries(newFacets)) {
+        try {
+          const facetContract = await ethers.getContractAt(facetName.charAt(0).toUpperCase() + facetName.slice(1) + 'Facet', diamondAddress)
+          console.log(`✅ ${facetName}Facet addition verified`)
+        } catch (error) {
+          console.log(`⚠️ Warning: Could not verify ${facetName}Facet after addition:`, error.message)
+        }
+      }
+    } else {
+      console.log('ℹ️ No facets to upgrade or add.')
+      console.log('💡 Create or modify upgrade-config.json to specify which facets to modify.')
+      console.log('📝 Example configuration:')
+      console.log(JSON.stringify({
+        upgradeFacets: ["property", "investment", "milestone"],
+        addFacets: ["insurance", "analytics", "governance"],
+        skipFacets: ["admin"]
+      }, null, 2))
+    }
+
+    // Update deployment file with new facet addresses
+    const updatedDeploymentData = {
+      ...deploymentData,
+      facets: {
+        ...currentFacets,
+        ...upgradedFacets,
+        ...newFacets
+      },
+      timestamp: new Date().toISOString(),
+      upgraded: true,
+      upgradeTimestamp: new Date().toISOString(),
+      upgradedFacets: Object.keys(upgradedFacets),
+      addedFacets: Object.keys(newFacets),
+      upgradeDetails: {
+        upgradedFacets: upgradedFacets,
+        newFacets: newFacets,
+        cutOperations: cut.length,
+        configUsed: upgradeConfig
+      }
+    }
+
     fs.writeFileSync(
       deploymentPath,
-      JSON.stringify(deploymentData, null, 2)
+      JSON.stringify(updatedDeploymentData, null, 2)
     )
 
     console.log(`✅ Updated deployment info saved to ${deploymentPath}`)
-    console.log('\nUpgrade completed successfully!')
+    console.log('\n🎉 Diamond pattern upgrade and feature addition completed successfully!')
     
-    return deploymentData
+    // Summary
+    if (Object.keys(upgradedFacets).length > 0) {
+      console.log('\n📊 Summary of Upgrades:')
+      for (const [facetName, address] of Object.entries(upgradedFacets)) {
+        console.log(`  🔄 ${facetName}Facet: ${address}`)
+      }
+    }
+    
+    if (Object.keys(newFacets).length > 0) {
+      console.log('\n📊 Summary of New Features:')
+      for (const [facetName, address] of Object.entries(newFacets)) {
+        console.log(`  🆕 ${facetName}Facet: ${address}`)
+      }
+    }
+    
+    return updatedDeploymentData
   } catch (error) {
-    console.error('❌ Error in upgrade process:', error)
+    console.error('❌ Error in upgrade and addition process:', error)
     throw error
   }
+}
+
+// Helper function to get function selectors from contract interface
+function getSelectors(contractInterface) {
+  const selectors = []
+  for (const functionName of contractInterface.fragments) {
+    if (functionName.type === 'function') {
+      selectors.push(contractInterface.getSighash(functionName))
+    }
+  }
+  return selectors
 }
 
 main()
