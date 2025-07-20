@@ -40,25 +40,14 @@ async function performFullDeployment(deployer, networkName, deploymentPath) {
   const diamondAddress = await diamond.getAddress()
   console.log('✅ Diamond deployed to:', diamondAddress)
 
-  // Deploy ALL facets
+  // Deploy ALL facets (only the ones that actually exist)
   console.log('\n📦 Deploying all facets...')
   const facets = {
     admin: await deployFacet('AdminFacet'),
     property: await deployFacet('PropertyFacet'),
     investment: await deployFacet('InvestmentFacet'),
     milestone: await deployFacet('MilestoneFacet'),
-    transaction: await deployFacet('TransactionFacet'),
-    // Add new facets here
-    insurance: await deployFacet('InsuranceFacet'),
-    analytics: await deployFacet('AnalyticsFacet'),
-    governance: await deployFacet('GovernanceFacet'),
-    liquidity: await deployFacet('LiquidityFacet'),
-    staking: await deployFacet('StakingFacet'),
-    rewards: await deployFacet('RewardsFacet'),
-    voting: await deployFacet('VotingFacet'),
-    oracle: await deployFacet('OracleFacet'),
-    bridge: await deployFacet('BridgeFacet'),
-    nft: await deployFacet('NFTFacet')
+    transaction: await deployFacet('TransactionFacet')
   }
 
   // Perform diamond cut for all facets
@@ -141,18 +130,34 @@ async function deployFacet(facetName) {
 async function performDiamondCut(diamondAddress, facets) {
   const cut = []
   
-  for (const [facetName, facetAddress] of Object.entries(facets)) {
+  // Map of facet keys to actual contract names (only existing facets)
+  const facetContractNames = {
+    admin: 'AdminFacet',
+    property: 'PropertyFacet',
+    investment: 'InvestmentFacet',
+    milestone: 'MilestoneFacet',
+    transaction: 'TransactionFacet'
+  }
+  
+  for (const [facetKey, facetAddress] of Object.entries(facets)) {
     if (facetAddress) {
       try {
-        const Facet = await ethers.getContractFactory(facetName)
+        const contractName = facetContractNames[facetKey]
+        if (!contractName) {
+          console.log(`⚠️ Unknown facet key: ${facetKey}`)
+          continue
+        }
+        
+        const Facet = await ethers.getContractFactory(contractName)
         const selectors = getSelectors(Facet.interface)
         cut.push({
           facetAddress: facetAddress,
           action: 0, // Add
           functionSelectors: selectors
         })
+        console.log(`✅ Added ${contractName} to diamond cut`)
       } catch (error) {
-        console.log(`⚠️ Skipping ${facetName} in diamond cut: ${error.message}`)
+        console.log(`⚠️ Skipping ${facetKey} in diamond cut: ${error.message}`)
       }
     }
   }
@@ -168,9 +173,16 @@ async function performDiamondCut(diamondAddress, facets) {
 
 function getSelectors(contractInterface) {
   const selectors = []
-  for (const functionName of contractInterface.fragments) {
-    if (functionName.type === 'function') {
-      selectors.push(contractInterface.getSighash(functionName))
+  for (const fragment of contractInterface.fragments) {
+    if (fragment.type === 'function') {
+      try {
+        // Create function signature and get selector
+        const functionSignature = `${fragment.name}(${fragment.inputs.map(input => input.type).join(',')})`
+        const selector = ethers.keccak256(ethers.toUtf8Bytes(functionSignature)).slice(0, 10)
+        selectors.push(selector)
+      } catch (error) {
+        console.log(`⚠️ Could not get selector for function: ${fragment.name} - ${error.message}`)
+      }
     }
   }
   return selectors

@@ -2,10 +2,20 @@
 pragma solidity ^0.8.28;
 
 import "./LibDiamond.sol";
+import "./IDiamondCut.sol";
 
 contract Diamond {
     constructor(address _contractOwner) {
         LibDiamond.setContractOwner(_contractOwner);
+    }
+
+    function diamondCut(
+        IDiamondCut.FacetCut[] calldata _diamondCut,
+        address _init,
+        bytes calldata _calldata
+    ) external {
+        LibDiamond.enforceIsContractOwner();
+        LibDiamond.diamondCut(_diamondCut, _init, _calldata);
     }
 
     fallback() external payable {

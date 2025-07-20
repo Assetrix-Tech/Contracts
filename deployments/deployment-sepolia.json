@@ -1,7 +1,15 @@
 {
   "network": "sepolia",
-  "proxy": "0xc8E3A087560374e60c5D5fDeF6754bAA6767c7C0",
-  "implementation": "0x5859145C325bC124fEDe38e606B432A59f5e17B6",
+  "diamond": "0xc7A2BE072c7db675b360C83a10571dc59C49b425",
+  "facets": {
+    "admin": "0x4BB0a0D8855122e82E1e1e69044833763548894d",
+    "property": "0xc48Ce26b97e87b874f4DCcb8CEfD775bB42a1A4F",
+    "investment": "0x813B0874d4084CF816267D2E5A63ce79DDe1Ec81",
+    "milestone": "0x7127bDd916CBdb14971D5d144aaEC3000058E2aa",
+    "transaction": "0xFE905a1fFef3c55719a97647457B4e7F3782ba93"
+  },
   "deployer": "0x4f950FAA97B1A7fad9C78cA03B1e99539C8E5cf3",
-  "timestamp": "2025-07-10T15:59:53.490Z"
+  "timestamp": "2025-07-20T07:28:05.410Z",
+  "deploymentType": "standard",
+  "notes": "Use upgrade.js to add more facets later"
 }
