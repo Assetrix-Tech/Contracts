@@ -40,7 +40,11 @@ library AssetrixStorage {
         EarlyExitFee,
         MilestoneRelease,
         PropertyCreation,
-        PropertyUpdate
+        PropertyUpdate,
+        PayoutAvailable,
+        RefundAvailable,
+        EmergencyRefundAvailable,
+        EarlyExitAvailable
     }
 
     // ============ STRUCTS ============

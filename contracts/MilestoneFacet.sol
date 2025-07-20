@@ -34,6 +34,12 @@ contract MilestoneFacet {
         uint256 indexed propertyId,
         uint256 milestoneId
     );
+    event MilestoneFundsAvailable(
+        uint256 indexed propertyId,
+        uint256 indexed milestoneId,
+        address indexed developer,
+        uint256 amount
+    );
 
     function requestMilestoneFunds(
         uint256 _propertyId,
@@ -122,6 +128,12 @@ contract MilestoneFacet {
             _milestoneId,
             releaseAmount,
             prop.developerAddress
+        );
+        emit MilestoneFundsAvailable(
+            _propertyId,
+            _milestoneId,
+            prop.developerAddress,
+            releaseAmount
         );
     }
 

@@ -54,6 +54,10 @@ async function performFullDeployment(deployer, networkName, deploymentPath) {
   console.log('\n🔧 Performing diamond cut for all facets...')
   await performDiamondCut(diamondAddress, facets)
 
+  // Initialize the platform
+  console.log('\n🔧 Initializing platform...')
+  await initializePlatform(diamondAddress, deployer)
+
   // Save deployment data
   const deploymentData = {
     network: networkName,
@@ -186,6 +190,61 @@ function getSelectors(contractInterface) {
     }
   }
   return selectors
+}
+
+async function initializePlatform(diamondAddress, deployer) {
+  try {
+    // Get environment variables
+    const stablecoinAddress = process.env.STABLECOIN_ADDRESS
+    const globalTokenPrice = process.env.GLOBAL_TOKEN_PRICE
+
+    if (!stablecoinAddress) {
+      console.log('⚠️ STABLECOIN_ADDRESS not set in environment, skipping initialization')
+      console.log('💡 Add USDT_ADDRESS=0x... to your .env file')
+      return
+    }
+
+    if (!globalTokenPrice) {
+      console.log('⚠️ GLOBAL_TOKEN_PRICE not set in environment, skipping initialization')
+      console.log('💡 Add GLOBAL_TOKEN_PRICE=1000000 to your .env file (in naira)')
+      return
+    }
+
+    // Validate USDT contract
+    try {
+      const usdtContract = await ethers.getContractAt('IERC20', stablecoinAddress)
+      const symbol = await usdtContract.symbol()
+      const decimals = await usdtContract.decimals()
+      console.log(`✅ USDT contract validated: ${symbol} (${decimals} decimals)`)
+    } catch (error) {
+      console.log('❌ Invalid USDT contract address or contract not found')
+      console.log('💡 Make sure STABLECOIN_ADDRESS points to a valid USDT contract')
+      return
+    }
+
+    console.log('🔧 Initializing platform with:')
+    console.log(`   Owner: ${deployer.address}`)
+    console.log(`   Stablecoin: ${stablecoinAddress}`)
+    console.log(`   Token Price: ${globalTokenPrice} naira (${(globalTokenPrice / 1000000).toFixed(2)}M naira)`)
+    console.log(`   Network: ${networkName}`)
+
+    // Get the AdminFacet interface
+    const adminFacet = await ethers.getContractAt('AdminFacet', diamondAddress)
+    
+    // Call the initialize function
+    const tx = await adminFacet.initialize(
+      deployer.address,
+      stablecoinAddress,
+      globalTokenPrice
+    )
+    
+    await tx.wait()
+    console.log('✅ Platform initialized successfully')
+    
+  } catch (error) {
+    console.log('❌ Failed to initialize platform:', error.message)
+    console.log('⚠️ Platform initialization failed, but deployment completed')
+  }
 }
 
 main()

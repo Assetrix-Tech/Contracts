@@ -87,6 +87,11 @@ async function main() {
           upgradeConfig.addFacets.push(facet)
         }
       }
+      
+      // Remove them from upgradeFacets
+      upgradeConfig.upgradeFacets = upgradeConfig.upgradeFacets.filter(facet => 
+        !newFacetsInUpgradeList.includes(facet)
+      )
     }
 
     // Get all facet names that should be upgraded
@@ -139,6 +144,7 @@ async function main() {
     } catch (error) {
         console.log(`❌ Failed to upgrade ${facetName}Facet: ${error.message}`)
         console.log(`⚠️ Skipping ${facetName}Facet upgrade`)
+        console.log(`💡 Check if ${facetName}Facet.sol exists and compiles correctly`)
       }
     }
 

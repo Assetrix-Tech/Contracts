@@ -28,6 +28,27 @@ contract InvestmentFacet {
         uint256 indexed propertyId,
         uint256 totalTokensSold
     );
+    event PayoutAvailable(
+        uint256 indexed propertyId,
+        address indexed investor,
+        uint256 amount
+    );
+    event RefundAvailable(
+        uint256 indexed propertyId,
+        address indexed investor,
+        uint256 amount
+    );
+    event EmergencyRefundAvailable(
+        uint256 indexed propertyId,
+        address indexed investor,
+        uint256 amount
+    );
+    event EarlyExitAvailable(
+        uint256 indexed propertyId,
+        address indexed investor,
+        uint256 refundAmount,
+        uint256 exitFee
+    );
 
     modifier onlyOwner() {
         AssetrixStorage.Layout storage s = AssetrixStorage.layout();
@@ -117,23 +138,19 @@ contract InvestmentFacet {
             block.timestamp >= getInvestmentEndTime(_propertyId),
             "Investment period has not ended yet"
         );
-        require(
-            IERC20(s.stablecoin).transferFrom(
-                msg.sender,
-                _tokenHolder,
-                _amount
-            ),
-            "Payout transfer failed"
-        );
+
+        // Emit event for backend to handle dashboard balance update
+        // No direct USDT transfer - backend will handle conversion and bank transfer
+        emit PayoutAvailable(_propertyId, _tokenHolder, _amount);
+
         ITransactionFacet(address(this)).recordTransaction(
             _propertyId,
             msg.sender,
             _tokenHolder,
-            AssetrixStorage.TransactionType.FinalPayout,
+            AssetrixStorage.TransactionType.PayoutAvailable,
             _amount,
-            "Investment payout to token holder"
+            "Investment payout available in dashboard"
         );
-        emit PayoutSent(_propertyId, _tokenHolder, _amount);
     }
 
     function refund(
@@ -148,21 +165,23 @@ contract InvestmentFacet {
         );
         uint256 refundTokens = prop.tokenBalance[_tokenHolder];
         uint256 refundAmount = refundTokens * prop.tokenPrice;
-        require(
-            IERC20(s.stablecoin).transfer(_tokenHolder, refundAmount),
-            "Refund transfer failed"
-        );
+        
+        // Emit event for backend to handle dashboard balance update
+        emit RefundAvailable(_propertyId, _tokenHolder, refundAmount);
+        
+        // Update token balances
         prop.tokensSold -= refundTokens;
         prop.tokensLeft += refundTokens;
         prop.tokenBalance[_tokenHolder] = 0;
         prop.holderCount--;
+        
         ITransactionFacet(address(this)).recordTransaction(
             _propertyId,
             address(this),
             _tokenHolder,
-            AssetrixStorage.TransactionType.Refund,
+            AssetrixStorage.TransactionType.RefundAvailable,
             refundAmount,
-            "Refund to token holder"
+            "Refund available in dashboard"
         );
         emit Refunded(_propertyId, _tokenHolder, refundAmount);
     }
@@ -192,14 +211,11 @@ contract InvestmentFacet {
         uint256 investmentAmount = tokenAmount * prop.tokenPrice;
         uint256 exitFee = (investmentAmount * 5) / 100;
         uint256 refundAmount = investmentAmount - exitFee;
-        require(
-            IERC20(s.stablecoin).transfer(msg.sender, refundAmount),
-            "Early exit refund failed"
-        );
-        require(
-            IERC20(s.stablecoin).transfer(address(this), exitFee),
-            "Exit fee transfer failed"
-        );
+        
+        // Emit event for backend to handle dashboard balance update
+        emit EarlyExitAvailable(_propertyId, msg.sender, refundAmount, exitFee);
+        
+        // Update token balances
         prop.tokensSold -= tokenAmount;
         prop.tokensLeft += tokenAmount;
         if (prop.isFullyFunded && prop.tokensLeft > 0) {
@@ -207,13 +223,14 @@ contract InvestmentFacet {
         }
         prop.tokenBalance[msg.sender] = 0;
         prop.holderCount--;
+        
         ITransactionFacet(address(this)).recordTransaction(
             _propertyId,
             address(this),
             msg.sender,
-            AssetrixStorage.TransactionType.Refund,
+            AssetrixStorage.TransactionType.EarlyExitAvailable,
             refundAmount,
-            "Early exit refund"
+            "Early exit refund available in dashboard"
         );
         ITransactionFacet(address(this)).recordTransaction(
             _propertyId,
@@ -238,20 +255,22 @@ contract InvestmentFacet {
         );
         uint256 refundTokens = prop.tokenBalance[_tokenHolder];
         uint256 refundAmount = refundTokens * prop.tokenPrice;
-        require(
-            IERC20(s.stablecoin).transfer(_tokenHolder, refundAmount),
-            "Emergency refund transfer failed"
-        );
+        
+        // Emit event for backend to handle dashboard balance update
+        emit EmergencyRefundAvailable(_propertyId, _tokenHolder, refundAmount);
+        
+        // Update token balances
         prop.tokensSold -= refundTokens;
         prop.tokensLeft += refundTokens;
         _removeTokenHolderFromProperty(_propertyId, _tokenHolder);
+        
         ITransactionFacet(address(this)).recordTransaction(
             _propertyId,
             address(this),
             _tokenHolder,
-            AssetrixStorage.TransactionType.EmergencyRefund,
+            AssetrixStorage.TransactionType.EmergencyRefundAvailable,
             refundAmount,
-            "Emergency refund to token holder"
+            "Emergency refund available in dashboard"
         );
         emit Refunded(_propertyId, _tokenHolder, refundAmount);
     }
