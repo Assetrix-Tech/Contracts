@@ -2,11 +2,46 @@
 pragma solidity ^0.8.28;
 
 library AssetrixStorage {
+    // ============ TOKENIZATION CONSTANTS ============
+    uint256 public constant MIN_TOKENS_PER_PROPERTY = 100; // Minimum 100 tokens per property
+    uint256 public constant MAX_TOKENS_PER_PROPERTY = 100000; // Maximum 100,000 tokens per property
+    uint256 public constant MIN_TOKENS_PER_INVESTMENT = 1; // Minimum 1 token per investment
+
     // ============ ENUMS ============
-    enum PropertyType { ShortStay, LuxuryResidentialTowers }
-    enum PropertyUse { Commercial, Hospitality, MixedUse }
-    enum Duration { OneMonth, ThreeMonths, FiveMonths, SevenMonths, EightMonths, NineMonths, TenMonths, TwelveMonths }
-    enum TransactionType { Investment, FinalPayout, Refund, EmergencyRefund, EarlyExitFee, MilestoneRelease, PropertyCreation, PropertyUpdate }
+    enum PropertyType {
+        ShortStay,
+        LuxuryResidentialTowers
+    }
+    enum PropertyUse {
+        Commercial,
+        Hospitality,
+        MixedUse
+    }
+    enum PropertyStatus {
+        PreConstruction,
+        UnderConstruction,
+        Renovation
+    }
+    enum Duration {
+        OneMonth,
+        ThreeMonths,
+        FiveMonths,
+        SevenMonths,
+        EightMonths,
+        NineMonths,
+        TenMonths,
+        TwelveMonths
+    }
+    enum TransactionType {
+        Investment,
+        FinalPayout,
+        Refund,
+        EmergencyRefund,
+        EarlyExitFee,
+        MilestoneRelease,
+        PropertyCreation,
+        PropertyUpdate
+    }
 
     // ============ STRUCTS ============
     struct Milestone {
@@ -157,7 +192,7 @@ library AssetrixStorage {
         uint256 reentrancyStatus;
     }
 
-    bytes32 internal constant STORAGE_SLOT = keccak256('assetrix.storage');
+    bytes32 internal constant STORAGE_SLOT = keccak256("assetrix.storage");
 
     function layout() internal pure returns (Layout storage l) {
         bytes32 slot = STORAGE_SLOT;
@@ -165,4 +200,4 @@ library AssetrixStorage {
             l.slot := slot
         }
     }
-} 
+}

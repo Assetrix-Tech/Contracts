@@ -133,4 +133,38 @@ contract MilestoneFacet {
         }
         return result;
     }
+    
+    // Get next milestone that can be requested
+    function getNextRequestableMilestone(uint256 _propertyId) external view returns (uint256) {
+        AssetrixStorage.Layout storage s = AssetrixStorage.layout();
+        require(_propertyId > 0 && _propertyId <= s.propertyCount, "Property does not exist");
+        AssetrixStorage.Property storage prop = s.properties[_propertyId];
+        
+        for (uint256 i = 0; i < prop.milestones.length; i++) {
+            AssetrixStorage.Milestone storage milestone = prop.milestones[i];
+            
+            // If this milestone is already completed, check the next one
+            if (milestone.isCompleted) {
+                continue;
+            }
+            
+            // If this milestone already has funds requested or released, check the next one
+            if (milestone.fundsRequested || milestone.fundsReleased) {
+                continue;
+            }
+            
+            if (i == 0) {
+                return i;
+            }
+            
+            // For subsequent milestones, check if the previous one is completed
+            AssetrixStorage.Milestone storage prevMilestone = prop.milestones[i - 1];
+            if (prevMilestone.isCompleted) {
+                return i;
+            }
+        }
+        
+        // Return a high number if no milestone can be requested
+        return type(uint256).max;
+    }
 } 

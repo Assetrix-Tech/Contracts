@@ -58,7 +58,9 @@ contract PropertyFacet {
         require(_data.milestoneTitles.length == _data.milestoneDescriptions.length && _data.milestoneTitles.length == _data.milestonePercentages.length, "Milestone arrays must have matching lengths");
         require(_data.milestoneTitles.length > 0 && _data.milestoneTitles.length <= 4, "Maximum 4 milestones allowed");
         uint256 calculatedTokens = _data.amountToRaise / s.globalTokenPrice;
-        require(calculatedTokens >= 100 && calculatedTokens <= 100000, "Calculated token count out of bounds");
+        require(calculatedTokens >= AssetrixStorage.MIN_TOKENS_PER_PROPERTY && 
+                calculatedTokens <= AssetrixStorage.MAX_TOKENS_PER_PROPERTY, 
+                "Calculated token count out of bounds");
         s.propertyCount++;
         AssetrixStorage.Property storage prop = s.properties[s.propertyCount];
         prop.propertyId = s.propertyCount;

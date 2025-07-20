@@ -93,4 +93,27 @@ contract AdminFacet {
         emit StablecoinUpdated(_stablecoin);
         emit GlobalTokenPriceUpdated(_initialTokenPrice);
     }
+    
+
+    
+    // ============ VIEW FUNCTIONS ============
+    function getGlobalTokenPrice() external view returns (uint256) {
+        AssetrixStorage.Layout storage s = AssetrixStorage.layout();
+        return s.globalTokenPrice;
+    }
+    
+    function getStablecoin() external view returns (address) {
+        AssetrixStorage.Layout storage s = AssetrixStorage.layout();
+        return s.stablecoin;
+    }
+    
+    function owner() external view returns (address) {
+        AssetrixStorage.Layout storage s = AssetrixStorage.layout();
+        return s.owner;
+    }
+    
+    function paused() external view returns (bool) {
+        AssetrixStorage.Layout storage s = AssetrixStorage.layout();
+        return s.paused;
+    }
 } 
