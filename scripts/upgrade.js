@@ -136,7 +136,7 @@ async function main() {
             functionSelectors: facetSelectors
           }
         )
-      } catch (error) {
+    } catch (error) {
         console.log(`❌ Failed to upgrade ${facetName}Facet: ${error.message}`)
         console.log(`⚠️ Skipping ${facetName}Facet upgrade`)
       }

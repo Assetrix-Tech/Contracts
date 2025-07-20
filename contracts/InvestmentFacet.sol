@@ -8,10 +8,26 @@ import "./ITransactionFacet.sol";
 contract InvestmentFacet {
     using AssetrixStorage for AssetrixStorage.Layout;
 
-    event TokensPurchased(uint256 indexed propertyId, address indexed tokenHolder, uint256 tokenAmount, uint256 totalCost);
-    event Refunded(uint256 indexed propertyId, address indexed investor, uint256 amount);
-    event PayoutSent(uint256 indexed propertyId, address indexed investor, uint256 amount);
-    event PropertyFullyFunded(uint256 indexed propertyId, uint256 totalTokensSold);
+    event TokensPurchased(
+        uint256 indexed propertyId,
+        address indexed tokenHolder,
+        uint256 tokenAmount,
+        uint256 totalCost
+    );
+    event Refunded(
+        uint256 indexed propertyId,
+        address indexed investor,
+        uint256 amount
+    );
+    event PayoutSent(
+        uint256 indexed propertyId,
+        address indexed investor,
+        uint256 amount
+    );
+    event PropertyFullyFunded(
+        uint256 indexed propertyId,
+        uint256 totalTokensSold
+    );
 
     modifier onlyOwner() {
         AssetrixStorage.Layout storage s = AssetrixStorage.layout();
@@ -30,21 +46,37 @@ contract InvestmentFacet {
 
     modifier nonReentrant() {
         AssetrixStorage.Layout storage s = AssetrixStorage.layout();
-        require(s.reentrancyStatus != _ENTERED, "ReentrancyGuard: reentrant call");
+        require(
+            s.reentrancyStatus != _ENTERED,
+            "ReentrancyGuard: reentrant call"
+        );
         s.reentrancyStatus = _ENTERED;
         _;
         s.reentrancyStatus = _NOT_ENTERED;
     }
 
-    function purchaseTokens(uint256 _propertyId, uint256 _tokenAmount) external whenNotPaused nonReentrant {
+    function purchaseTokens(
+        uint256 _propertyId,
+        uint256 _tokenAmount
+    ) external whenNotPaused nonReentrant {
         AssetrixStorage.Layout storage s = AssetrixStorage.layout();
         AssetrixStorage.Property storage prop = s.properties[_propertyId];
         require(_tokenAmount > 0, "Must purchase at least 1 token");
-        require(_propertyId > 0 && _propertyId <= s.propertyCount, "Property does not exist");
+        require(
+            _propertyId > 0 && _propertyId <= s.propertyCount,
+            "Property does not exist"
+        );
         require(prop.isActive, "Property is not active");
         require(_tokenAmount <= prop.tokensLeft, "Not enough tokens left");
         uint256 totalCost = _tokenAmount * prop.tokenPrice;
-        require(IERC20(s.stablecoin).transferFrom(msg.sender, address(this), totalCost), "Transfer failed");
+        require(
+            IERC20(s.stablecoin).transferFrom(
+                msg.sender,
+                address(this),
+                totalCost
+            ),
+            "Transfer failed"
+        );
         if (prop.tokenBalance[msg.sender] == 0) {
             prop.tokenHolders.push(msg.sender);
             prop.holderCount++;
@@ -68,15 +100,31 @@ contract InvestmentFacet {
         emit TokensPurchased(_propertyId, msg.sender, _tokenAmount, totalCost);
     }
 
-    function payoutInvestment(uint256 _propertyId, address _tokenHolder, uint256 _amount) external nonReentrant {
+    function payoutInvestment(
+        uint256 _propertyId,
+        address _tokenHolder,
+        uint256 _amount
+    ) external onlyOwner nonReentrant {
         AssetrixStorage.Layout storage s = AssetrixStorage.layout();
         AssetrixStorage.Property storage prop = s.properties[_propertyId];
-        require(msg.sender == prop.developerAddress || msg.sender == s.owner, "Only developer or owner can payout");
         require(prop.isFullyFunded, "Property must be fully funded");
-        require(prop.tokenBalance[_tokenHolder] > 0, "Token holder has no tokens in this property");
+        require(
+            prop.tokenBalance[_tokenHolder] > 0,
+            "Token holder has no tokens in this property"
+        );
         require(_amount > 0, "Payout amount must be greater than 0");
-        require(block.timestamp >= getInvestmentEndTime(_propertyId), "Investment period has not ended yet");
-        require(IERC20(s.stablecoin).transferFrom(msg.sender, _tokenHolder, _amount), "Payout transfer failed");
+        require(
+            block.timestamp >= getInvestmentEndTime(_propertyId),
+            "Investment period has not ended yet"
+        );
+        require(
+            IERC20(s.stablecoin).transferFrom(
+                msg.sender,
+                _tokenHolder,
+                _amount
+            ),
+            "Payout transfer failed"
+        );
         ITransactionFacet(address(this)).recordTransaction(
             _propertyId,
             msg.sender,
@@ -88,14 +136,22 @@ contract InvestmentFacet {
         emit PayoutSent(_propertyId, _tokenHolder, _amount);
     }
 
-    function refund(uint256 _propertyId, address _tokenHolder) external nonReentrant {
+    function refund(
+        uint256 _propertyId,
+        address _tokenHolder
+    ) external onlyOwner nonReentrant {
         AssetrixStorage.Layout storage s = AssetrixStorage.layout();
         AssetrixStorage.Property storage prop = s.properties[_propertyId];
-        require(msg.sender == prop.developerAddress || msg.sender == s.owner, "Only developer or owner can refund");
-        require(prop.tokenBalance[_tokenHolder] > 0, "Token holder has no tokens to refund");
+        require(
+            prop.tokenBalance[_tokenHolder] > 0,
+            "Token holder has no tokens to refund"
+        );
         uint256 refundTokens = prop.tokenBalance[_tokenHolder];
         uint256 refundAmount = refundTokens * prop.tokenPrice;
-        require(IERC20(s.stablecoin).transfer(_tokenHolder, refundAmount), "Refund transfer failed");
+        require(
+            IERC20(s.stablecoin).transfer(_tokenHolder, refundAmount),
+            "Refund transfer failed"
+        );
         prop.tokensSold -= refundTokens;
         prop.tokensLeft += refundTokens;
         prop.tokenBalance[_tokenHolder] = 0;
@@ -123,15 +179,27 @@ contract InvestmentFacet {
                     break;
                 }
             }
-            require(!hasReleasedFunds, "Cannot exit after milestone funds have been released");
+            require(
+                !hasReleasedFunds,
+                "Cannot exit after milestone funds have been released"
+            );
         }
-        require(block.timestamp < getInvestmentEndTime(_propertyId), "Investment period has ended, use final payout instead");
+        require(
+            block.timestamp < getInvestmentEndTime(_propertyId),
+            "Investment period has ended, use final payout instead"
+        );
         uint256 tokenAmount = prop.tokenBalance[msg.sender];
         uint256 investmentAmount = tokenAmount * prop.tokenPrice;
         uint256 exitFee = (investmentAmount * 5) / 100;
         uint256 refundAmount = investmentAmount - exitFee;
-        require(IERC20(s.stablecoin).transfer(msg.sender, refundAmount), "Early exit refund failed");
-        require(IERC20(s.stablecoin).transfer(address(this), exitFee), "Exit fee transfer failed");
+        require(
+            IERC20(s.stablecoin).transfer(msg.sender, refundAmount),
+            "Early exit refund failed"
+        );
+        require(
+            IERC20(s.stablecoin).transfer(address(this), exitFee),
+            "Exit fee transfer failed"
+        );
         prop.tokensSold -= tokenAmount;
         prop.tokensLeft += tokenAmount;
         if (prop.isFullyFunded && prop.tokensLeft > 0) {
@@ -158,13 +226,22 @@ contract InvestmentFacet {
         emit Refunded(_propertyId, msg.sender, refundAmount);
     }
 
-    function emergencyRefund(uint256 _propertyId, address _tokenHolder) external onlyOwner nonReentrant {
+    function emergencyRefund(
+        uint256 _propertyId,
+        address _tokenHolder
+    ) external onlyOwner nonReentrant {
         AssetrixStorage.Layout storage s = AssetrixStorage.layout();
         AssetrixStorage.Property storage prop = s.properties[_propertyId];
-        require(prop.tokenBalance[_tokenHolder] > 0, "Token holder has no tokens to refund");
+        require(
+            prop.tokenBalance[_tokenHolder] > 0,
+            "Token holder has no tokens to refund"
+        );
         uint256 refundTokens = prop.tokenBalance[_tokenHolder];
         uint256 refundAmount = refundTokens * prop.tokenPrice;
-        require(IERC20(s.stablecoin).transfer(_tokenHolder, refundAmount), "Emergency refund transfer failed");
+        require(
+            IERC20(s.stablecoin).transfer(_tokenHolder, refundAmount),
+            "Emergency refund transfer failed"
+        );
         prop.tokensSold -= refundTokens;
         prop.tokensLeft += refundTokens;
         _removeTokenHolderFromProperty(_propertyId, _tokenHolder);
@@ -179,7 +256,9 @@ contract InvestmentFacet {
         emit Refunded(_propertyId, _tokenHolder, refundAmount);
     }
 
-    function canAcceptTokenPurchases(uint256 _propertyId) external view returns (bool) {
+    function canAcceptTokenPurchases(
+        uint256 _propertyId
+    ) external view returns (bool) {
         AssetrixStorage.Layout storage s = AssetrixStorage.layout();
         AssetrixStorage.Property storage prop = s.properties[_propertyId];
         if (!prop.isActive) return false;
@@ -199,62 +278,91 @@ contract InvestmentFacet {
         return prop.tokensLeft;
     }
 
-    function getTokenSalePercentage(uint256 _propertyId) external view returns (uint256) {
+    function getTokenSalePercentage(
+        uint256 _propertyId
+    ) external view returns (uint256) {
         AssetrixStorage.Layout storage s = AssetrixStorage.layout();
         AssetrixStorage.Property storage prop = s.properties[_propertyId];
         return (prop.tokensSold * 100) / prop.totalTokens;
     }
 
-    function getTokenBalance(uint256 _propertyId, address _tokenHolder) external view returns (uint256) {
+    function getTokenBalance(
+        uint256 _propertyId,
+        address _tokenHolder
+    ) external view returns (uint256) {
         AssetrixStorage.Layout storage s = AssetrixStorage.layout();
         AssetrixStorage.Property storage prop = s.properties[_propertyId];
         return prop.tokenBalance[_tokenHolder];
     }
 
-    function getTokenValue(uint256 _propertyId, address _tokenHolder) external view returns (uint256) {
+    function getTokenValue(
+        uint256 _propertyId,
+        address _tokenHolder
+    ) external view returns (uint256) {
         AssetrixStorage.Layout storage s = AssetrixStorage.layout();
         AssetrixStorage.Property storage prop = s.properties[_propertyId];
         return prop.tokenBalance[_tokenHolder] * prop.tokenPrice;
     }
 
-    function calculateTokensFromAmount(uint256 _amount) external view returns (uint256) {
+    function calculateTokensFromAmount(
+        uint256 _amount
+    ) external view returns (uint256) {
         AssetrixStorage.Layout storage s = AssetrixStorage.layout();
         require(_amount > 0, "Amount must be greater than 0");
-        require(_amount % s.globalTokenPrice == 0, "Amount must be divisible by token price");
+        require(
+            _amount % s.globalTokenPrice == 0,
+            "Amount must be divisible by token price"
+        );
         return _amount / s.globalTokenPrice;
     }
 
-    function calculateAmountFromTokens(uint256 _tokens) external view returns (uint256) {
+    function calculateAmountFromTokens(
+        uint256 _tokens
+    ) external view returns (uint256) {
         AssetrixStorage.Layout storage s = AssetrixStorage.layout();
         return _tokens * s.globalTokenPrice;
     }
 
-    function calculateExpectedROI(uint256 _propertyId, uint256 _investmentAmount) external view returns (uint256) {
+    function calculateExpectedROI(
+        uint256 _propertyId,
+        uint256 _investmentAmount
+    ) external view returns (uint256) {
         AssetrixStorage.Layout storage s = AssetrixStorage.layout();
         AssetrixStorage.Property storage prop = s.properties[_propertyId];
         return (_investmentAmount * prop.roiPercentage) / 100;
     }
 
-    function getPropertyAmountToRaise(uint256 _propertyId) external view returns (uint256) {
+    function getPropertyAmountToRaise(
+        uint256 _propertyId
+    ) external view returns (uint256) {
         AssetrixStorage.Layout storage s = AssetrixStorage.layout();
         AssetrixStorage.Property storage prop = s.properties[_propertyId];
         return prop.totalTokens * prop.tokenPrice;
     }
 
-    function _removeTokenHolderFromProperty(uint256 _propertyId, address _tokenHolder) internal {
+    function _removeTokenHolderFromProperty(
+        uint256 _propertyId,
+        address _tokenHolder
+    ) internal {
         AssetrixStorage.Layout storage s = AssetrixStorage.layout();
         AssetrixStorage.Property storage prop = s.properties[_propertyId];
         for (uint256 i = 0; i < prop.tokenHolders.length; i++) {
             if (prop.tokenHolders[i] == _tokenHolder) {
-                prop.tokenHolders[i] = prop.tokenHolders[prop.tokenHolders.length - 1];
+                prop.tokenHolders[i] = prop.tokenHolders[
+                    prop.tokenHolders.length - 1
+                ];
                 prop.tokenHolders.pop();
                 break;
             }
         }
-        uint256[] storage tokenHolderProps = s.tokenHolderProperties[_tokenHolder];
+        uint256[] storage tokenHolderProps = s.tokenHolderProperties[
+            _tokenHolder
+        ];
         for (uint256 i = 0; i < tokenHolderProps.length; i++) {
             if (tokenHolderProps[i] == _propertyId) {
-                tokenHolderProps[i] = tokenHolderProps[tokenHolderProps.length - 1];
+                tokenHolderProps[i] = tokenHolderProps[
+                    tokenHolderProps.length - 1
+                ];
                 tokenHolderProps.pop();
                 break;
             }
@@ -263,14 +371,20 @@ contract InvestmentFacet {
         prop.holderCount--;
     }
 
-    function getInvestmentEndTime(uint256 _propertyId) public view returns (uint256) {
+    function getInvestmentEndTime(
+        uint256 _propertyId
+    ) public view returns (uint256) {
         AssetrixStorage.Layout storage s = AssetrixStorage.layout();
         AssetrixStorage.Property storage prop = s.properties[_propertyId];
-        uint256 durationInSeconds = getDurationInSeconds(AssetrixStorage.Duration(uint8(prop.investmentDuration)));
+        uint256 durationInSeconds = getDurationInSeconds(
+            AssetrixStorage.Duration(uint8(prop.investmentDuration))
+        );
         return prop.createdAt + durationInSeconds;
     }
 
-    function getDurationInSeconds(AssetrixStorage.Duration _duration) internal pure returns (uint256) {
+    function getDurationInSeconds(
+        AssetrixStorage.Duration _duration
+    ) internal pure returns (uint256) {
         if (_duration == AssetrixStorage.Duration.OneMonth) return 30 days;
         if (_duration == AssetrixStorage.Duration.ThreeMonths) return 90 days;
         if (_duration == AssetrixStorage.Duration.FiveMonths) return 150 days;
@@ -282,17 +396,23 @@ contract InvestmentFacet {
         revert("Invalid duration");
     }
 
-    function isInvestmentPeriodActive(uint256 _propertyId) external view returns (bool) {
+    function isInvestmentPeriodActive(
+        uint256 _propertyId
+    ) external view returns (bool) {
         return block.timestamp <= getInvestmentEndTime(_propertyId);
     }
 
-    function getInvestmentPeriodRemaining(uint256 _propertyId) external view returns (uint256) {
+    function getInvestmentPeriodRemaining(
+        uint256 _propertyId
+    ) external view returns (uint256) {
         uint256 endTime = getInvestmentEndTime(_propertyId);
         if (block.timestamp >= endTime) return 0;
         return endTime - block.timestamp;
     }
 
-    function getExpectedROIPercentage(uint256 _propertyId) external view returns (uint256) {
+    function getExpectedROIPercentage(
+        uint256 _propertyId
+    ) external view returns (uint256) {
         AssetrixStorage.Layout storage s = AssetrixStorage.layout();
         AssetrixStorage.Property storage prop = s.properties[_propertyId];
         return prop.roiPercentage;
@@ -302,4 +422,4 @@ contract InvestmentFacet {
         AssetrixStorage.Layout storage s = AssetrixStorage.layout();
         return s.globalTokenPrice;
     }
-} 
+}
