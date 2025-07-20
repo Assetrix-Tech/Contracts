@@ -363,7 +363,6 @@ contract PropertyFacet {
             );
         for (uint256 i = 0; i < propertyIds.length; i++) {
             uint256 propertyId = propertyIds[i];
-            AssetrixStorage.Property storage prop = s.properties[propertyId];
             result[i] = getProperty(propertyId);
         }
         return result;
@@ -382,7 +381,6 @@ contract PropertyFacet {
             );
         for (uint256 i = 0; i < propertyIds.length; i++) {
             uint256 propertyId = propertyIds[i];
-            AssetrixStorage.Property storage prop = s.properties[propertyId];
             result[i] = getProperty(propertyId);
         }
         return result;
@@ -406,7 +404,6 @@ contract PropertyFacet {
             );
         for (uint256 i = 0; i < propertyIds.length; i++) {
             uint256 propertyId = propertyIds[i];
-            AssetrixStorage.Property storage prop = s.properties[propertyId];
             result[i] = getProperty(propertyId);
         }
         return result;
