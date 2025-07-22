@@ -245,34 +245,32 @@ async function main() {
       }, null, 2))
     }
 
-    // Update deployment file with new facet addresses
-    const updatedDeploymentData = {
-      ...deploymentData,
-      facets: {
-        ...currentFacets,
-        ...upgradedFacets,
-        ...newFacets
-      },
-      timestamp: new Date().toISOString(),
-      upgraded: true,
-      upgradeTimestamp: new Date().toISOString(),
-      upgradedFacets: Object.keys(upgradedFacets),
-      addedFacets: Object.keys(newFacets),
-      upgradeDetails: {
-        upgradedFacets: upgradedFacets,
-        newFacets: newFacets,
-        cutOperations: cut.length,
-        configUsed: upgradeConfig
-      }
+    // Merge all facets as before
+    const updatedFacets = {
+      ...currentFacets,
+      ...upgradedFacets,
+      ...newFacets
+    };
+    // Always convert all keys to lowercase and remove duplicates
+    const normalizedFacets = {};
+    for (const [key, value] of Object.entries(updatedFacets)) {
+      normalizedFacets[key.toLowerCase()] = value;
     }
-
+    // Now use normalizedFacets in your deployment data
+    const updatedDeploymentData = {
+      network: deploymentData.network,
+      diamond: deploymentData.diamond,
+      facets: normalizedFacets,
+      deployer: deployer.address,
+      timestamp: new Date().toISOString(),
+      deploymentType: deploymentData.deploymentType || 'upgrade'
+    };
     fs.writeFileSync(
       deploymentPath,
       JSON.stringify(updatedDeploymentData, null, 2)
-    )
-
-    console.log(`✅ Updated deployment info saved to ${deploymentPath}`)
-    console.log('\n🎉 Diamond pattern upgrade and feature addition completed successfully!')
+    );
+    console.log(`✅ Updated deployment info saved to ${deploymentPath}`);
+    console.log('\n🎉 Diamond pattern upgrade and feature addition completed successfully!');
     
     // Summary
     if (Object.keys(upgradedFacets).length > 0) {

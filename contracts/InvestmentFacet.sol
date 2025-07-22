@@ -83,6 +83,7 @@ contract InvestmentFacet {
         AssetrixStorage.Layout storage s = AssetrixStorage.layout();
         AssetrixStorage.Property storage prop = s.properties[_propertyId];
         require(_tokenAmount > 0, "Must purchase at least 1 token");
+        require(_tokenAmount >= s.minTokensPerInvestment, "Below minimum tokens per investment");
         require(
             _propertyId > 0 && _propertyId <= s.propertyCount,
             "Property does not exist"
@@ -209,7 +210,7 @@ contract InvestmentFacet {
         );
         uint256 tokenAmount = prop.tokenBalance[msg.sender];
         uint256 investmentAmount = tokenAmount * prop.tokenPrice;
-        uint256 exitFee = (investmentAmount * 5) / 100;
+        uint256 exitFee = (investmentAmount * s.earlyExitFeePercentage) / 100;
         uint256 refundAmount = investmentAmount - exitFee;
 
         // Emit event for backend to handle dashboard balance update

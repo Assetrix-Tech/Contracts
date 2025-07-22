@@ -103,8 +103,8 @@ contract PropertyFacet {
         );
         uint256 calculatedTokens = _data.amountToRaise / s.globalTokenPrice;
         require(
-            calculatedTokens >= AssetrixStorage.MIN_TOKENS_PER_PROPERTY &&
-                calculatedTokens <= AssetrixStorage.MAX_TOKENS_PER_PROPERTY,
+            calculatedTokens >= s.minTokensPerProperty &&
+                calculatedTokens <= s.maxTokensPerProperty,
             "Calculated token count out of bounds"
         );
         s.propertyCount++;
@@ -115,7 +115,7 @@ contract PropertyFacet {
         prop.propertyType = _data.propertyType;
         prop.propertyUse = _data.propertyUse;
         prop.developer = _data.developerName;
-        prop.developerAddress = _data.developerAddress; // Use the specified developer address
+        prop.developerAddress = _data.developerAddress;
         prop.createdAt = block.timestamp;
         prop.city = _data.city;
         prop.state = _data.state;

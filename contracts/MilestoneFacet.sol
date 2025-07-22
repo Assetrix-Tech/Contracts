@@ -3,6 +3,7 @@ pragma solidity ^0.8.28;
 
 import "./AssetrixStorage.sol";
 import "./ITransactionFacet.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 contract MilestoneFacet {
     using AssetrixStorage for AssetrixStorage.Layout;
@@ -77,6 +78,22 @@ contract MilestoneFacet {
                 "Previous milestone must be completed first"
             );
         }
+        // Deduct admin fee on first milestone request
+        if (_milestoneId == 0 && !s.adminFeePaid[_propertyId]) {
+            uint256 totalFunds = prop.tokensSold * prop.tokenPrice;
+            uint256 adminFee = (totalFunds * s.adminFeePercentage) / 100;
+            require(adminFee < totalFunds, "Admin fee too high");
+            address stablecoin = s.stablecoin;
+            require(stablecoin != address(0), "Stablecoin not set");
+            address owner = s.owner;
+            require(owner != address(0), "Owner not set");
+            // Transfer admin fee to owner
+            require(
+                IERC20(stablecoin).transfer(owner, adminFee),
+                "Admin fee transfer failed"
+            );
+            s.adminFeePaid[_propertyId] = true;
+        }
         milestone.fundsRequested = true;
         milestone.requestedAt = block.timestamp;
         emit MilestoneFundsRequested(_propertyId, _milestoneId, msg.sender);
@@ -106,9 +123,11 @@ contract MilestoneFacet {
         );
         require(!milestone.isCompleted, "Milestone already completed");
         uint256 totalFunds = prop.tokensSold * prop.tokenPrice;
-        uint256 releaseAmount = (totalFunds * milestone.percentage) / 100;
+        uint256 adminFee = (totalFunds * s.adminFeePercentage) / 100;
+        uint256 netFunds = totalFunds - adminFee;
+        uint256 releaseAmount = (netFunds * milestone.percentage) / 100;
         require(
-            releaseAmount <= totalFunds,
+            releaseAmount <= netFunds,
             "Insufficient funds for milestone release"
         );
 

@@ -1,16 +1,13 @@
 {
   "upgradeFacets": [
-    "property",
-    "investment", 
-    "milestone",
-    "admin",
-    "transaction"
+    "Admin",
+    "Property",
+    "Milestone",
+    "Investment",
+    "Transaction"
   ],
   "addFacets": [],
   "skipFacets": [],
-
-
-
 
   "description": "Configuration for diamond pattern upgrade and feature addition",
   "notes": {
@@ -18,4 +15,4 @@
     "addFacets": "New facets to add to the diamond (empty until you create new facets)",
     "skipFacets": "Facets to skip (won't be upgraded or added)"
   }
-} 
+}

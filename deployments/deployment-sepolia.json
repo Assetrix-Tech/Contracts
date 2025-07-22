@@ -2,14 +2,13 @@
   "network": "sepolia",
   "diamond": "0x52b67c8D18388b08C3965F772989cCecd90Fe071",
   "facets": {
-    "admin": "0x959D8062dDFde2C1238095883B6f2bA2694122b0",
-    "property": "0x71cf3A8db1aDccc162022B178E0609Cf406C674e",
-    "investment": "0x871D1EB183CeD21D9A128f248AbA90d3041C899e",
-    "milestone": "0x8bb1dD8e0dCacBaA215Cf24d6c9994d176c8644d",
-    "transaction": "0x13384A7c1378569F36050F9D47191E49503cF8A1"
+    "admin": "0x0420c58693867117B5e37dE760169Bba735C3E46",
+    "property": "0x52CDd020F2BBbA3d65cE2DA0dB45cd63E7446b8d",
+    "investment": "0xAC442727f26427731Ce58C6dEF4894F7a8077A84",
+    "milestone": "0x06D0108e8E7bF51C315380B5CeabE11407490023",
+    "transaction": "0x6D8Da76787078e563A4114a28A5E7bBA89D05Cb8"
   },
   "deployer": "0x4f950FAA97B1A7fad9C78cA03B1e99539C8E5cf3",
-  "timestamp": "2025-07-21T10:00:40.731Z",
-  "deploymentType": "standard",
-  "notes": "Use upgrade.js to add more facets later"
+  "timestamp": "2025-07-22T13:13:16.452Z",
+  "deploymentType": "standard"
 }

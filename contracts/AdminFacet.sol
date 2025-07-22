@@ -14,6 +14,11 @@ contract AdminFacet {
     );
     event Paused(address account);
     event Unpaused(address account);
+    event AdminFeePercentageUpdated(uint256 newFeePercentage);
+    event EarlyExitFeePercentageUpdated(uint256 newFeePercentage);
+    event MinTokensPerPropertyUpdated(uint256 newValue);
+    event MaxTokensPerPropertyUpdated(uint256 newValue);
+    event MinTokensPerInvestmentUpdated(uint256 newValue);
 
     modifier onlyOwner() {
         AssetrixStorage.Layout storage s = AssetrixStorage.layout();
@@ -87,6 +92,68 @@ contract AdminFacet {
         emit GlobalTokenPriceUpdated(_newTokenPrice);
     }
 
+    //Set admin fee percentage
+    function setAdminFeePercentage(
+        uint256 _newFeePercentage
+    ) external onlyOwner {
+        require(_newFeePercentage <= 10, "Fee cannot exceed 10%");
+        AssetrixStorage.Layout storage s = AssetrixStorage.layout();
+        s.adminFeePercentage = _newFeePercentage;
+        emit AdminFeePercentageUpdated(_newFeePercentage);
+    }
+
+    //Set the early exit fee percentage for users who exit before the investment duration
+    function setEarlyExitFeePercentage(
+        uint256 _newFeePercentage
+    ) external onlyOwner {
+        require(_newFeePercentage <= 10, "Fee cannot exceed 10%");
+        AssetrixStorage.Layout storage s = AssetrixStorage.layout();
+        s.earlyExitFeePercentage = _newFeePercentage;
+        emit EarlyExitFeePercentageUpdated(_newFeePercentage);
+    }
+
+    // Set the minimum number of tokens required for any property
+    function setMinTokensPerProperty(uint256 value) external onlyOwner {
+        AssetrixStorage.Layout storage s = AssetrixStorage.layout();
+        require(value > 0, "Minimum must be greater than 0");
+        s.minTokensPerProperty = value;
+        emit MinTokensPerPropertyUpdated(value);
+    }
+
+    // Set the maximum number of tokens allowed per property
+    function setMaxTokensPerProperty(uint256 value) external onlyOwner {
+        AssetrixStorage.Layout storage s = AssetrixStorage.layout();
+        require(value > 0, "Maximum must be greater than 0");
+        s.maxTokensPerProperty = value;
+        emit MaxTokensPerPropertyUpdated(value);
+    }
+
+    // Set the minimum number of tokens an investor can invest per property
+    function setMinTokensPerInvestment(uint256 value) external onlyOwner {
+        AssetrixStorage.Layout storage s = AssetrixStorage.layout();
+        require(value > 0, "Minimum must be greater than 0");
+        s.minTokensPerInvestment = value;
+        emit MinTokensPerInvestmentUpdated(value);
+    }
+
+    //Get min tokens per property
+    function getMinTokensPerProperty() external view returns (uint256) {
+        AssetrixStorage.Layout storage s = AssetrixStorage.layout();
+        return s.minTokensPerProperty;
+    }
+
+    //Get max tokens per property
+    function getMaxTokensPerProperty() external view returns (uint256) {
+        AssetrixStorage.Layout storage s = AssetrixStorage.layout();
+        return s.maxTokensPerProperty;
+    }
+
+    //Get min tokens per investment
+    function getMinTokensPerInvestment() external view returns (uint256) {
+        AssetrixStorage.Layout storage s = AssetrixStorage.layout();
+        return s.minTokensPerInvestment;
+    }
+
     function initialize(
         address _owner,
         address _stablecoin,
@@ -116,6 +183,16 @@ contract AdminFacet {
     function getStablecoin() external view returns (address) {
         AssetrixStorage.Layout storage s = AssetrixStorage.layout();
         return s.stablecoin;
+    }
+
+    function getAdminFeePercentage() external view returns (uint256) {
+        AssetrixStorage.Layout storage s = AssetrixStorage.layout();
+        return s.adminFeePercentage;
+    }
+
+    function getEarlyExitFeePercentage() external view returns (uint256) {
+        AssetrixStorage.Layout storage s = AssetrixStorage.layout();
+        return s.earlyExitFeePercentage;
     }
 
     function owner() external view returns (address) {

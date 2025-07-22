@@ -2,11 +2,6 @@
 pragma solidity ^0.8.28;
 
 library AssetrixStorage {
-    // ============ TOKENIZATION CONSTANTS ============
-    uint256 public constant MIN_TOKENS_PER_PROPERTY = 100; // Minimum 100 tokens per property
-    uint256 public constant MAX_TOKENS_PER_PROPERTY = 100000; // Maximum 100,000 tokens per property
-    uint256 public constant MIN_TOKENS_PER_INVESTMENT = 1; // Minimum 1 token per investment
-
     // ============ ENUMS ============
     enum PropertyType {
         ShortStay,
@@ -194,6 +189,15 @@ library AssetrixStorage {
         address owner;
         bool paused;
         uint256 reentrancyStatus;
+        // Admin fee logic
+        uint256 adminFeePercentage; // e.g., 3 means 3%
+        mapping(uint256 => bool) adminFeePaid; // propertyId => fee paid
+        // Early exit fee logic
+        uint256 earlyExitFeePercentage; // e.g., 5 means 5%
+        // Tokenization dynamic variables
+        uint256 minTokensPerProperty;
+        uint256 maxTokensPerProperty;
+        uint256 minTokensPerInvestment;
     }
 
     bytes32 internal constant STORAGE_SLOT = keccak256("assetrix.storage");
