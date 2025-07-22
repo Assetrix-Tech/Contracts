@@ -243,6 +243,7 @@ contract InvestmentFacet {
         emit Refunded(_propertyId, msg.sender, refundAmount);
     }
 
+    //Emergency refund for token holder when property is not funded
     function emergencyRefund(
         uint256 _propertyId,
         address _tokenHolder
@@ -275,6 +276,7 @@ contract InvestmentFacet {
         emit Refunded(_propertyId, _tokenHolder, refundAmount);
     }
 
+    //Helper function to check if a property can accept token purchases
     function canAcceptTokenPurchases(
         uint256 _propertyId
     ) external view returns (bool) {
@@ -291,12 +293,14 @@ contract InvestmentFacet {
         return !hasReleasedFunds && prop.tokensLeft > 0;
     }
 
+    //Get token gap left to raise 
     function getTokenGap(uint256 _propertyId) external view returns (uint256) {
         AssetrixStorage.Layout storage s = AssetrixStorage.layout();
         AssetrixStorage.Property storage prop = s.properties[_propertyId];
         return prop.tokensLeft;
     }
 
+    //Get token sale percentage
     function getTokenSalePercentage(
         uint256 _propertyId
     ) external view returns (uint256) {
@@ -305,6 +309,7 @@ contract InvestmentFacet {
         return (prop.tokensSold * 100) / prop.totalTokens;
     }
 
+    //Get token balance of a specific token holder
     function getTokenBalance(
         uint256 _propertyId,
         address _tokenHolder
@@ -314,6 +319,7 @@ contract InvestmentFacet {
         return prop.tokenBalance[_tokenHolder];
     }
 
+    //Get token value in stablecoin
     function getTokenValue(
         uint256 _propertyId,
         address _tokenHolder
@@ -323,6 +329,7 @@ contract InvestmentFacet {
         return prop.tokenBalance[_tokenHolder] * prop.tokenPrice;
     }
 
+    //Calculate tokens from amount
     function calculateTokensFromAmount(
         uint256 _amount
     ) external view returns (uint256) {
@@ -335,6 +342,7 @@ contract InvestmentFacet {
         return _amount / s.globalTokenPrice;
     }
 
+    //Calculate amount from tokens
     function calculateAmountFromTokens(
         uint256 _tokens
     ) external view returns (uint256) {
@@ -342,6 +350,7 @@ contract InvestmentFacet {
         return _tokens * s.globalTokenPrice;
     }
 
+    //Calculate expected ROI
     function calculateExpectedROI(
         uint256 _propertyId,
         uint256 _investmentAmount
@@ -351,6 +360,7 @@ contract InvestmentFacet {
         return (_investmentAmount * prop.roiPercentage) / 100;
     }
 
+    //Get property amount to raise
     function getPropertyAmountToRaise(
         uint256 _propertyId
     ) external view returns (uint256) {
@@ -359,6 +369,7 @@ contract InvestmentFacet {
         return prop.totalTokens * prop.tokenPrice;
     }
 
+    //Helper function to remove token holder from property
     function _removeTokenHolderFromProperty(
         uint256 _propertyId,
         address _tokenHolder
@@ -390,6 +401,7 @@ contract InvestmentFacet {
         prop.holderCount--;
     }
 
+    //Get investment end time
     function getInvestmentEndTime(
         uint256 _propertyId
     ) public view returns (uint256) {
@@ -401,6 +413,7 @@ contract InvestmentFacet {
         return prop.createdAt + durationInSeconds;
     }
 
+    //Helper function to get duration
     function getDurationInSeconds(
         AssetrixStorage.Duration _duration
     ) internal pure returns (uint256) {
@@ -415,12 +428,14 @@ contract InvestmentFacet {
         revert("Invalid duration");
     }
 
+    //Check if investment period is active
     function isInvestmentPeriodActive(
         uint256 _propertyId
     ) external view returns (bool) {
         return block.timestamp <= getInvestmentEndTime(_propertyId);
     }
 
+    //Get investment period remaining
     function getInvestmentPeriodRemaining(
         uint256 _propertyId
     ) external view returns (uint256) {

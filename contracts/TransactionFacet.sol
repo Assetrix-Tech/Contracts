@@ -16,12 +16,14 @@ contract TransactionFacet {
         string description
     );
 
+    //Only owner can record transactions
     modifier onlyOwner() {
         AssetrixStorage.Layout storage s = AssetrixStorage.layout();
         require(msg.sender == s.owner, "Ownable: caller is not the owner");
         _;
     }
 
+    //When not paused
     modifier whenNotPaused() {
         AssetrixStorage.Layout storage s = AssetrixStorage.layout();
         require(!s.paused, "Pausable: paused");
