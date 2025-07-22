@@ -111,7 +111,7 @@ contract MilestoneFacet {
             releaseAmount <= totalFunds,
             "Insufficient funds for milestone release"
         );
-        // Transfer logic would be handled in InvestmentFacet or AdminFacet
+
         milestone.fundsReleased = true;
         milestone.releasedAt = block.timestamp;
         s.releasedFunds[_propertyId] += releaseAmount;

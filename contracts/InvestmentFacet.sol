@@ -165,16 +165,16 @@ contract InvestmentFacet {
         );
         uint256 refundTokens = prop.tokenBalance[_tokenHolder];
         uint256 refundAmount = refundTokens * prop.tokenPrice;
-        
+
         // Emit event for backend to handle dashboard balance update
         emit RefundAvailable(_propertyId, _tokenHolder, refundAmount);
-        
+
         // Update token balances
         prop.tokensSold -= refundTokens;
         prop.tokensLeft += refundTokens;
         prop.tokenBalance[_tokenHolder] = 0;
         prop.holderCount--;
-        
+
         ITransactionFacet(address(this)).recordTransaction(
             _propertyId,
             address(this),
@@ -211,10 +211,10 @@ contract InvestmentFacet {
         uint256 investmentAmount = tokenAmount * prop.tokenPrice;
         uint256 exitFee = (investmentAmount * 5) / 100;
         uint256 refundAmount = investmentAmount - exitFee;
-        
+
         // Emit event for backend to handle dashboard balance update
         emit EarlyExitAvailable(_propertyId, msg.sender, refundAmount, exitFee);
-        
+
         // Update token balances
         prop.tokensSold -= tokenAmount;
         prop.tokensLeft += tokenAmount;
@@ -223,7 +223,7 @@ contract InvestmentFacet {
         }
         prop.tokenBalance[msg.sender] = 0;
         prop.holderCount--;
-        
+
         ITransactionFacet(address(this)).recordTransaction(
             _propertyId,
             address(this),
@@ -255,15 +255,15 @@ contract InvestmentFacet {
         );
         uint256 refundTokens = prop.tokenBalance[_tokenHolder];
         uint256 refundAmount = refundTokens * prop.tokenPrice;
-        
+
         // Emit event for backend to handle dashboard balance update
         emit EmergencyRefundAvailable(_propertyId, _tokenHolder, refundAmount);
-        
+
         // Update token balances
         prop.tokensSold -= refundTokens;
         prop.tokensLeft += refundTokens;
         _removeTokenHolderFromProperty(_propertyId, _tokenHolder);
-        
+
         ITransactionFacet(address(this)).recordTransaction(
             _propertyId,
             address(this),

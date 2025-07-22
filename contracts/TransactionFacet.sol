@@ -42,6 +42,7 @@ contract TransactionFacet {
         s.reentrancyStatus = _NOT_ENTERED;
     }
 
+    //Record a new transaction
     function recordTransaction(
         uint256 _propertyId,
         address _from,
@@ -84,6 +85,7 @@ contract TransactionFacet {
         );
     }
 
+    //Get a specific user's transaction history
     function getUserTransactionHistory(
         address _user
     ) external view returns (AssetrixStorage.Transaction[] memory) {
@@ -97,6 +99,7 @@ contract TransactionFacet {
         return result;
     }
 
+    //Get a specific property's transaction history
     function getPropertyTransactionHistory(
         uint256 _propertyId
     ) external view returns (AssetrixStorage.Transaction[] memory) {
@@ -112,6 +115,7 @@ contract TransactionFacet {
         return result;
     }
 
+    //Get a specific transaction by ID
     function getTransaction(
         uint256 _transactionId
     ) external view returns (AssetrixStorage.Transaction memory) {
@@ -119,6 +123,7 @@ contract TransactionFacet {
         return s.transactions[_transactionId];
     }
 
+    //Get total number of transactions
     function getTotalTransactions() external view returns (uint256) {
         AssetrixStorage.Layout storage s = AssetrixStorage.layout();
         return s.transactionCount;
