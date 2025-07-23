@@ -16,8 +16,8 @@ abstract contract AssetrixModuleBase is
     UUPSUpgradeable
 {
     /// @dev Wire up all the OZ in one go.
-    function __AssetrixModuleBase_init() internal initializer {
-        __Ownable_init();
+    function __AssetrixModuleBase_init(address initialOwner) internal initializer {
+        __Ownable_init(initialOwner);
         __ReentrancyGuard_init();
         __Pausable_init();
         __UUPSUpgradeable_init();

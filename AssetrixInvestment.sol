@@ -1,5 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
+
+import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
 
 contract Assetrix is
@@ -26,7 +34,7 @@ contract Assetrix is
     uint256 public constant MIN_TOKENS_PER_INVESTMENT = 1; // Minimum 1 token per investment
     uint256 public globalTokenPrice; // Price per token in naira (e.g., 100000 for N100,000)
 
-    // ============ ENUMS ============ , should be in AssetrixEnums.
+    // ============ ENUMS ============
     enum PropertyType {
         ShortStay,
         LuxuryResidentialTowers
@@ -66,7 +74,7 @@ contract Assetrix is
         PropertyUpdate
     }
 
-    // ============ STRUCTS ============ AssetrixStructs.
+    // ============ STRUCTS ============
     struct Property {
         uint256 propertyId;
         string title;
@@ -155,7 +163,7 @@ contract Assetrix is
         bytes32 transactionHash;
     }
 
-    // ============ MAPPINGS ============ AssetrixStorage
+    // ============ MAPPINGS ============
     mapping(uint256 => Property) public properties;
     mapping(address => uint256[]) public developerProperties;
     mapping(address => uint256[]) public tokenHolderProperties;
@@ -233,8 +241,6 @@ contract Assetrix is
         _;
     }
 
-
-    // should be in root file
     function _authorizeUpgrade(
         address newImplementation
     ) internal override onlyOwner {}
