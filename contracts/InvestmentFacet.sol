@@ -244,7 +244,7 @@ contract InvestmentFacet {
         emit Refunded(_propertyId, msg.sender, refundAmount);
     }
 
-    //Emergency refund for token holder when property is not funded
+    //Emergency refund for token holder
     function emergencyRefund(
         uint256 _propertyId,
         address _tokenHolder

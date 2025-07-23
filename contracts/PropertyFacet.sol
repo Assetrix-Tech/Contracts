@@ -57,6 +57,7 @@ contract PropertyFacet {
         s.reentrancyStatus = _NOT_ENTERED;
     }
 
+    // ============ PROPERTY CREATION ============
     function createProperty(
         AssetrixStorage.PropertyCreationData memory _data
     ) external whenNotPaused nonReentrant returns (uint256) {
@@ -176,6 +177,7 @@ contract PropertyFacet {
         return s.propertyCount;
     }
 
+    // ============ PROPERTY UPDATE ============
     function updateProperty(
         uint256 _propertyId,
         AssetrixStorage.PropertyUpdateData memory _data
@@ -250,6 +252,7 @@ contract PropertyFacet {
         emit PropertyUpdated(_propertyId, _data.ipfsMetadataHash);
     }
 
+    // Deactivate Property by developer or admin
     function deactivateProperty(
         uint256 _propertyId
     ) external onlyDeveloperOrOwner(_propertyId) whenNotPaused nonReentrant {
@@ -265,6 +268,7 @@ contract PropertyFacet {
 
     // ============ ADMIN FUNCTIONS ============
 
+    // Activate Property by admin before active for funding
     function adminActivateProperty(
         uint256 _propertyId
     ) external onlyOwner whenNotPaused nonReentrant {
@@ -278,6 +282,7 @@ contract PropertyFacet {
         emit PropertyUpdated(_propertyId, prop.ipfsMetadataHash);
     }
 
+    // forcefully deactivate Property by admin for emergency cases or other reasons
     function adminDeactivateProperty(
         uint256 _propertyId
     ) external onlyOwner whenNotPaused nonReentrant {
@@ -326,6 +331,9 @@ contract PropertyFacet {
             });
     }
 
+    // ============ PROPERTY GETTERS ============
+
+    // Get total properties
     function getTotalProperties() external view returns (uint256) {
         AssetrixStorage.Layout storage s = AssetrixStorage.layout();
         return s.propertyCount;
@@ -350,6 +358,7 @@ contract PropertyFacet {
         }
     }
 
+    // Get all properties of the developer
     function getMyProperties()
         external
         view
@@ -368,6 +377,7 @@ contract PropertyFacet {
         return result;
     }
 
+    // Get all token properties of the developer
     function getMyTokenProperties()
         external
         view
@@ -386,6 +396,7 @@ contract PropertyFacet {
         return result;
     }
 
+    // Get total properties of the developer
     function getDeveloperPropertyCount(
         address _developer
     ) external view returns (uint256) {
@@ -409,6 +420,7 @@ contract PropertyFacet {
         return result;
     }
 
+    // Get all token holders of the property
     function getPropertyTokenHolders(
         uint256 _propertyId
     ) external view returns (address[] memory) {
