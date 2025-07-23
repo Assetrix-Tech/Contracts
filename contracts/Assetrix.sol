@@ -7,5 +7,5 @@ contract AssetrixTest is AssetrixPropertyManagement {
         __AssetrixPropertyManagement_init(initialOwner);
     }
 
-     function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
+    // function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
 }
