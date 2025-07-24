@@ -4,6 +4,8 @@ pragma solidity ^0.8.28;
 import "./IDiamondCut.sol";
 
 library LibDiamond {
+
+    // here makes the diamond storage fixed at same slot to avoid collisions.
     bytes32 constant DIAMOND_STORAGE_POSITION = keccak256("diamond.standard.diamond.storage");
 
     struct FacetAddressAndSelectorPosition {
@@ -11,10 +13,12 @@ library LibDiamond {
         uint16 selectorPosition;
     }
 
+    // maps each function selector to the facet address and its position
     struct DiamondStorage {
         // function selector => facet address and position
         mapping(bytes4 => FacetAddressAndSelectorPosition) selectorToFacetAndPosition;
         // facet address => function selectors
+        // this here maps each 4 bytes function selector to their respective facet address.
         mapping(address => bytes4[]) facetFunctionSelectors;
         // facet addresses
         address[] facetAddresses;
@@ -22,6 +26,7 @@ library LibDiamond {
         address contractOwner;
     }
 
+    // this allows the storage be shared across multiple facets, so each facet get to use the same slot in the diamond storage, so all facets access the same storage stae.
     function diamondStorage() internal pure returns (DiamondStorage storage ds) {
         bytes32 position = DIAMOND_STORAGE_POSITION;
         assembly {
@@ -89,7 +94,7 @@ library LibDiamond {
         require(_functionSelectors.length > 0, "LibDiamondCut: No selectors in facet to cut");
         DiamondStorage storage ds = diamondStorage();
         require(_facetAddress != address(0), "LibDiamondCut: Add facet can't be address(0)");
-        uint96 selectorPosition = uint96(ds.facetFunctionSelectors[_facetAddress].length);
+        uint96 selectorPosition = uint96(ds.facetFunctionSelectors[_facetAddress].length); // this is the position of the new function in the facet
         if (selectorPosition == 0) {
             addFacet(ds, _facetAddress);
         }
