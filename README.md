@@ -164,14 +164,6 @@ IMPLEMENTATION_ADDRESS=your_impl_address_here  # Optional: for verification
 - **Proxy Contract**: Automatically inherits verification from implementation
 - **Public Access**: Both addresses are publicly accessible for verification
 
-## License
-
-MIT License
-
-
-
-<<<<<<< HEAD
-## Acknowledgements
 =======
 ## 🙏 Acknowledgements
 >>>>>>> feature/assetrix-core
