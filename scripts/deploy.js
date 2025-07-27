@@ -1,9 +1,15 @@
-require('dotenv').config()
-const { ethers } = require('hardhat')
-const fs = require('fs')
-const path = require('path')
+import 'dotenv/config';
+import hre from 'hardhat';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+//import path from 'path';
+const { ethers } = hre;
 
-async function main() {
+export async function main() {
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
   console.log('Starting Assetrix diamond pattern deployment')
   
   try {
