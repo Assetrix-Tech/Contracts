@@ -46,22 +46,26 @@ The platform uses a **modular diamond pattern** architecture for scalability and
 
 ### Test Coverage
 
-The platform includes comprehensive testing for all core functionality:
+The platform includes comprehensive tests for the diamond pattern and individual facets:
 
-- **Diamond Pattern Core Tests**: Verify diamond deployment, ownership, and access control
-- **Facet Integration Tests**: Test all facets working together through the diamond
-- **Storage Layout Tests**: Ensure shared storage works correctly across facets
-- **Function Routing Tests**: Verify diamond fallback function routes calls properly
+| Test File | Status | Tests | Coverage |
+|-----------|--------|-------|----------|
+| `test/DiamondPattern.test.js` | ✅ Passing | 9/9 | Core diamond functionality |
+| `test/AdminFacet.test.js` | ✅ Passing | 19/19 | Admin functions & configuration |
+| `test/PropertyFacet.test.js` | ✅ Passing | 13/13 | Property creation & management |
+| `test/DiamondLoupeFacet.test.js` | ✅ Passing | 15/15 | EIP-2535 diamond loupe functions |
+| **Total** | **✅ Passing** | **56/56** | **Comprehensive facet testing** |
 
-### Current Test Status
+### Test Status
 
 | Metric | Status |
 |--------|--------|
-| **Tests Passing** | 9/9 ✅ |
-| **Facets Tested** | 3 (AdminFacet, PropertyFacet, DiamondLoupeFacet) |
+| **Tests Passing** | 56/56 ✅ |
+| **Facets Tested** | 4 (AdminFacet, PropertyFacet, DiamondLoupeFacet, Core Diamond) |
 | **Diamond Cut** | Working ✅ |
 | **Function Routing** | Working ✅ |
 | **Access Control** | Working ✅ |
+| **EIP-2535 Compliance** | Working ✅ |
 
 ### Running Tests
 
@@ -70,6 +74,12 @@ The platform includes comprehensive testing for all core functionality:
 npx hardhat test
 
 # Run specific test file
+npx hardhat test test/AdminFacet.test.js
+
+# Run multiple facet tests
+npx hardhat test test/AdminFacet.test.js test/PropertyFacet.test.js test/DiamondLoupeFacet.test.js
+
+# Run core diamond test
 npx hardhat test test/DiamondPattern.test.js
 
 # Run with gas reporting
