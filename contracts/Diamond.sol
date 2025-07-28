@@ -24,8 +24,16 @@ contract Diamond {
         assembly {
             ds.slot := position
         }
-        address facet = ds.selectorToFacetAndPosition[msg.sig].facetAddress;
+        
+        // Extract function selector from calldata
+        bytes4 selector;
+        assembly {
+            selector := calldataload(0)
+        }
+        
+        address facet = ds.selectorToFacetAndPosition[selector].facetAddress;
         require(facet != address(0), "Diamond: Function does not exist");
+        
         assembly {
             calldatacopy(0, 0, calldatasize())
             let result := delegatecall(gas(), facet, 0, calldatasize(), 0, 0)

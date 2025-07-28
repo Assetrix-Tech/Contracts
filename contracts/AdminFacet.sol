@@ -46,6 +46,8 @@ contract AdminFacet {
         s.reentrancyStatus = _NOT_ENTERED;
     }
 
+    bool private initialized;
+
     function initializeOwnership(address _owner) external {
         AssetrixStorage.Layout storage s = AssetrixStorage.layout();
         require(s.owner == address(0), "Already initialized");
@@ -160,15 +162,18 @@ contract AdminFacet {
         uint256 _initialTokenPrice
     ) external {
         AssetrixStorage.Layout storage s = AssetrixStorage.layout();
-        require(s.owner == address(0), "Already initialized");
+        require(!initialized, "Already initialized");
         require(_owner != address(0), "Invalid owner address");
         require(_stablecoin != address(0), "Invalid stablecoin address");
         require(_initialTokenPrice > 0, "Invalid token price");
+        
+        initialized = true;
         s.owner = _owner;
         s.stablecoin = _stablecoin;
         s.globalTokenPrice = _initialTokenPrice;
         s.paused = false;
         s.reentrancyStatus = 1;
+        
         emit OwnershipTransferred(address(0), _owner);
         emit StablecoinUpdated(_stablecoin);
         emit GlobalTokenPriceUpdated(_initialTokenPrice);

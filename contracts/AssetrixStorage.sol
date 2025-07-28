@@ -200,7 +200,7 @@ library AssetrixStorage {
         uint256 minTokensPerInvestment;
     }
 
-    bytes32 internal constant STORAGE_SLOT = keccak256("assetrix.storage");
+    bytes32 internal constant STORAGE_SLOT = keccak256("assetrix.storage.v1");
 
     function layout() internal pure returns (Layout storage l) {
         bytes32 slot = STORAGE_SLOT;

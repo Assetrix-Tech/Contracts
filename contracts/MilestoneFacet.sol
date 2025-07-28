@@ -123,36 +123,39 @@ contract MilestoneFacet {
         );
         require(!milestone.isCompleted, "Milestone already completed");
         uint256 totalFunds = prop.tokensSold * prop.tokenPrice;
-        uint256 adminFee = (totalFunds * s.adminFeePercentage) / 100;
-        uint256 netFunds = totalFunds - adminFee;
-        uint256 releaseAmount = (netFunds * milestone.percentage) / 100;
+        uint256 releaseAmount = (totalFunds * milestone.percentage) / 100;
+        
+        // Admin fee is deducted from the release amount
+        uint256 adminFee = (releaseAmount * s.adminFeePercentage) / 100;
+        uint256 netReleaseAmount = releaseAmount - adminFee;
+        
         require(
-            releaseAmount <= netFunds,
+            netReleaseAmount <= totalFunds,
             "Insufficient funds for milestone release"
         );
 
         milestone.fundsReleased = true;
         milestone.releasedAt = block.timestamp;
-        s.releasedFunds[_propertyId] += releaseAmount;
+        s.releasedFunds[_propertyId] += netReleaseAmount;
         ITransactionFacet(address(this)).recordTransaction(
             _propertyId,
             address(this),
             prop.developerAddress,
             AssetrixStorage.TransactionType.MilestoneRelease,
-            releaseAmount,
+            netReleaseAmount,
             string(abi.encodePacked("Milestone release: ", milestone.title))
         );
         emit MilestoneFundsReleased(
             _propertyId,
             _milestoneId,
-            releaseAmount,
+            netReleaseAmount,
             prop.developerAddress
         );
         emit MilestoneFundsAvailable(
             _propertyId,
             _milestoneId,
             prop.developerAddress,
-            releaseAmount
+            netReleaseAmount
         );
     }
 

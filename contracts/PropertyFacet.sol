@@ -24,8 +24,7 @@ contract PropertyFacet {
         AssetrixStorage.Layout storage s = AssetrixStorage.layout();
         require(
             msg.sender == s.properties[_propertyId].developerAddress ||
-                msg.sender == s.owner ||
-                msg.sender == address(this),
+                msg.sender == s.owner,
             "Unauthorized: Only property developer or admin can update"
         );
         _;
