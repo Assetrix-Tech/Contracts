@@ -103,7 +103,7 @@ describe("PropertyFacet", function () {
         bedrooms: 50,
         bathrooms: 75,
         amountToRaise: 1000000000, // 1B naira
-        investmentDuration: 5, // FiveMonths
+        investmentDuration: 2, // FiveMonths (enum value 2)
         milestoneTitles: ["Foundation", "Structure", "Finishing"],
         milestoneDescriptions: ["Foundation work", "Structural work", "Finishing touches"],
         milestonePercentages: [30, 40, 30],
@@ -145,7 +145,7 @@ describe("PropertyFacet", function () {
         bedrooms: 10,
         bathrooms: 15,
         amountToRaise: 500000000,
-        investmentDuration: 3,
+        investmentDuration: 1, // ThreeMonths (enum value 1)
         milestoneTitles: ["Phase 1"],
         milestoneDescriptions: ["Initial phase"],
         milestonePercentages: [100],
@@ -207,7 +207,7 @@ describe("PropertyFacet", function () {
         bedrooms: 10,
         bathrooms: 15,
         amountToRaise: 500000000,
-        investmentDuration: 3,
+        investmentDuration: 1, // ThreeMonths (enum value 1)
         milestoneTitles: ["Phase 1"],
         milestoneDescriptions: ["Initial phase"],
         milestonePercentages: [100],
@@ -244,11 +244,39 @@ describe("PropertyFacet", function () {
   });
 
   describe("Property Details", function () {
+    beforeEach(async function () {
+      // Create a test property first
+      const propertyData = {
+        title: "Test Property",
+        description: "Test Description",
+        propertyType: 0,
+        propertyUse: 0,
+        developerName: "Test Developer",
+        developerAddress: developer.address,
+        city: "Test City",
+        state: "Test State",
+        country: "Test Country",
+        ipfsImagesHash: "QmTest123",
+        ipfsMetadataHash: "QmTestMetadata123",
+        size: 1000,
+        bedrooms: 10,
+        bathrooms: 15,
+        amountToRaise: 500000000,
+        investmentDuration: 1,
+        milestoneTitles: ["Phase 1"],
+        milestoneDescriptions: ["Initial phase"],
+        milestonePercentages: [100],
+        roiPercentage: 20
+      };
+
+      await propertyFacet.connect(developer).createProperty(propertyData);
+    });
+
     it("Should return property details", async function () {
-      const property = await propertyFacet.getProperty(0);
-      expect(property.developer).to.equal(developer.address);
-      expect(property.name).to.equal("Test Property");
-      expect(property.description).to.equal("A test property");
+      const property = await propertyFacet.getProperty(1); // Property ID starts from 1
+      expect(property.developerAddress).to.equal(developer.address);
+      expect(property.title).to.equal("Test Property");
+      expect(property.description).to.equal("Test Description");
     });
 
     it("Should return my token properties", async function () {
@@ -257,42 +285,90 @@ describe("PropertyFacet", function () {
     });
 
     it("Should return property token holders", async function () {
-      const tokenHolders = await propertyFacet.getPropertyTokenHolders(0);
+      const tokenHolders = await propertyFacet.getPropertyTokenHolders(1); // Property ID starts from 1
       expect(tokenHolders).to.be.an('array');
     });
   });
 
   describe("Property Updates", function () {
+    beforeEach(async function () {
+      // Create a test property first
+      const propertyData = {
+        title: "Test Property",
+        description: "Test Description",
+        propertyType: 0,
+        propertyUse: 0,
+        developerName: "Test Developer",
+        developerAddress: developer.address,
+        city: "Test City",
+        state: "Test State",
+        country: "Test Country",
+        ipfsImagesHash: "QmTest123",
+        ipfsMetadataHash: "QmTestMetadata123",
+        size: 1000,
+        bedrooms: 10,
+        bathrooms: 15,
+        amountToRaise: 500000000,
+        investmentDuration: 1,
+        milestoneTitles: ["Phase 1"],
+        milestoneDescriptions: ["Initial phase"],
+        milestonePercentages: [100],
+        roiPercentage: 20
+      };
+
+      await propertyFacet.connect(developer).createProperty(propertyData);
+    });
+
     it("Should allow developer to update their property", async function () {
-      await propertyFacet.updateProperty(
-        0,
-        "Updated Property",
-        "Updated description",
-        "updated-location",
-        "updated-image-hash",
-        "updated-document-hash",
-        2000000, // new target amount
-        12 // new duration
-      );
+      const updateData = {
+        title: "Updated Property",
+        description: "Updated description",
+        propertyType: 0,
+        propertyUse: 0,
+        city: "Updated City",
+        state: "Updated State",
+        country: "Updated Country",
+        ipfsImagesHash: "updated-image-hash",
+        ipfsMetadataHash: "updated-document-hash",
+        size: 2000,
+        bedrooms: 20,
+        bathrooms: 25,
+        milestoneTitles: ["Updated Phase 1"],
+        milestoneDescriptions: ["Updated initial phase"],
+        milestonePercentages: [100],
+        roiPercentage: 25
+      };
+
+      await propertyFacet.connect(developer).updateProperty(1, updateData);
       
-      const updatedProperty = await propertyFacet.getProperty(0);
-      expect(updatedProperty.name).to.equal("Updated Property");
+      const updatedProperty = await propertyFacet.getProperty(1);
+      expect(updatedProperty.title).to.equal("Updated Property");
       expect(updatedProperty.description).to.equal("Updated description");
     });
 
     it("Should prevent non-developer from updating property", async function () {
+      const updateData = {
+        title: "Updated Property",
+        description: "Updated description",
+        propertyType: 0,
+        propertyUse: 0,
+        city: "Updated City",
+        state: "Updated State",
+        country: "Updated Country",
+        ipfsImagesHash: "updated-image-hash",
+        ipfsMetadataHash: "updated-document-hash",
+        size: 2000,
+        bedrooms: 20,
+        bathrooms: 25,
+        milestoneTitles: ["Updated Phase 1"],
+        milestoneDescriptions: ["Updated initial phase"],
+        milestonePercentages: [100],
+        roiPercentage: 25
+      };
+
       await expect(
-        propertyFacet.connect(investor).updateProperty(
-          0,
-          "Updated Property",
-          "Updated description",
-          "updated-location",
-          "updated-image-hash",
-          "updated-document-hash",
-          2000000,
-          12
-        )
-      ).to.be.revertedWith("Only developer can update their property");
+        propertyFacet.connect(investor).updateProperty(1, updateData)
+      ).to.be.revertedWith("Unauthorized: Only property developer or admin can update");
     });
   });
 }); 

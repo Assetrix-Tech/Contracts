@@ -76,7 +76,11 @@ describe("MilestoneFacet", function () {
           "0x3de1bb15", // releaseMilestoneFunds
           "0x359b3123", // getMilestoneDashboard
           "0xe8049da1", // getMilestoneStatus
-          "0x5cae48f5"  // markMilestoneCompleted
+          "0x5cae48f5", // markMilestoneCompleted
+          "0xbc643619", // getPropertyMilestones
+          "0x3d71a791", // getNextRequestableMilestone
+          "0xd019372a", // getMilestonesReadyForRelease
+          "0x87ecca3f"  // getMilestonesReadyForCompletion
         ]
       }
     ];
