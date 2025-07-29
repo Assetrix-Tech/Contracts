@@ -34,6 +34,7 @@ describe("AdminFacet", function () {
         functionSelectors: [
           "0x8da5cb5b", // owner
           "0x1794bb3c", // initialize
+          "0x5cd9205f", // initializeOwnership
           "0xcc7ac330", // getGlobalTokenPrice
           "0xb6f67312", // getStablecoin
           "0x92b582e0", // getAdminFeePercentage
@@ -45,7 +46,13 @@ describe("AdminFacet", function () {
           "0x842f6221", // setGlobalTokenPrice
           "0xe088bfc0", // setStablecoin
           "0xfe9d0872", // setAdminFeePercentage
-          "0x2750b0d2"  // setEarlyExitFeePercentage
+          "0x2750b0d2", // setEarlyExitFeePercentage
+          "0xeb659dc1", // setMinTokensPerProperty
+          "0x96241c97", // setMaxTokensPerProperty
+          "0xe109516b", // setMinTokensPerInvestment
+          "0xeec723bc", // getMinTokensPerProperty
+          "0xdeba19e2", // getMaxTokensPerProperty
+          "0x80521c91"  // getMinTokensPerInvestment
         ]
       }
     ];
@@ -160,6 +167,39 @@ describe("AdminFacet", function () {
     it("Should allow owner to set early exit fee percentage", async function () {
       await adminFacet.setEarlyExitFeePercentage(3);
       expect(await adminFacet.getEarlyExitFeePercentage()).to.equal(3);
+    });
+
+    it("Should allow owner to set min tokens per property", async function () {
+      await adminFacet.setMinTokensPerProperty(1000);
+      expect(await adminFacet.getMinTokensPerProperty()).to.equal(1000);
+    });
+
+    it("Should allow owner to set max tokens per property", async function () {
+      await adminFacet.setMaxTokensPerProperty(10000);
+      expect(await adminFacet.getMaxTokensPerProperty()).to.equal(10000);
+    });
+
+    it("Should allow owner to set min tokens per investment", async function () {
+      await adminFacet.setMinTokensPerInvestment(100);
+      expect(await adminFacet.getMinTokensPerInvestment()).to.equal(100);
+    });
+
+    it("Should prevent non-owner from setting min tokens per property", async function () {
+      await expect(
+        adminFacet.connect(nonOwner).setMinTokensPerProperty(1000)
+      ).to.be.revertedWith("Ownable: caller is not the owner");
+    });
+
+    it("Should prevent non-owner from setting max tokens per property", async function () {
+      await expect(
+        adminFacet.connect(nonOwner).setMaxTokensPerProperty(10000)
+      ).to.be.revertedWith("Ownable: caller is not the owner");
+    });
+
+    it("Should prevent non-owner from setting min tokens per investment", async function () {
+      await expect(
+        adminFacet.connect(nonOwner).setMinTokensPerInvestment(100)
+      ).to.be.revertedWith("Ownable: caller is not the owner");
     });
   });
 

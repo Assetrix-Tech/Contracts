@@ -242,4 +242,57 @@ describe("PropertyFacet", function () {
       ).to.be.revertedWith("Unauthorized: Only property developer or admin can update");
     });
   });
+
+  describe("Property Details", function () {
+    it("Should return property details", async function () {
+      const property = await propertyFacet.getProperty(0);
+      expect(property.developer).to.equal(developer.address);
+      expect(property.name).to.equal("Test Property");
+      expect(property.description).to.equal("A test property");
+    });
+
+    it("Should return my token properties", async function () {
+      const tokenProperties = await propertyFacet.getMyTokenProperties();
+      expect(tokenProperties).to.be.an('array');
+    });
+
+    it("Should return property token holders", async function () {
+      const tokenHolders = await propertyFacet.getPropertyTokenHolders(0);
+      expect(tokenHolders).to.be.an('array');
+    });
+  });
+
+  describe("Property Updates", function () {
+    it("Should allow developer to update their property", async function () {
+      await propertyFacet.updateProperty(
+        0,
+        "Updated Property",
+        "Updated description",
+        "updated-location",
+        "updated-image-hash",
+        "updated-document-hash",
+        2000000, // new target amount
+        12 // new duration
+      );
+      
+      const updatedProperty = await propertyFacet.getProperty(0);
+      expect(updatedProperty.name).to.equal("Updated Property");
+      expect(updatedProperty.description).to.equal("Updated description");
+    });
+
+    it("Should prevent non-developer from updating property", async function () {
+      await expect(
+        propertyFacet.connect(investor).updateProperty(
+          0,
+          "Updated Property",
+          "Updated description",
+          "updated-location",
+          "updated-image-hash",
+          "updated-document-hash",
+          2000000,
+          12
+        )
+      ).to.be.revertedWith("Only developer can update their property");
+    });
+  });
 }); 
