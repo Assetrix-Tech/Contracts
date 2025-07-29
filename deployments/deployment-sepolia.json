@@ -2,13 +2,14 @@
   "network": "sepolia",
   "diamond": "0x52b67c8D18388b08C3965F772989cCecd90Fe071",
   "facets": {
-    "admin": "0x0420c58693867117B5e37dE760169Bba735C3E46",
-    "property": "0x52CDd020F2BBbA3d65cE2DA0dB45cd63E7446b8d",
-    "investment": "0xAC442727f26427731Ce58C6dEF4894F7a8077A84",
-    "milestone": "0x06D0108e8E7bF51C315380B5CeabE11407490023",
-    "transaction": "0x6D8Da76787078e563A4114a28A5E7bBA89D05Cb8"
+    "admin": "0xb864c49212ed46348804C074FdF44aa239a8D362",
+    "property": "0x876753C3bD4401653Fc3e675F27A237E8fc9E687",
+    "investment": "0x16934f2A12d62aCF43FC2c10f7981DD03A48Cd30",
+    "milestone": "0xC657db369349E1C1D3a99cc2725C1831AE348366",
+    "transaction": "0xc49A27FB4DaE420ee80Ece448a90a9ebDc4eF6a0",
+    "diamondloupe": "0xbFbB1f3b13555868591bE15873cae31A91F37801"
   },
   "deployer": "0x4f950FAA97B1A7fad9C78cA03B1e99539C8E5cf3",
-  "timestamp": "2025-07-22T13:13:16.452Z",
+  "timestamp": "2025-07-29T19:14:17.562Z",
   "deploymentType": "standard"
 }

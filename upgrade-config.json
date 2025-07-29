@@ -1,18 +1,19 @@
 {
   "upgradeFacets": [
-    "Admin",
-    "Property",
-    "Milestone",
-    "Investment",
-    "Transaction"
+    "admin",
+    "property",
+    "milestone",
+    "investment",
+    "transaction",
+    "diamondloupe"
   ],
-  "addFacets": ["DiamondLoupe"],
+  "addFacets": [],
   "skipFacets": [],
 
   "description": "Configuration for diamond pattern upgrade and feature addition",
   "notes": {
-    "upgradeFacets": "Existing facets to upgrade with new versions (only the 6 facets that actually exist)",
-    "addFacets": "New facets to add to the diamond (empty until you create new facets)",
+    "upgradeFacets": "Existing facets to upgrade with new versions (use lowercase names that match deployment file)",
+    "addFacets": "New facets to add to the diamond (use lowercase names)",
     "skipFacets": "Facets to skip (won't be upgraded or added)"
   }
 }

@@ -66,15 +66,12 @@ async function main() {
       console.log('✅ Created default upgrade-config.json')
     }
 
-    // ===== DEPLOY UPGRADED VERSIONS OF EXISTING FACETS =====
-    console.log('\n📦 Deploying upgraded facet versions...')
+    // ===== VALIDATE CONFIGURATION =====
+    console.log('\n🔍 Validating upgrade configuration...')
     
-    const upgradedFacets = {}
-    const cut = []
-
     // Check for mistakes: new facets in upgradeFacets
     const newFacetsInUpgradeList = upgradeConfig.upgradeFacets.filter(facet => 
-      !currentFacets[facet]
+      !currentFacets[facet.toLowerCase()]
     )
 
     if (newFacetsInUpgradeList.length > 0) {
@@ -83,8 +80,8 @@ async function main() {
       
       // Add them to addFacets if not already there
       for (const facet of newFacetsInUpgradeList) {
-        if (!upgradeConfig.addFacets.includes(facet)) {
-          upgradeConfig.addFacets.push(facet)
+        if (!upgradeConfig.addFacets.includes(facet.toLowerCase())) {
+          upgradeConfig.addFacets.push(facet.toLowerCase())
         }
       }
       
@@ -96,160 +93,174 @@ async function main() {
 
     // Get all facet names that should be upgraded
     const facetsToUpgrade = upgradeConfig.upgradeFacets.filter(facet => 
-      !upgradeConfig.skipFacets.includes(facet) && currentFacets[facet]
-    )
-
-    // Show which facets are being skipped
-    const existingFacets = Object.keys(currentFacets)
-    const skippedFacets = existingFacets.filter(facet => 
-      !upgradeConfig.upgradeFacets.includes(facet) && !upgradeConfig.skipFacets.includes(facet)
-    )
-    const explicitlySkippedFacets = upgradeConfig.skipFacets.filter(facet => 
-      existingFacets.includes(facet)
+      !upgradeConfig.skipFacets.includes(facet) && currentFacets[facet.toLowerCase()]
     )
 
     console.log(`🔄 Facets to upgrade: ${facetsToUpgrade.length}`)
-    if (skippedFacets.length > 0) {
-      console.log(`⏭️ Facets not in config (auto-skipped): ${skippedFacets.join(', ')}`)
+    if (facetsToUpgrade.length > 0) {
+      console.log(`📋 Facets being upgraded: ${facetsToUpgrade.join(', ')}`)
     }
-    if (explicitlySkippedFacets.length > 0) {
-      console.log(`⏭️ Facets explicitly skipped: ${explicitlySkippedFacets.join(', ')}`)
+
+    // Get facets that exist but are not in config (auto-skip)
+    const existingFacetsNotInConfig = Object.keys(currentFacets).filter(facet => 
+      !upgradeConfig.upgradeFacets.includes(facet) && 
+      !upgradeConfig.addFacets.includes(facet) &&
+      !upgradeConfig.skipFacets.includes(facet)
+    )
+
+    if (existingFacetsNotInConfig.length > 0) {
+      console.log(`⏭️ Facets not in config (auto-skipped): ${existingFacetsNotInConfig.join(', ')}`)
     }
+
+    // ===== DEPLOY UPGRADED VERSIONS OF EXISTING FACETS =====
+    console.log('\n📦 Deploying upgraded facet versions...')
     
+    const upgradedFacets = {}
+    const cut = []
+    const failedUpgrades = []
+
+    // Deploy upgraded versions of existing facets
     for (const facetName of facetsToUpgrade) {
-      console.log(`🔄 Upgrading ${facetName}Facet...`)
+      console.log(`🔄 Deploying upgraded ${facetName}...`)
       
       try {
-        const FacetContract = await ethers.getContractFactory(`${facetName.charAt(0).toUpperCase() + facetName.slice(1)}Facet`)
+        // Handle case sensitivity for contract names
+        let contractName = facetName.charAt(0).toUpperCase() + facetName.slice(1) + 'Facet'
+        
+        // Special case for DiamondLoupeFacet
+        if (facetName.toLowerCase() === 'diamondloupe') {
+          contractName = 'DiamondLoupeFacet'
+        }
+        
+        const FacetContract = await ethers.getContractFactory(contractName)
         const facetV2 = await FacetContract.deploy()
         await facetV2.waitForDeployment()
         const facetV2Address = await facetV2.getAddress()
-        console.log(`✅ ${facetName}FacetV2 deployed to: ${facetV2Address}`)
+        console.log(`✅ ${contractName} deployed to: ${facetV2Address}`)
         upgradedFacets[facetName] = facetV2Address
 
-        // Remove old facet and add new one
+        // Get function selectors for this facet
         const facetSelectors = getSelectors(FacetContract.interface)
-        cut.push(
-          {
-            facetAddress: ethers.ZeroAddress, // Remove old facet
-            action: 1, // Remove
+        
+        // Only add to cut if we have selectors
+        if (facetSelectors.length > 0) {
+          // For upgrades, we just ADD the new facet (it will replace the old one)
+          cut.push({
+            facetAddress: facetV2Address,
+            action: 0, // Add (will replace existing functions)
             functionSelectors: facetSelectors
-          },
-          {
-            facetAddress: facetV2Address, // Add new facet
-            action: 0, // Add
-            functionSelectors: facetSelectors
-          }
-        )
-    } catch (error) {
-        console.log(`❌ Failed to upgrade ${facetName}Facet: ${error.message}`)
-        console.log(`⚠️ Skipping ${facetName}Facet upgrade`)
-        console.log(`💡 Check if ${facetName}Facet.sol exists and compiles correctly`)
+          })
+        }
+      } catch (error) {
+        console.log(`❌ Failed to upgrade ${facetName}: ${error.message}`)
+        failedUpgrades.push(facetName)
       }
     }
 
     // ===== DEPLOY NEW FACETS =====
-    console.log('\n🆕 Deploying new facets...')
-    
-    const newFacets = {}
-
-    // Get all new facets to add (exclude existing ones)
     const facetsToAdd = upgradeConfig.addFacets.filter(facet => 
-      !upgradeConfig.skipFacets.includes(facet) && !currentFacets[facet]
+      !upgradeConfig.skipFacets.includes(facet)
     )
 
-    // Check for mistakes: facets in addFacets that already exist
-    const existingFacetsInAddList = upgradeConfig.addFacets.filter(facet => 
-      currentFacets[facet]
-    )
-
-    if (existingFacetsInAddList.length > 0) {
-      console.log(`⚠️ Warning: These facets already exist and should be in upgradeFacets instead: ${existingFacetsInAddList.join(', ')}`)
-      console.log(`💡 Moving them to upgradeFacets automatically...`)
+    if (facetsToAdd.length > 0) {
+      console.log(`\n🆕 Deploying new facets...`)
+      console.log(`🆕 Facets to add: ${facetsToAdd.length}`)
       
-      // Add them to upgradeFacets if not already there
-      for (const facet of existingFacetsInAddList) {
-        if (!upgradeConfig.upgradeFacets.includes(facet)) {
-          upgradeConfig.upgradeFacets.push(facet)
+      for (const facetName of facetsToAdd) {
+        console.log(`🆕 Deploying ${facetName}...`)
+        
+        try {
+          // Handle case sensitivity for contract names
+          let contractName = facetName.charAt(0).toUpperCase() + facetName.slice(1) + 'Facet'
+          
+          // Special case for DiamondLoupeFacet
+          if (facetName.toLowerCase() === 'diamondloupe') {
+            contractName = 'DiamondLoupeFacet'
+          }
+          
+          const FacetContract = await ethers.getContractFactory(contractName)
+          const newFacet = await FacetContract.deploy()
+          await newFacet.waitForDeployment()
+          const newFacetAddress = await newFacet.getAddress()
+          console.log(`✅ ${contractName} deployed to: ${newFacetAddress}`)
+          upgradedFacets[facetName] = newFacetAddress
+
+          // Get function selectors for this facet
+          const facetSelectors = getSelectors(FacetContract.interface)
+          
+          // Only add to cut if we have selectors
+          if (facetSelectors.length > 0) {
+            cut.push({
+              facetAddress: newFacetAddress,
+              action: 0, // Add
+              functionSelectors: facetSelectors
+            })
+          }
+        } catch (error) {
+          console.log(`❌ Failed to deploy ${facetName}: ${error.message}`)
+          failedUpgrades.push(facetName)
         }
       }
-    }
-
-    console.log(`🆕 Facets to add: ${facetsToAdd.length}`)
-    
-    for (const facetName of facetsToAdd) {
-      console.log(`🆕 Deploying ${facetName}Facet...`)
-      
-      try {
-        const FacetContract = await ethers.getContractFactory(`${facetName.charAt(0).toUpperCase() + facetName.slice(1)}Facet`)
-        const newFacet = await FacetContract.deploy()
-        await newFacet.waitForDeployment()
-        const newFacetAddress = await newFacet.getAddress()
-        console.log(`✅ ${facetName}Facet deployed to: ${newFacetAddress}`)
-        newFacets[facetName] = newFacetAddress
-
-        // Add new facet
-        const facetSelectors = getSelectors(FacetContract.interface)
-        cut.push({
-          facetAddress: newFacetAddress,
-          action: 0, // Add
-          functionSelectors: facetSelectors
-        })
-      } catch (error) {
-        console.log(`❌ Failed to deploy ${facetName}Facet: ${error.message}`)
-        console.log(`⚠️ Skipping ${facetName}Facet deployment`)
-      }
+    } else {
+      console.log(`\nℹ️ No new facets to add`)
     }
 
     // ===== PERFORM DIAMOND CUT =====
     if (cut.length > 0) {
-      console.log('\n🔧 Preparing diamond cut for upgrade and additions...')
+      console.log('\n🔧 Preparing diamond cut...')
       console.log(`📋 Cut operations: ${cut.length}`)
+      console.log(`✅ Successful deployments: ${Object.keys(upgradedFacets).length}`)
       
-      // Perform diamond cut
-      console.log('🔧 Performing diamond cut...')
-      const diamondCut = await ethers.getContractAt('IDiamondCut', diamondAddress)
-      await diamondCut.diamondCut(cut, ethers.ZeroAddress, "0x")
-      console.log('✅ Diamond cut completed successfully')
-
-      // Verify the changes
-      console.log('\n🔍 Verifying changes...')
-      
-      // Verify upgraded facets
-      for (const [facetName, facetAddress] of Object.entries(upgradedFacets)) {
-        try {
-          const facetContract = await ethers.getContractAt(facetName.charAt(0).toUpperCase() + facetName.slice(1) + 'Facet', diamondAddress)
-          console.log(`✅ ${facetName}Facet upgrade verified`)
-        } catch (error) {
-          console.log(`⚠️ Warning: Could not verify ${facetName}Facet after upgrade:`, error.message)
-        }
+      if (failedUpgrades.length > 0) {
+        console.log(`❌ Failed deployments: ${failedUpgrades.join(', ')}`)
+        console.log(`⚠️ Only successfully deployed facets will be upgraded`)
       }
-
-      // Verify new facets
-      for (const [facetName, facetAddress] of Object.entries(newFacets)) {
-        try {
-          const facetContract = await ethers.getContractAt(facetName.charAt(0).toUpperCase() + facetName.slice(1) + 'Facet', diamondAddress)
-          console.log(`✅ ${facetName}Facet addition verified`)
-        } catch (error) {
-          console.log(`⚠️ Warning: Could not verify ${facetName}Facet after addition:`, error.message)
+      
+      // Validate cut array - ensure no zero addresses
+      const validCut = cut.filter(operation => {
+        if (operation.facetAddress === ethers.ZeroAddress) {
+          console.log(`⚠️ Skipping invalid operation with zero address`)
+          return false
         }
+        return true
+      })
+      
+      if (validCut.length > 0) {
+        console.log('🔧 Performing diamond cut...')
+        const diamondCut = await ethers.getContractAt('IDiamondCut', diamondAddress)
+        await diamondCut.diamondCut(validCut, ethers.ZeroAddress, "0x")
+        console.log('✅ Diamond cut completed successfully')
+
+        // Verify the changes
+        console.log('\n🔍 Verifying changes...')
+        
+        // Verify upgraded facets
+        for (const [facetName, facetAddress] of Object.entries(upgradedFacets)) {
+          try {
+            let contractName = facetName.charAt(0).toUpperCase() + facetName.slice(1) + 'Facet'
+            if (facetName.toLowerCase() === 'diamondloupe') {
+              contractName = 'DiamondLoupeFacet'
+            }
+            const facetContract = await ethers.getContractAt(contractName, diamondAddress)
+            console.log(`✅ ${contractName} upgrade verified`)
+          } catch (error) {
+            console.log(`⚠️ Warning: Could not verify ${facetName} after upgrade:`, error.message)
+          }
+        }
+      } else {
+        console.log('⚠️ No valid cut operations to perform')
       }
     } else {
       console.log('ℹ️ No facets to upgrade or add.')
-      console.log('💡 Create or modify upgrade-config.json to specify which facets to modify.')
-      console.log('📝 Example configuration:')
-      console.log(JSON.stringify({
-        upgradeFacets: ["property", "investment", "milestone"],
-        addFacets: ["insurance", "analytics", "governance"],
-        skipFacets: ["admin"]
-      }, null, 2))
+      if (failedUpgrades.length > 0) {
+        console.log(`❌ All facet deployments failed: ${failedUpgrades.join(', ')}`)
+      }
     }
 
     // Merge all facets as before
     const updatedFacets = {
       ...currentFacets,
-      ...upgradedFacets,
-      ...newFacets
+      ...upgradedFacets
     };
     // Always convert all keys to lowercase and remove duplicates
     const normalizedFacets = {};
@@ -280,10 +291,15 @@ async function main() {
       }
     }
     
-    if (Object.keys(newFacets).length > 0) {
+    // Check if any facets were added (not just upgraded)
+    const addedFacets = Object.keys(upgradedFacets).filter(facet => 
+      !Object.keys(currentFacets).includes(facet)
+    )
+    
+    if (addedFacets.length > 0) {
       console.log('\n📊 Summary of New Features:')
-      for (const [facetName, address] of Object.entries(newFacets)) {
-        console.log(`  🆕 ${facetName}Facet: ${address}`)
+      for (const facetName of addedFacets) {
+        console.log(`  🆕 ${facetName}Facet: ${upgradedFacets[facetName]}`)
       }
     }
     
