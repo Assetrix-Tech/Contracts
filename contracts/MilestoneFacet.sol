@@ -85,86 +85,90 @@ contract MilestoneFacet {
                 "Previous milestone must be completed first"
             );
         }
+        // this part , we charging admin fee on them requesting, it should be charged based on when admin releases funds. would comment out for now
+        
         // Deduct admin fee on first milestone request
-        if (_milestoneId == 0 && !s.adminFeePaid[_propertyId]) {
-            uint256 totalFunds = prop.tokensSold * prop.tokenPrice;
-            uint256 adminFee = (totalFunds * s.adminFeePercentage) / 100;
-            require(adminFee < totalFunds, "Admin fee too high");
-            address stablecoin = s.stablecoin;
-            require(stablecoin != address(0), "Stablecoin not set");
-            address owner = s.owner;
-            require(owner != address(0), "Owner not set");
-            // Transfer admin fee to owner
-            require(
-                IERC20(stablecoin).transfer(owner, adminFee),
-                "Admin fee transfer failed"
-            );
-            s.adminFeePaid[_propertyId] = true;
-        }
+        // if (_milestoneId == 0 && !s.adminFeePaid[_propertyId]) {
+        //     uint256 totalFunds = prop.tokensSold * prop.tokenPrice;
+        //     uint256 adminFee = (totalFunds * s.adminFeePercentage) / 100;
+        //     require(adminFee < totalFunds, "Admin fee too high");
+        //     address stablecoin = s.stablecoin;
+        //     require(stablecoin != address(0), "Stablecoin not set");
+        //     address owner = s.owner;
+        //     require(owner != address(0), "Owner not set");
+        //     // Transfer admin fee to owner
+        //     require(
+        //         IERC20(stablecoin).transfer(owner, adminFee),
+        //         "Admin fee transfer failed"
+        //     );
+        //     s.adminFeePaid[_propertyId] = true;
+        // }
         milestone.fundsRequested = true;
         milestone.requestedAt = block.timestamp;
         emit MilestoneFundsRequested(_propertyId, _milestoneId, msg.sender);
     }
 
-    function releaseMilestoneFunds(
-        uint256 _propertyId,
-        uint256 _milestoneId
-    ) external onlyOwner {
-        AssetrixStorage.Layout storage s = AssetrixStorage.layout();
-        AssetrixStorage.Property storage prop = s.properties[_propertyId];
-        require(prop.isFullyFunded, "Property must be fully funded");
-        require(
-            _milestoneId < prop.milestones.length,
-            "Milestone does not exist"
-        );
-        AssetrixStorage.Milestone storage milestone = prop.milestones[
-            _milestoneId
-        ];
-        require(
-            milestone.fundsRequested,
-            "Funds must be requested before release"
-        );
-        require(
-            !milestone.fundsReleased,
-            "Funds already released for this milestone"
-        );
-        require(!milestone.isCompleted, "Milestone already completed");
-        uint256 totalFunds = prop.tokensSold * prop.tokenPrice;
-        uint256 releaseAmount = (totalFunds * milestone.percentage) / 100;
-        
-        // Admin fee is deducted from the release amount
-        uint256 adminFee = (releaseAmount * s.adminFeePercentage) / 100;
-        uint256 netReleaseAmount = releaseAmount - adminFee;
-        
-        require(
-            netReleaseAmount <= totalFunds,
-            "Insufficient funds for milestone release"
-        );
+    // not sure if we would need this since admin is who verifies and releases payment, would comment out for now
 
-        milestone.fundsReleased = true;
-        milestone.releasedAt = block.timestamp;
-        s.releasedFunds[_propertyId] += netReleaseAmount;
-        ITransactionFacet(address(this)).recordTransaction(
-            _propertyId,
-            address(this),
-            prop.developerAddress,
-            AssetrixStorage.TransactionType.MilestoneRelease,
-            netReleaseAmount,
-            string(abi.encodePacked("Milestone release: ", milestone.title))
-        );
-        emit MilestoneFundsReleased(
-            _propertyId,
-            _milestoneId,
-            netReleaseAmount,
-            prop.developerAddress
-        );
-        emit MilestoneFundsAvailable(
-            _propertyId,
-            _milestoneId,
-            prop.developerAddress,
-            netReleaseAmount
-        );
-    }
+    // function releaseMilestoneFunds(
+    //     uint256 _propertyId,
+    //     uint256 _milestoneId
+    // ) external onlyOwner {
+    //     AssetrixStorage.Layout storage s = AssetrixStorage.layout();
+    //     AssetrixStorage.Property storage prop = s.properties[_propertyId];
+    //     require(prop.isFullyFunded, "Property must be fully funded");
+    //     require(
+    //         _milestoneId < prop.milestones.length,
+    //         "Milestone does not exist"
+    //     );
+    //     AssetrixStorage.Milestone storage milestone = prop.milestones[
+    //         _milestoneId
+    //     ];
+    //     require(
+    //         milestone.fundsRequested,
+    //         "Funds must be requested before release"
+    //     );
+    //     require(
+    //         !milestone.fundsReleased,
+    //         "Funds already released for this milestone"
+    //     );
+    //     require(!milestone.isCompleted, "Milestone already completed");
+    //     uint256 totalFunds = prop.tokensSold * prop.tokenPrice;
+    //     uint256 releaseAmount = (totalFunds * milestone.percentage) / 100;
+        
+    //     // Admin fee is deducted from the release amount
+    //     uint256 adminFee = (releaseAmount * s.adminFeePercentage) / 100;
+    //     uint256 netReleaseAmount = releaseAmount - adminFee;
+        
+    //     require(
+    //         netReleaseAmount <= totalFunds,
+    //         "Insufficient funds for milestone release"
+    //     );
+
+    //     milestone.fundsReleased = true;
+    //     milestone.releasedAt = block.timestamp;
+    //     s.releasedFunds[_propertyId] += netReleaseAmount;
+    //     ITransactionFacet(address(this)).recordTransaction(
+    //         _propertyId,
+    //         address(this),
+    //         prop.developerAddress,
+    //         AssetrixStorage.TransactionType.MilestoneRelease,
+    //         netReleaseAmount,
+    //         string(abi.encodePacked("Milestone release: ", milestone.title))
+    //     );
+    //     emit MilestoneFundsReleased(
+    //         _propertyId,
+    //         _milestoneId,
+    //         netReleaseAmount,
+    //         prop.developerAddress
+    //     );
+    //     emit MilestoneFundsAvailable(
+    //         _propertyId,
+    //         _milestoneId,
+    //         prop.developerAddress,
+    //         netReleaseAmount
+    //     );
+    // }
 
     function markMilestoneCompleted(
         uint256 _propertyId,
@@ -190,7 +194,7 @@ contract MilestoneFacet {
         emit MilestoneMarkedCompleted(_propertyId, _milestoneId);
     }
 
-    // New function for admin to verify and mark completion in one transaction
+    // New function for admin to verify and mark completion in one transaction, so admin verifies first and he marks it completed and releases funds.
     function verifyAndMarkMilestoneCompleted(
         uint256 _propertyId,
         uint256 _milestoneId
@@ -223,7 +227,7 @@ contract MilestoneFacet {
         uint256 totalFunds = prop.tokensSold * prop.tokenPrice;
         uint256 releaseAmount = (totalFunds * milestone.percentage) / 100;
         
-        // Admin fee is deducted from the release amount
+        // Admin fee is deducted from the release amount , instead of doing it in requestMilestoneFunds and here too.
         uint256 adminFee = (releaseAmount * s.adminFeePercentage) / 100;
         uint256 netReleaseAmount = releaseAmount - adminFee;
         
