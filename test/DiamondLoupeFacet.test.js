@@ -33,35 +33,26 @@ describe("DiamondLoupeFacet", function () {
     // Get diamond cut interface
     const diamondCut = await ethers.getContractAt("IDiamondCut", await diamond.getAddress());
 
+    const getSelectors = (contract) =>
+    Object.keys(contract.interface.functions).map((fn) =>
+    contract.interface.getSighash(fn)
+  );
     // Add facets to diamond
     const cut = [
       {
         facetAddress: await adminFacetContract.getAddress(),
         action: 0, // Add
-        functionSelectors: [
-          "0x8da5cb5b", // owner
-          "0x1794bb3c", // initialize
-          "0xcc7ac330", // getGlobalTokenPrice
-          "0xb6f67312"  // getStablecoin
-        ]
+        functionSelectors: getSelectors(adminFacetContract)
       },
       {
         facetAddress: await propertyFacetContract.getAddress(),
         action: 0, // Add
-        functionSelectors: [
-          "0x17aaf5ed", // getTotalProperties
-          "0x1f346f07"  // createProperty
-        ]
+        functionSelectors: getSelectors(propertyFacetContract)
       },
       {
         facetAddress: await diamondLoupeFacetContract.getAddress(),
         action: 0, // Add
-        functionSelectors: [
-          "0x7a0ed627", // facets
-          "0x52ef6b2c", // facetFunctionSelectors
-          "0xadfca15e", // facetAddresses
-          "0xcdffacc6"  // facetAddress
-        ]
+        functionSelectors: getSelectors(diamondLoupeFacetContract)
       }
     ];
 
@@ -108,8 +99,9 @@ describe("DiamondLoupeFacet", function () {
 
     it("Should return correct facet address for function selector", async function () {
       // Test with owner function selector
-      const ownerSelector = "0x8da5cb5b";
-      const facetAddress = await diamondLoupeFacet.facetAddress(ownerSelector);
+     const ownerSelector = "0x8da5cb5b";
+     // const ownerSelector = diamondLoupeFacet.interface.getSighash("owner()");
+      const facetAddress = diamondLoupeFacet.facetAddress(ownerSelector);
       expect(facetAddress).to.not.equal(ethers.ZeroAddress);
     });
 

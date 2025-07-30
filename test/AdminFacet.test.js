@@ -11,6 +11,14 @@ describe("AdminFacet", function () {
   beforeEach(async function () {
     [owner, nonOwner] = await ethers.getSigners();
 
+    const getSelectors = (contract) =>
+    Object.keys(contract.interface.functions).map((fn) =>
+    contract.interface.getSighash(fn)
+  );
+
+  //const functionSelectors = getSelectors(adminFacetContract);
+
+
     // Deploy mock stablecoin
     const MockStablecoin = await ethers.getContractFactory("MockStablecoin");
     stablecoin = await MockStablecoin.deploy();
@@ -23,37 +31,19 @@ describe("AdminFacet", function () {
     const AdminFacet = await ethers.getContractFactory("AdminFacet");
     const adminFacetContract = await AdminFacet.deploy();
 
-    // Get diamond cut interface
     const diamondCut = await ethers.getContractAt("IDiamondCut", await diamond.getAddress());
 
-    // Add AdminFacet to diamond with all its functions
+    console.log(getSelectors(adminFacetContract), "hello world")
     const cut = [
       {
         facetAddress: await adminFacetContract.getAddress(),
         action: 0, // Add
-        functionSelectors: [
-          "0x8da5cb5b", // owner
-          "0x1794bb3c", // initialize
-          "0xcc7ac330", // getGlobalTokenPrice
-          "0xb6f67312", // getStablecoin
-          "0x92b582e0", // getAdminFeePercentage
-          "0xd6c7d918", // getEarlyExitFeePercentage
-          "0x8456cb59", // pause
-          "0x3f4ba83a", // unpause
-          "0xf2fde38b", // transferOwnership
-          "0x5c975abb", // paused
-          "0x842f6221", // setGlobalTokenPrice
-          "0xe088bfc0", // setStablecoin
-          "0xfe9d0872", // setAdminFeePercentage
-          "0x2750b0d2"  // setEarlyExitFeePercentage
-        ]
+        functionSelectors: getSelectors(adminFacetContract)
       }
     ];
 
-    // Perform diamond cut
     await diamondCut.diamondCut(cut, ethers.ZeroAddress, "0x");
 
-    // Get AdminFacet interface
     adminFacet = await ethers.getContractAt("AdminFacet", await diamond.getAddress());
 
     // Initialize the platform
