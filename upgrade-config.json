@@ -1,14 +1,12 @@
 {
-  "upgradeFacets": [
-    "admin",
+  "upgradeFacets": ["admin", "investment"],
+  "addFacets": [],
+  "skipFacets": [
     "property",
     "milestone",
-    "investment",
     "transaction",
     "diamondloupe"
   ],
-  "addFacets": [],
-  "skipFacets": [],
 
   "description": "Configuration for diamond pattern upgrade and feature addition",
   "notes": {

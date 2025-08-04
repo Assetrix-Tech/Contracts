@@ -2,14 +2,14 @@
   "network": "sepolia",
   "diamond": "0x52b67c8D18388b08C3965F772989cCecd90Fe071",
   "facets": {
-    "admin": "0xb864c49212ed46348804C074FdF44aa239a8D362",
+    "admin": "0xaE3193a01810C6e9aAFd579F5Fc429549af2CF6c",
     "property": "0x876753C3bD4401653Fc3e675F27A237E8fc9E687",
-    "investment": "0x16934f2A12d62aCF43FC2c10f7981DD03A48Cd30",
+    "investment": "0x09A6FB5CEf24F288A3BF1B0e7a15E6eb9493dD8c",
     "milestone": "0xC657db369349E1C1D3a99cc2725C1831AE348366",
     "transaction": "0xc49A27FB4DaE420ee80Ece448a90a9ebDc4eF6a0",
     "diamondloupe": "0xbFbB1f3b13555868591bE15873cae31A91F37801"
   },
   "deployer": "0x4f950FAA97B1A7fad9C78cA03B1e99539C8E5cf3",
-  "timestamp": "2025-07-29T19:14:17.562Z",
+  "timestamp": "2025-08-04T16:48:29.256Z",
   "deploymentType": "standard"
 }
