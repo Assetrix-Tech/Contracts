@@ -472,11 +472,6 @@ contract InvestmentFacet {
         return prop.roiPercentage;
     }
 
-    function getGlobalTokenPrice() external view returns (uint256) {
-        AssetrixStorage.Layout storage s = AssetrixStorage.layout();
-        return s.globalTokenPrice;
-    }
-
     // Helper function to check if payout has been processed for a user
     function isPayoutProcessed(
         uint256 _propertyId,

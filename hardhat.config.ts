@@ -21,7 +21,8 @@ module.exports = {
       url: process.env.SEPOLIA_RPC_URL || "",
       accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
       chainId: 11155111,
-    },
+      timeout: 120000, // 2 minutes timeout
+    }
   },
   etherscan: {
     apiKey: {
@@ -35,6 +36,6 @@ module.exports = {
     artifacts: "./artifacts",
   },
   mocha: {
-    timeout: 40000,
+    timeout: 120000, // 2 minutes
   },
 };
