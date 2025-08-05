@@ -198,9 +198,11 @@ library AssetrixStorage {
         uint256 minTokensPerProperty;
         uint256 maxTokensPerProperty;
         uint256 minTokensPerInvestment;
+        // Payout tracking
+        mapping(uint256 => mapping(address => bool)) payoutProcessed; // propertyId => tokenHolder => processed
     }
 
-    bytes32 internal constant STORAGE_SLOT = keccak256("assetrix.storage");
+    bytes32 internal constant STORAGE_SLOT = keccak256("assetrix.storage.v1");
 
     function layout() internal pure returns (Layout storage l) {
         bytes32 slot = STORAGE_SLOT;

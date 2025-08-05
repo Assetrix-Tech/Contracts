@@ -47,7 +47,8 @@ async function performFullDeployment(deployer, networkName, deploymentPath) {
     property: await deployFacet('PropertyFacet'),
     investment: await deployFacet('InvestmentFacet'),
     milestone: await deployFacet('MilestoneFacet'),
-    transaction: await deployFacet('TransactionFacet')
+    transaction: await deployFacet('TransactionFacet'),
+    diamondLoupe: await deployFacet('DiamondLoupeFacet')
   }
 
   // Perform diamond cut for all facets
@@ -89,7 +90,8 @@ async function performStandardDeployment(deployer, networkName, deploymentPath) 
     property: await deployFacet('PropertyFacet'),
     investment: await deployFacet('InvestmentFacet'),
     milestone: await deployFacet('MilestoneFacet'),
-    transaction: await deployFacet('TransactionFacet')
+    transaction: await deployFacet('TransactionFacet'),
+    diamondLoupe: await deployFacet('DiamondLoupeFacet')
   }
 
   // Perform diamond cut for core facets
@@ -140,7 +142,8 @@ async function performDiamondCut(diamondAddress, facets) {
     property: 'PropertyFacet',
     investment: 'InvestmentFacet',
     milestone: 'MilestoneFacet',
-    transaction: 'TransactionFacet'
+    transaction: 'TransactionFacet',
+    diamondLoupe: 'DiamondLoupeFacet'
   }
   
   for (const [facetKey, facetAddress] of Object.entries(facets)) {
@@ -180,9 +183,8 @@ function getSelectors(contractInterface) {
   for (const fragment of contractInterface.fragments) {
     if (fragment.type === 'function') {
       try {
-        // Create function signature and get selector
-        const functionSignature = `${fragment.name}(${fragment.inputs.map(input => input.type).join(',')})`
-        const selector = ethers.keccak256(ethers.toUtf8Bytes(functionSignature)).slice(0, 10)
+        // Use the correct method to get function selector
+        const selector = contractInterface.getFunction(fragment.name).selector
         selectors.push(selector)
       } catch (error) {
         console.log(`⚠️ Could not get selector for function: ${fragment.name} - ${error.message}`)

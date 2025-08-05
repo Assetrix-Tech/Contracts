@@ -46,9 +46,12 @@ contract AdminFacet {
         s.reentrancyStatus = _NOT_ENTERED;
     }
 
+    bool private initialized;
+
     function initializeOwnership(address _owner) external {
         AssetrixStorage.Layout storage s = AssetrixStorage.layout();
         require(s.owner == address(0), "Already initialized");
+        require(_owner != address(0), "Invalid owner address");
         s.owner = _owner;
     }
 
@@ -77,7 +80,7 @@ contract AdminFacet {
         emit Unpaused(msg.sender);
     }
 
-    function setStablecoin(address _newStablecoin) external onlyOwner {
+    function setStablecoin(address _newStablecoin) external onlyOwner whenNotPaused {
         AssetrixStorage.Layout storage s = AssetrixStorage.layout();
         require(_newStablecoin != address(0), "Invalid address");
         require(_newStablecoin.code.length > 0, "Not a contract address");
@@ -85,7 +88,7 @@ contract AdminFacet {
         emit StablecoinUpdated(_newStablecoin);
     }
 
-    function setGlobalTokenPrice(uint256 _newTokenPrice) external onlyOwner {
+    function setGlobalTokenPrice(uint256 _newTokenPrice) external onlyOwner whenNotPaused {
         AssetrixStorage.Layout storage s = AssetrixStorage.layout();
         require(_newTokenPrice > 0, "Token price must be greater than 0");
         s.globalTokenPrice = _newTokenPrice;
@@ -95,9 +98,13 @@ contract AdminFacet {
     //Set admin fee percentage
     function setAdminFeePercentage(
         uint256 _newFeePercentage
-    ) external onlyOwner {
-        require(_newFeePercentage <= 10, "Fee cannot exceed 10%");
+    ) external onlyOwner whenNotPaused {
+        require(_newFeePercentage <= 10, "Fee cannot exceed 10%"); 
+        require(_newFeePercentage > 0, "Fee must be greater than 0");
+        
         AssetrixStorage.Layout storage s = AssetrixStorage.layout();
+        require(_newFeePercentage + s.earlyExitFeePercentage <= 100, "Total fees cannot exceed 100%");
+        
         s.adminFeePercentage = _newFeePercentage;
         emit AdminFeePercentageUpdated(_newFeePercentage);
     }
@@ -105,15 +112,19 @@ contract AdminFacet {
     //Set the early exit fee percentage for users who exit before the investment duration
     function setEarlyExitFeePercentage(
         uint256 _newFeePercentage
-    ) external onlyOwner {
+    ) external onlyOwner whenNotPaused {
         require(_newFeePercentage <= 10, "Fee cannot exceed 10%");
+        require(_newFeePercentage > 0, "Fee must be greater than 0");
+        
         AssetrixStorage.Layout storage s = AssetrixStorage.layout();
+        require(_newFeePercentage + s.adminFeePercentage <= 100, "Total fees cannot exceed 100%");
+        
         s.earlyExitFeePercentage = _newFeePercentage;
         emit EarlyExitFeePercentageUpdated(_newFeePercentage);
     }
 
     // Set the minimum number of tokens required for any property
-    function setMinTokensPerProperty(uint256 value) external onlyOwner {
+    function setMinTokensPerProperty(uint256 value) external onlyOwner whenNotPaused {
         AssetrixStorage.Layout storage s = AssetrixStorage.layout();
         require(value > 0, "Minimum must be greater than 0");
         s.minTokensPerProperty = value;
@@ -121,7 +132,7 @@ contract AdminFacet {
     }
 
     // Set the maximum number of tokens allowed per property
-    function setMaxTokensPerProperty(uint256 value) external onlyOwner {
+    function setMaxTokensPerProperty(uint256 value) external onlyOwner whenNotPaused {
         AssetrixStorage.Layout storage s = AssetrixStorage.layout();
         require(value > 0, "Maximum must be greater than 0");
         s.maxTokensPerProperty = value;
@@ -129,7 +140,7 @@ contract AdminFacet {
     }
 
     // Set the minimum number of tokens an investor can invest per property
-    function setMinTokensPerInvestment(uint256 value) external onlyOwner {
+    function setMinTokensPerInvestment(uint256 value) external onlyOwner whenNotPaused {
         AssetrixStorage.Layout storage s = AssetrixStorage.layout();
         require(value > 0, "Minimum must be greater than 0");
         s.minTokensPerInvestment = value;
@@ -160,15 +171,18 @@ contract AdminFacet {
         uint256 _initialTokenPrice
     ) external {
         AssetrixStorage.Layout storage s = AssetrixStorage.layout();
-        require(s.owner == address(0), "Already initialized");
+        require(!initialized, "Already initialized");
         require(_owner != address(0), "Invalid owner address");
         require(_stablecoin != address(0), "Invalid stablecoin address");
         require(_initialTokenPrice > 0, "Invalid token price");
+
+        initialized = true;
         s.owner = _owner;
         s.stablecoin = _stablecoin;
         s.globalTokenPrice = _initialTokenPrice;
         s.paused = false;
         s.reentrancyStatus = 1;
+
         emit OwnershipTransferred(address(0), _owner);
         emit StablecoinUpdated(_stablecoin);
         emit GlobalTokenPriceUpdated(_initialTokenPrice);
