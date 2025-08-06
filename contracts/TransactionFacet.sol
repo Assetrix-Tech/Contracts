@@ -47,8 +47,7 @@ contract TransactionFacet {
     modifier onlyAuthorized() {
         AssetrixStorage.Layout storage s = AssetrixStorage.layout();
         require(
-            msg.sender == s.owner || 
-            msg.sender == address(this),
+            msg.sender == s.owner || msg.sender == address(this),
             "Only authorized contracts can record transactions"
         );
         _;
@@ -97,7 +96,7 @@ contract TransactionFacet {
         );
     }
 
-    //Get a specific user's transaction history
+    //Get a specific user's transaction history 
     function getUserTransactionHistory(
         address _user
     ) external view returns (AssetrixStorage.Transaction[] memory) {
@@ -127,7 +126,7 @@ contract TransactionFacet {
         return result;
     }
 
-    //Get a specific transaction by ID
+    //Get a specific transaction by ID(Helps in debugging)
     function getTransaction(
         uint256 _transactionId
     ) external view returns (AssetrixStorage.Transaction memory) {

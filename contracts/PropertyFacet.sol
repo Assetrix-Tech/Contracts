@@ -212,7 +212,7 @@ contract PropertyFacet {
         prop.ipfsImagesHash = _data.ipfsImagesHash;
         prop.ipfsMetadataHash = _data.ipfsMetadataHash;
         prop.roiPercentage = _data.roiPercentage;
-        // Clear existing milestones before adding new ones
+        // Clear existing milestones before adding new ones (if any)
         delete prop.milestones;
         // Add new milestones
         uint256 totalPercentage = 0;
@@ -251,7 +251,7 @@ contract PropertyFacet {
         emit PropertyUpdated(_propertyId, _data.ipfsMetadataHash);
     }
 
-    // Deactivate Property by developer or admin
+    // Deactivate Property by developer or admin only if not fully funded
     function deactivateProperty(
         uint256 _propertyId
     ) external onlyDeveloperOrOwner(_propertyId) whenNotPaused nonReentrant {

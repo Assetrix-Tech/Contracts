@@ -198,7 +198,7 @@ async function checkAndInitializeContract(diamondAddress) {
     console.log('🔧 Initializing platform with:');
     console.log(`   Owner: ${deployer.address}`);
     console.log(`   Stablecoin: ${stablecoinAddress}`);
-    console.log(`   Token Price: ${globalTokenPrice} naira (${(globalTokenPrice / 1000000).toFixed(2)}M naira)`);
+    console.log(`   Token Price: ${globalTokenPrice} naira (${(globalTokenPrice)}M naira)`);
 
     // Skip USDT validation for now - proceed with initialization
     console.log('⚠️ Skipping USDT validation - proceeding with initialization...');

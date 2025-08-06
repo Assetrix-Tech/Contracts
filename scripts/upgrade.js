@@ -71,20 +71,18 @@ async function main() {
     
     // Check for mistakes: new facets in upgradeFacets
     const newFacetsInUpgradeList = upgradeConfig.upgradeFacets.filter(facet => 
-      !currentFacets[facet.toLowerCase()]
+      !currentFacets[facet]
     )
 
     if (newFacetsInUpgradeList.length > 0) {
       console.log(`⚠️ Warning: These facets don't exist yet and should be in addFacets instead: ${newFacetsInUpgradeList.join(', ')}`)
       console.log(`💡 Moving them to addFacets automatically...`)
-      
       // Add them to addFacets if not already there
       for (const facet of newFacetsInUpgradeList) {
-        if (!upgradeConfig.addFacets.includes(facet.toLowerCase())) {
-          upgradeConfig.addFacets.push(facet.toLowerCase())
+        if (!upgradeConfig.addFacets.includes(facet)) {
+          upgradeConfig.addFacets.push(facet)
         }
       }
-      
       // Remove them from upgradeFacets
       upgradeConfig.upgradeFacets = upgradeConfig.upgradeFacets.filter(facet => 
         !newFacetsInUpgradeList.includes(facet)
@@ -93,7 +91,7 @@ async function main() {
 
     // Get all facet names that should be upgraded
     const facetsToUpgrade = upgradeConfig.upgradeFacets.filter(facet => 
-      !upgradeConfig.skipFacets.includes(facet) && currentFacets[facet.toLowerCase()]
+      !upgradeConfig.skipFacets.includes(facet) && currentFacets[facet]
     )
 
     console.log(`🔄 Facets to upgrade: ${facetsToUpgrade.length}`)
@@ -144,10 +142,10 @@ async function main() {
         
         // Only add to cut if we have selectors
         if (facetSelectors.length > 0) {
-          // For upgrades, we just ADD the new facet (it will replace the old one)
+          // For upgrades, we use REPLACE to update existing functions
           cut.push({
             facetAddress: facetV2Address,
-            action: 0, // Add (will replace existing functions)
+            action: 1, // Replace (updates existing functions)
             functionSelectors: facetSelectors
           })
         }
@@ -333,3 +331,4 @@ main()
     console.error(error)
     process.exit(1)
   })
+
