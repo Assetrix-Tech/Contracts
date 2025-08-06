@@ -212,7 +212,7 @@ contract PropertyFacet {
         prop.ipfsImagesHash = _data.ipfsImagesHash;
         prop.ipfsMetadataHash = _data.ipfsMetadataHash;
         prop.roiPercentage = _data.roiPercentage;
-        // Clear existing milestones before adding new ones
+        // Clear existing milestones before adding new ones(property update)
         delete prop.milestones;
         // Add new milestones
         uint256 totalPercentage = 0;

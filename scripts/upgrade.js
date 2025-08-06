@@ -69,9 +69,15 @@ async function main() {
     // ===== VALIDATE CONFIGURATION =====
     console.log('\n🔍 Validating upgrade configuration...')
     
+    // Create case-insensitive lookup for current facets
+    const currentFacetsLower = {}
+    Object.keys(currentFacets).forEach(key => {
+      currentFacetsLower[key.toLowerCase()] = currentFacets[key]
+    })
+    
     // Check for mistakes: new facets in upgradeFacets
     const newFacetsInUpgradeList = upgradeConfig.upgradeFacets.filter(facet => 
-      !currentFacets[facet.toLowerCase()]
+      !currentFacetsLower[facet.toLowerCase()]
     )
 
     if (newFacetsInUpgradeList.length > 0) {
@@ -93,7 +99,7 @@ async function main() {
 
     // Get all facet names that should be upgraded
     const facetsToUpgrade = upgradeConfig.upgradeFacets.filter(facet => 
-      !upgradeConfig.skipFacets.includes(facet) && currentFacets[facet.toLowerCase()]
+      !upgradeConfig.skipFacets.includes(facet) && currentFacetsLower[facet.toLowerCase()]
     )
 
     console.log(`🔄 Facets to upgrade: ${facetsToUpgrade.length}`)
@@ -103,9 +109,9 @@ async function main() {
 
     // Get facets that exist but are not in config (auto-skip)
     const existingFacetsNotInConfig = Object.keys(currentFacets).filter(facet => 
-      !upgradeConfig.upgradeFacets.includes(facet) && 
-      !upgradeConfig.addFacets.includes(facet) &&
-      !upgradeConfig.skipFacets.includes(facet)
+      !upgradeConfig.upgradeFacets.some(upgradeFacet => upgradeFacet.toLowerCase() === facet.toLowerCase()) && 
+      !upgradeConfig.addFacets.some(addFacet => addFacet.toLowerCase() === facet.toLowerCase()) &&
+      !upgradeConfig.skipFacets.some(skipFacet => skipFacet.toLowerCase() === facet.toLowerCase())
     )
 
     if (existingFacetsNotInConfig.length > 0) {
@@ -144,12 +150,15 @@ async function main() {
         
         // Only add to cut if we have selectors
         if (facetSelectors.length > 0) {
-          // For upgrades, we just ADD the new facet (it will replace the old one)
+          // For upgrades, we use REPLACE to update existing functions
           cut.push({
             facetAddress: facetV2Address,
-            action: 0, // Add (will replace existing functions)
+            action: 1, // Replace (updates existing functions)
             functionSelectors: facetSelectors
           })
+          
+          // Log the selectors for debugging
+          console.log(`📋 ${contractName} has ${facetSelectors.length} function selectors`)
         }
       } catch (error) {
         console.log(`❌ Failed to upgrade ${facetName}: ${error.message}`)

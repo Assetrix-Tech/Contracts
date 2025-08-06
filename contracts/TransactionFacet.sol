@@ -47,8 +47,7 @@ contract TransactionFacet {
     modifier onlyAuthorized() {
         AssetrixStorage.Layout storage s = AssetrixStorage.layout();
         require(
-            msg.sender == s.owner || 
-            msg.sender == address(this),
+            msg.sender == s.owner || msg.sender == address(this),
             "Only authorized contracts can record transactions"
         );
         _;

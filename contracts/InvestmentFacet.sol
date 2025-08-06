@@ -83,8 +83,14 @@ contract InvestmentFacet {
         AssetrixStorage.Layout storage s = AssetrixStorage.layout();
         AssetrixStorage.Property storage prop = s.properties[_propertyId];
         require(_tokenAmount > 0, "Must purchase at least 1 token");
-        require(s.minTokensPerInvestment > 0, "Minimum tokens per investment not set");
-        require(_tokenAmount >= s.minTokensPerInvestment, "Below minimum tokens per investment");
+        require(
+            s.minTokensPerInvestment > 0,
+            "Minimum tokens per investment not set"
+        );
+        require(
+            _tokenAmount >= s.minTokensPerInvestment,
+            "Below minimum tokens per investment"
+        );
         require(
             _propertyId > 0 && _propertyId <= s.propertyCount,
             "Property does not exist"
@@ -92,10 +98,14 @@ contract InvestmentFacet {
         require(prop.isActive, "Property is not active");
         require(_tokenAmount <= prop.tokensLeft, "Not enough tokens left");
         require(s.stablecoin != address(0), "Stablecoin not set");
-        
+
         uint256 totalCost = _tokenAmount * prop.tokenPrice;
-        require(totalCost >= _tokenAmount && totalCost / prop.tokenPrice == _tokenAmount, "Overflow in totalCost calculation");
-        
+        require(
+            totalCost >= _tokenAmount &&
+                totalCost / prop.tokenPrice == _tokenAmount,
+            "Overflow in totalCost calculation"
+        );
+
         require(
             IERC20(s.stablecoin).transferFrom(
                 msg.sender,
@@ -141,13 +151,20 @@ contract InvestmentFacet {
             "Token holder has no tokens in this property"
         );
         require(_amount > 0, "Payout amount must be greater than 0");
-        
-        uint256 userInvestment = prop.tokenBalance[_tokenHolder] * prop.tokenPrice;
-        require(_amount <= userInvestment, "Payout amount exceeds user investment");
-        
+
+        uint256 userInvestment = prop.tokenBalance[_tokenHolder] *
+            prop.tokenPrice;
+        require(
+            _amount <= userInvestment,
+            "Payout amount exceeds user investment"
+        );
+
         // Check if payout has already been processed
-        require(!s.payoutProcessed[_propertyId][_tokenHolder], "Payout already processed");
-        
+        require(
+            !s.payoutProcessed[_propertyId][_tokenHolder],
+            "Payout already processed"
+        );
+
         require(
             block.timestamp >= getInvestmentEndTime(_propertyId),
             "Investment period has not ended yet"
@@ -203,12 +220,17 @@ contract InvestmentFacet {
         emit Refunded(_propertyId, _tokenHolder, refundAmount);
     }
 
-    function earlyExit(uint256 _propertyId) external whenNotPaused nonReentrant {
+    function earlyExit(
+        uint256 _propertyId
+    ) external whenNotPaused nonReentrant {
         AssetrixStorage.Layout storage s = AssetrixStorage.layout();
         AssetrixStorage.Property storage prop = s.properties[_propertyId];
         require(prop.tokenBalance[msg.sender] > 0, "No tokens to exit");
-        require(s.earlyExitFeePercentage > 0 && s.earlyExitFeePercentage <= 10, "Invalid exit fee percentage");
-        
+        require(
+            s.earlyExitFeePercentage > 0 && s.earlyExitFeePercentage <= 10,
+            "Invalid exit fee percentage"
+        );
+
         if (prop.isFullyFunded) {
             bool hasReleasedFunds = false;
             for (uint256 i = 0; i < prop.milestones.length; i++) {
@@ -312,7 +334,7 @@ contract InvestmentFacet {
         return !hasReleasedFunds && prop.tokensLeft > 0;
     }
 
-    //Get token gap left to raise 
+    //Get token gap left to raise
     function getTokenGap(uint256 _propertyId) external view returns (uint256) {
         AssetrixStorage.Layout storage s = AssetrixStorage.layout();
         AssetrixStorage.Property storage prop = s.properties[_propertyId];
@@ -425,7 +447,10 @@ contract InvestmentFacet {
         uint256 _propertyId
     ) public view returns (uint256) {
         AssetrixStorage.Layout storage s = AssetrixStorage.layout();
-        require(_propertyId > 0 && _propertyId <= s.propertyCount, "Property does not exist");
+        require(
+            _propertyId > 0 && _propertyId <= s.propertyCount,
+            "Property does not exist"
+        );
         AssetrixStorage.Property storage prop = s.properties[_propertyId];
         uint256 durationInSeconds = getDurationInSeconds(
             AssetrixStorage.Duration(uint8(prop.investmentDuration))

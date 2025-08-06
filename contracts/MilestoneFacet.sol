@@ -128,8 +128,14 @@ contract MilestoneFacet {
         AssetrixStorage.Milestone storage milestone = prop.milestones[
             _milestoneId
         ];
-        require(prop.developerAddress != address(0), "Developer address not set");
-        require(msg.sender == prop.developerAddress, "Only developer can mark completed");
+        require(
+            prop.developerAddress != address(0),
+            "Developer address not set"
+        );
+        require(
+            msg.sender == prop.developerAddress,
+            "Only developer can mark completed"
+        );
         require(!milestone.fundsReleased, "Funds already released");
         require(!milestone.isCompleted, "Milestone already completed");
         milestone.isCompleted = true;
