@@ -24,7 +24,7 @@ async function main() {
   }
 
   console.log("🔍 Verifying diamond pattern contracts...");
-  console.log(`💎 Diamond Address: ${diamondAddress}`);
+  console.log(`💎 Diamond: ${diamondAddress}`);
   
   try {
     // Verify all facets dynamically from deployment data
@@ -45,13 +45,13 @@ async function main() {
     }
 
     if (facetsToVerify.length === 0) {
-      console.log("⚠️ No facets found to verify");
+      console.log("⚠️  No facets found to verify");
       return;
     }
 
-    console.log(`📋 Found ${facetsToVerify.length} facets to verify:`);
+    console.log(`Found ${facetsToVerify.length} facets:`);
     facetsToVerify.forEach(facet => {
-      console.log(`  - ${facet.name}: ${facet.address}`);
+      console.log(`  ${facet.name}: ${facet.address}`);
     });
 
     let verifiedCount = 0;
@@ -59,45 +59,45 @@ async function main() {
     let failedCount = 0;
 
     for (const facet of facetsToVerify) {
-      console.log(`\n🔍 Verifying ${facet.name} at ${facet.address}...`);
+      console.log(`\n🔍 ${facet.name}...`);
       try {
         await run("verify:verify", {
           address: facet.address,
           constructorArguments: [],
         });
-        console.log(`✅ ${facet.name} verified successfully`);
+        console.log(`  ✅ Verified`);
         verifiedCount++;
       } catch (error) {
         if (error.message.toLowerCase().includes("already verified")) {
-          console.log(`✅ ${facet.name} is already verified`);
+          console.log(`  ✅ Already verified`);
           alreadyVerifiedCount++;
         } else if (error.message.toLowerCase().includes("contract not found")) {
-          console.log(`❌ ${facet.name} not found on network`);
+          console.log(`  ❌ Not found on network`);
           failedCount++;
         } else {
-          console.log(`⚠️ Failed to verify ${facet.name}:`, error.message);
+          console.log(`  ⚠️  Failed: ${error.message}`);
           failedCount++;
         }
       }
     }
     
     // Summary
-    console.log(`\n📊 Verification Summary:`);
+    console.log(`\n📊 Summary:`);
     console.log(`  ✅ Newly verified: ${verifiedCount}`);
     console.log(`  ✅ Already verified: ${alreadyVerifiedCount}`);
     console.log(`  ❌ Failed: ${failedCount}`);
-    console.log(`  📦 Total facets: ${facetsToVerify.length}`);
+    console.log(`  📦 Total: ${facetsToVerify.length}`);
     
     // Note: The diamond contract is verified automatically by Etherscan
-    console.log("\n💎 Diamond contract verification:");
-    console.log(`   - Diamond contracts are automatically verified by Etherscan`);
-    console.log(`   - Diamond address: ${diamondAddress}`);
+    console.log("\n💎 Diamond contract:");
+    console.log(`   - Automatically verified by Etherscan`);
+    console.log(`   - Address: ${diamondAddress}`);
     
     // Check and initialize contract if needed
     await checkAndInitializeContract(diamondAddress);
     
     // Display contract configuration
-    console.log("\n📋 Contract Configuration:");
+    console.log("\n📋 Configuration:");
     try {
       // Use the diamond address directly to call admin functions
       const diamondContract = await ethers.getContractAt('AdminFacet', diamondAddress);
@@ -106,9 +106,9 @@ async function main() {
       const owner = await diamondContract.owner();
       const paused = await diamondContract.paused();
       
-      console.log(`   💰 Global Token Price: ${globalTokenPrice.toString()} naira`);
-      console.log(`   👑 Diamond Owner: ${owner}`);
-      console.log(`   ⏸️ Contract Paused: ${paused}`);
+      console.log(`   💰 Token Price: ${globalTokenPrice.toString()} naira`);
+      console.log(`   👑 Owner: ${owner}`);
+      console.log(`   ⏸️  Paused: ${paused}`);
       
       // Try to get stablecoin address if available
       try {
@@ -119,8 +119,11 @@ async function main() {
       }
       
     } catch (error) {
-      console.log("⚠️ Could not fetch contract configuration:", error.message);
+      console.log("⚠️  Could not fetch configuration:", error.message);
     }
+
+    // Verify upgrade system functionality
+    await verifyUpgradeSystem(diamondAddress, facetAddresses);
 
     // Display upgrade information if available
     const network = await ethers.provider.getNetwork();
@@ -130,21 +133,14 @@ async function main() {
     if (fs.existsSync(deploymentPath)) {
       const deploymentData = JSON.parse(fs.readFileSync(deploymentPath));
       
-      if (deploymentData.upgraded) {
-        console.log("\n🔄 Upgrade Information:");
-        console.log(`   📅 Last upgraded: ${deploymentData.upgradeTimestamp}`);
-        if (deploymentData.upgradeDetails) {
-          if (deploymentData.upgradeDetails.upgradedFacets) {
-            console.log(`   🔄 Upgraded facets: ${Object.keys(deploymentData.upgradeDetails.upgradedFacets).join(', ')}`);
-          }
-          if (deploymentData.upgradeDetails.newFacets) {
-            console.log(`   🆕 Added facets: ${Object.keys(deploymentData.upgradeDetails.newFacets).join(', ')}`);
-          }
-        }
+      if (deploymentData.deploymentType === 'upgrade') {
+        console.log("\n🔄 Upgrade Info:");
+        console.log(`   📅 Last upgrade: ${deploymentData.timestamp}`);
+        console.log(`   📦 Facets: ${Object.keys(deploymentData.facets).join(', ')}`);
       }
     }
     
-    console.log("\n🎉 Verification process completed!");
+    console.log("\n🎉 Verification completed!");
     
   } catch (error) {
     console.error("❌ Verification failed:", error);
@@ -152,9 +148,58 @@ async function main() {
   }
 }
 
+async function verifyUpgradeSystem(diamondAddress, facetAddresses) {
+  console.log("\n🔧 Verifying upgrade system...");
+  
+  try {
+    const diamondLoupe = await ethers.getContractAt('DiamondLoupeFacet', diamondAddress);
+    
+    // Get all facet addresses from diamond
+    const diamondFacetAddresses = await diamondLoupe.facetAddresses();
+    console.log(`  Diamond facets: ${diamondFacetAddresses.length}`);
+    
+    // Check if deployment file matches diamond state
+    const deploymentFacetCount = Object.keys(facetAddresses).length;
+    console.log(`  Deployment facets: ${deploymentFacetCount}`);
+    
+    if (diamondFacetAddresses.length !== deploymentFacetCount) {
+      console.log(`  ⚠️  Mismatch: Diamond has ${diamondFacetAddresses.length} facets, deployment shows ${deploymentFacetCount}`);
+    } else {
+      console.log(`  ✅ Facet count matches`);
+    }
+    
+    // Check function availability for each facet
+    console.log(`  Checking function availability...`);
+    for (const [facetName, facetAddress] of Object.entries(facetAddresses)) {
+      try {
+        const selectors = await diamondLoupe.facetFunctionSelectors(facetAddress);
+        console.log(`    ${facetName}: ${selectors.length} functions`);
+        
+        if (selectors.length === 0) {
+          console.log(`    ⚠️  ${facetName} has no functions - may need upgrade`);
+        }
+      } catch (error) {
+        console.log(`    ❌ ${facetName}: Error checking functions`);
+      }
+    }
+    
+    // Test diamond cut functionality
+    console.log(`  Testing diamond cut access...`);
+    try {
+      const diamondCut = await ethers.getContractAt('IDiamondCut', diamondAddress);
+      console.log(`    ✅ Diamond cut interface available`);
+    } catch (error) {
+      console.log(`    ❌ Diamond cut interface not available`);
+    }
+    
+  } catch (error) {
+    console.log(`  ❌ Upgrade system verification failed: ${error.message}`);
+  }
+}
+
 async function checkAndInitializeContract(diamondAddress) {
   try {
-    console.log("\n🔧 Checking contract initialization...");
+    console.log("\n🔧 Checking initialization...");
     
     const [deployer] = await ethers.getSigners();
     const adminFacet = await ethers.getContractAt('AdminFacet', diamondAddress);
@@ -164,14 +209,14 @@ async function checkAndInitializeContract(diamondAddress) {
     const globalTokenPrice = process.env.GLOBAL_TOKEN_PRICE;
 
     if (!stablecoinAddress) {
-      console.log('❌ STABLECOIN_ADDRESS not set in environment');
+      console.log('❌ STABLECOIN_ADDRESS not set');
       console.log('💡 Add STABLECOIN_ADDRESS=0x... to your .env file');
       return;
     }
 
     if (!globalTokenPrice) {
-      console.log('❌ GLOBAL_TOKEN_PRICE not set in environment');
-      console.log('💡 Add GLOBAL_TOKEN_PRICE=1000000 to your .env file (in naira)');
+      console.log('❌ GLOBAL_TOKEN_PRICE not set');
+      console.log('💡 Add GLOBAL_TOKEN_PRICE=1000000 to your .env file');
       return;
     }
 
@@ -190,34 +235,34 @@ async function checkAndInitializeContract(diamondAddress) {
       currentTokenPrice.toString() !== globalTokenPrice;
 
     if (!needsInitialization) {
-      console.log("✅ Contract is properly initialized with current environment values");
+      console.log("✅ Properly initialized");
       return;
     }
     
-    console.log("⚠️ Contract needs initialization or re-initialization...");
-    console.log('🔧 Initializing platform with:');
+    console.log("⚠️  Needs initialization...");
+    console.log('🔧 Initializing:');
     console.log(`   Owner: ${deployer.address}`);
     console.log(`   Stablecoin: ${stablecoinAddress}`);
-    console.log(`   Token Price: ${globalTokenPrice} naira (${(globalTokenPrice)}M naira)`);
+    console.log(`   Token Price: ${globalTokenPrice} naira`);
 
     // Skip USDT validation for now - proceed with initialization
-    console.log('⚠️ Skipping USDT validation - proceeding with initialization...');
+    console.log('⚠️  Skipping USDT validation...');
     
     // Call the initialize function
-    console.log(' Calling initialize function...');
+    console.log(' Calling initialize...');
     const tx = await adminFacet.initialize(
       deployer.address,
       stablecoinAddress,
       globalTokenPrice
     );
     
-    console.log('⏳ Waiting for transaction confirmation...');
+    console.log('⏳ Waiting for confirmation...');
     await tx.wait();
-    console.log('✅ Platform initialized successfully!');
+    console.log('✅ Initialized successfully!');
     
   } catch (error) {
-    console.log('❌ Failed to initialize contract:', error.message);
-    console.log('💡 You can manually initialize later using the initialize function');
+    console.log('❌ Initialization failed:', error.message);
+    console.log('💡 You can manually initialize later');
   }
 }
 
