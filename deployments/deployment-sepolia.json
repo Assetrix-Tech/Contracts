@@ -1,15 +1,15 @@
 {
   "network": "sepolia",
-  "diamond": "0xEEd46969193CECA2AD586Cb10B9400a870C72380",
+  "diamond": "0xc70DAAbf0bb23aBc9a95eda0db673cDDF9Fd7676",
   "facets": {
-    "admin": "0x1e40388E9bB70C576050428Ba868cd35C2475D9A",
-    "property": "0xC250e0A716493617344F414AC0b2426Ce79144C8",
-    "investment": "0x5a77D043237891C37D19c945135C196DA80d50B0",
-    "milestone": "0xCe412ECB9E9c8eF79a0e894d3466D4bE6870e382",
-    "transaction": "0x2b039d7E155C4ede529adC54ca841bddd34Bb9bF",
-    "diamondloupe": "0xB7cbfCc07236d18A342edE208eF3628F44Faedd1"
+    "admin": "0x414Bbb8f1d513Dd952de7c44F20427e702aCB2A9",
+    "property": "0xE7d3FC7ee8771405d446ed972A38a0fc97DE1060",
+    "investment": "0xB6F27FC65FBb51Bf6E30B7E6022bc3F6aeC942d8",
+    "milestone": "0x0b83fB29De3c3f059D937281DeFD95289FD28633",
+    "transaction": "0x8745Cc460Bc03091B4E1f6aCA39C38c5EAC96975",
+    "diamondloupe": "0x3b68bBCbd72C3c4b61e0b3b4A4A2FB9C01C5b207"
   },
-  "deployer": "0x4f950FAA97B1A7fad9C78cA03B1e99539C8E5cf3",
-  "timestamp": "2025-08-06T08:27:24.469Z",
-  "deploymentType": "standard"
+  "deployer": "0x7D7584C8Cc9139Dd4eEd3d1b17d86caF977F9789",
+  "timestamp": "2025-08-07T23:04:54.112Z",
+  "deploymentType": "upgrade"
 }

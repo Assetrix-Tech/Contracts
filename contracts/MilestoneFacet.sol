@@ -177,7 +177,7 @@ contract MilestoneFacet {
         );
 
         // Admin fee is deducted from the release amount.
-        require(s.adminFeePercentage <= 100, "Admin fee cannot exceed 100%");
+        require(s.adminFeePercentage <= 10, "Admin fee cannot exceed 10%");
         uint256 adminFee = (releaseAmount * s.adminFeePercentage) / 100;
         uint256 netReleaseAmount = releaseAmount - adminFee;
 
@@ -297,7 +297,7 @@ contract MilestoneFacet {
                 continue;
             }
 
-            // If this milestone already has funds requested or released, check the next one
+            // If this milestone already has funds requested or released, check the next one for requestability
             if (milestone.fundsRequested || milestone.fundsReleased) {
                 continue;
             }

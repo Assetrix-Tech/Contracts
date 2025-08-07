@@ -226,10 +226,7 @@ contract InvestmentFacet {
         AssetrixStorage.Layout storage s = AssetrixStorage.layout();
         AssetrixStorage.Property storage prop = s.properties[_propertyId];
         require(prop.tokenBalance[msg.sender] > 0, "No tokens to exit");
-        require(
-            s.earlyExitFeePercentage > 0 && s.earlyExitFeePercentage <= 10,
-            "Invalid exit fee percentage"
-        );
+        require(s.earlyExitFeePercentage <= 10, "Exit fee cannot exceed 10%");
 
         if (prop.isFullyFunded) {
             bool hasReleasedFunds = false;
@@ -417,29 +414,33 @@ contract InvestmentFacet {
     ) internal {
         AssetrixStorage.Layout storage s = AssetrixStorage.layout();
         AssetrixStorage.Property storage prop = s.properties[_propertyId];
-        for (uint256 i = 0; i < prop.tokenHolders.length; i++) {
-            if (prop.tokenHolders[i] == _tokenHolder) {
-                prop.tokenHolders[i] = prop.tokenHolders[
-                    prop.tokenHolders.length - 1
-                ];
-                prop.tokenHolders.pop();
-                break;
+
+        // FIXED: Only remove if they have tokens
+        if (prop.tokenBalance[_tokenHolder] > 0) {
+            for (uint256 i = 0; i < prop.tokenHolders.length; i++) {
+                if (prop.tokenHolders[i] == _tokenHolder) {
+                    prop.tokenHolders[i] = prop.tokenHolders[
+                        prop.tokenHolders.length - 1
+                    ];
+                    prop.tokenHolders.pop();
+                    break;
+                }
             }
-        }
-        uint256[] storage tokenHolderProps = s.tokenHolderProperties[
-            _tokenHolder
-        ];
-        for (uint256 i = 0; i < tokenHolderProps.length; i++) {
-            if (tokenHolderProps[i] == _propertyId) {
-                tokenHolderProps[i] = tokenHolderProps[
-                    tokenHolderProps.length - 1
-                ];
-                tokenHolderProps.pop();
-                break;
+            uint256[] storage tokenHolderProps = s.tokenHolderProperties[
+                _tokenHolder
+            ];
+            for (uint256 i = 0; i < tokenHolderProps.length; i++) {
+                if (tokenHolderProps[i] == _propertyId) {
+                    tokenHolderProps[i] = tokenHolderProps[
+                        tokenHolderProps.length - 1
+                    ];
+                    tokenHolderProps.pop();
+                    break;
+                }
             }
+            prop.tokenBalance[_tokenHolder] = 0;
+            prop.holderCount--;
         }
-        prop.tokenBalance[_tokenHolder] = 0;
-        prop.holderCount--;
     }
 
     //Get investment end time
@@ -497,7 +498,7 @@ contract InvestmentFacet {
         return prop.roiPercentage;
     }
 
-    // Helper function to check if payout has been processed for a user
+    // Helper function to check if payout has been processed for a user's investment
     function isPayoutProcessed(
         uint256 _propertyId,
         address _tokenHolder

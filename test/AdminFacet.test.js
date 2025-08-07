@@ -52,7 +52,8 @@ describe("AdminFacet", function () {
           "0xe109516b", // setMinTokensPerInvestment
           "0xeec723bc", // getMinTokensPerProperty
           "0xdeba19e2", // getMaxTokensPerProperty
-          "0x80521c91"  // getMinTokensPerInvestment
+          "0x80521c91", // getMinTokensPerInvestment
+          "0xc4c5f624"  // withdrawStablecoin
         ]
       }
     ];
@@ -201,6 +202,37 @@ describe("AdminFacet", function () {
         adminFacet.connect(nonOwner).setMinTokensPerInvestment(100)
       ).to.be.revertedWith("Ownable: caller is not the owner");
     });
+
+    it("Should allow owner to withdraw stablecoin funds", async function () {
+      // Transfer some tokens to the diamond contract
+      await stablecoin.transfer(await diamond.getAddress(), ethers.parseEther("1000"));
+      
+      const recipient = nonOwner.address;
+      const amount = ethers.parseEther("100");
+      
+      await expect(
+        adminFacet.withdrawStablecoin(recipient, amount)
+      ).to.emit(adminFacet, "StablecoinWithdrawn")
+        .withArgs(recipient, amount);
+    });
+
+    it("Should prevent non-owner from withdrawing stablecoin funds", async function () {
+      await expect(
+        adminFacet.connect(nonOwner).withdrawStablecoin(nonOwner.address, 100)
+      ).to.be.revertedWith("Ownable: caller is not the owner");
+    });
+
+    it("Should prevent withdrawal to zero address", async function () {
+      await expect(
+        adminFacet.withdrawStablecoin(ethers.ZeroAddress, 100)
+      ).to.be.revertedWith("Invalid recipient address");
+    });
+
+    it("Should prevent withdrawal of zero amount", async function () {
+      await expect(
+        adminFacet.withdrawStablecoin(nonOwner.address, 0)
+      ).to.be.revertedWith("Amount must be greater than 0");
+    });
   });
 
   describe("View Functions", function () {
@@ -213,11 +245,11 @@ describe("AdminFacet", function () {
     });
 
     it("Should return correct admin fee percentage", async function () {
-      expect(await adminFacet.getAdminFeePercentage()).to.equal(0); // Default value
+      expect(await adminFacet.getAdminFeePercentage()).to.equal(3); // Updated default value
     });
 
     it("Should return correct early exit fee percentage", async function () {
-      expect(await adminFacet.getEarlyExitFeePercentage()).to.equal(0); // Default value
+      expect(await adminFacet.getEarlyExitFeePercentage()).to.equal(5); // Updated default value
     });
   });
 }); 
