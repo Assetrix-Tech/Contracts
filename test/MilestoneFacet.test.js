@@ -73,14 +73,11 @@ describe("MilestoneFacet", function () {
         action: 0, // Add
         functionSelectors: [
           "0x54d49e46", // requestMilestoneFunds
-          "0x3de1bb15", // releaseMilestoneFunds
+          "0xeb9d9a5d", // verifyAndMarkMilestoneCompleted
           "0x359b3123", // getMilestoneDashboard
           "0xe8049da1", // getMilestoneStatus
           "0x5cae48f5", // markMilestoneCompleted
-          "0xbc643619", // getPropertyMilestones
-          "0x3d71a791", // getNextRequestableMilestone
-          "0xd019372a", // getMilestonesReadyForRelease
-          "0x87ecca3f"  // getMilestonesReadyForCompletion
+          "0xbc643619"  // getPropertyMilestones
         ]
       }
     ];
@@ -144,10 +141,10 @@ describe("MilestoneFacet", function () {
       ).to.be.revertedWith("Property must be fully funded");
     });
 
-    it("Should allow admin to release milestone funds", async function () {
+    it("Should allow admin to verify and release milestone funds", async function () {
       // This should be callable by admin but requires property to be fully funded
       await expect(
-        milestoneFacet.connect(owner).releaseMilestoneFunds(propertyId, 0)
+        milestoneFacet.connect(owner).verifyAndMarkMilestoneCompleted(propertyId, 0)
       ).to.be.revertedWith("Property must be fully funded");
     });
 
@@ -175,19 +172,13 @@ describe("MilestoneFacet", function () {
       expect(milestones).to.be.an('array');
     });
 
-    it("Should return next requestable milestone", async function () {
-      const nextMilestone = await milestoneFacet.getNextRequestableMilestone(propertyId);
-      expect(nextMilestone).to.be.a('bigint');
-    });
-
-    it("Should return milestones ready for release", async function () {
-      const readyMilestones = await milestoneFacet.getMilestonesReadyForRelease(propertyId);
-      expect(readyMilestones).to.be.an('array');
-    });
-
-    it("Should return milestones ready for completion", async function () {
-      const readyMilestones = await milestoneFacet.getMilestonesReadyForCompletion(propertyId);
-      expect(readyMilestones).to.be.an('array');
+    it("Should return milestone dashboard with all milestone data", async function () {
+      const dashboard = await milestoneFacet.getMilestoneDashboard(propertyId);
+      expect(dashboard).to.be.an('array');
+      expect(dashboard).to.have.length(3);
+      expect(dashboard[0]).to.be.a('bigint'); // nextRequestable
+      expect(dashboard[1]).to.be.an('array'); // readyForVerification
+      expect(dashboard[2]).to.be.an('array'); // readyForCompletion
     });
   });
 }); 

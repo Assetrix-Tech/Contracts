@@ -96,7 +96,7 @@ contract TransactionFacet {
         );
     }
 
-    //Get a specific user's transaction history 
+    //Get a specific user's transaction history
     function getUserTransactionHistory(
         address _user
     ) external view returns (AssetrixStorage.Transaction[] memory) {
@@ -126,7 +126,7 @@ contract TransactionFacet {
         return result;
     }
 
-    //Get a specific transaction by ID(Helps in debugging)
+    //Get a specific transaction by ID
     function getTransaction(
         uint256 _transactionId
     ) external view returns (AssetrixStorage.Transaction memory) {
