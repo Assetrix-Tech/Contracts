@@ -195,7 +195,7 @@ async function main() {
     size: 5000,
     bedrooms: 10,
     bathrooms: 8,
-    amountToRaise: ethers.parseEther("500000"), // 500,000 USDT
+    amountToRaise: ethers.parseEther("500000"), // 500,000 USDT (equivalent to ₦50,000,000)
     investmentDuration: 0, // OneMonth
     milestoneTitles: ["Foundation", "Structure", "Finishing"],
     milestoneDescriptions: ["Complete foundation", "Complete structure", "Complete finishing"],
@@ -276,6 +276,7 @@ async function main() {
   console.log("   3. Smart contract verified signature and distributed 50 tokens");
   console.log("   4. User now owns 50 tokens in the property");
   console.log("   5. Payment reference prevents double-spending");
+  console.log("   6. amountToRaise: 500,000 USDT (₦50,000,000 equivalent)");
 
   // Save results to JSON file
   const fs = require('fs');
@@ -311,7 +312,7 @@ async function main() {
     "property": {
       "tokensSold": property.tokensSold.toString(),
       "tokensLeft": property.tokensLeft.toString(),
-      "amountToRaise": "500000000000000000000000" // 500,000 USDT in wei
+      "amountToRaise": "500000000000000000000000" // 500,000 USDT (equivalent to ₦50,000,000)
     },
     "deployer": owner.address,
     "timestamp": new Date().toISOString(),
