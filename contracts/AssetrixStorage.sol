@@ -200,6 +200,10 @@ library AssetrixStorage {
         uint256 minTokensPerInvestment;
         // Payout tracking
         mapping(uint256 => mapping(address => bool)) payoutProcessed; // propertyId => tokenHolder => processed
+        // Fiat payment variables
+        address backendSigner; // Backend wallet that can distribute tokens from fiat payments
+        mapping(string => bool) processedFiatPayments; // paymentReference => processed
+        mapping(address => uint256) userNonces; // user => nonce for signature verification
     }
 
     bytes32 internal constant STORAGE_SLOT = keccak256("assetrix.storage.v1");
