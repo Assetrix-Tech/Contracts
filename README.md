@@ -24,12 +24,14 @@ The platform uses a **modular diamond pattern** architecture for scalability and
 ## 🚀 Features
 
 ### For Property Developers
+
 - **Property Management**: Create and list property investment opportunities
 - **Funding Configuration**: Set funding goals, ROI percentages, and investment terms
 - **Milestone Planning**: Define project milestones with automated fund releases
 - **Fund Receipt**: Receive funds upon milestone completion with transparent tracking
 
 ### For Investors
+
 - **Investment Opportunities**: Browse active property investment opportunities
 - **Flexible Investment**: Invest with minimal amounts and fractional ownership
 - **Performance Tracking**: Track investment performance and expected ROI
@@ -37,6 +39,7 @@ The platform uses a **modular diamond pattern** architecture for scalability and
 - **Early Exit**: Early exit with structured fee system for liquidity
 
 ### Platform Features
+
 - **Diamond Pattern Architecture**: Modular, upgradeable smart contract system
 - **Milestone-Based Funding**: Automated fund releases based on project milestones
 - **Tokenized Real Estate**: Fractional ownership of real estate properties
@@ -46,11 +49,13 @@ The platform uses a **modular diamond pattern** architecture for scalability and
 ## 📦 Installation
 
 ### Prerequisites
+
 - Node.js (v16+)
 - npm or yarn
 - Hardhat
 
 ### Quick Start
+
 ```bash
 # Clone the repository
 git clone [repository-url]
@@ -73,17 +78,20 @@ npx hardhat test
 ## 🚀 Deployment
 
 ### Environment Setup
+
 ```bash
 cp .env.example .env
 ```
 
 **Required Environment Variables:**
+
 - `PRIVATE_KEY` - Your deployment wallet private key
 - `ETHERSCAN_API_KEY` - For contract verification
 - `STABLECOIN_ADDRESS` - USDC/USDT contract address
 - `RPC_URL` - Network RPC endpoint
 
 ### Deployment Commands
+
 ```bash
 # Deploy to network
 npx hardhat run scripts/deploy.js --network [network-name]
@@ -116,11 +124,13 @@ REPORT_GAS=true npx hardhat test
 ## 🔒 Security
 
 ### Access Control
+
 - **Owner**: Can pause/unpause, emergency operations, admin functions
 - **Developer**: Can manage their own properties, request milestone funds
 - **Investors**: Can invest, request refunds, early exit, view properties
 
 ### Security Features
+
 - **ReentrancyGuard**: Prevents reentrancy attacks on all critical functions
 - **Pausable**: Emergency stop functionality for crisis management
 - **Access Control**: Role-based permissions for sensitive operations
