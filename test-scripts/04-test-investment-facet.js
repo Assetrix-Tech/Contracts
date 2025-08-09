@@ -34,111 +34,125 @@ async function main() {
         // Test 2: Setup Test Environment
         console.log("\n🔍 Test 2: Setup Test Environment");
         
-        // Mint USDT to users for testing
-        const mintAmount = ethers.parseUnits("10000", 6); // 10,000 USDT
+        // Mint Naira to users for testing
+        const mintAmount = ethers.parseUnits("100000", 2); // 1,000,000 Naira
         await mockStablecoin.mint(user1.address, mintAmount);
         await mockStablecoin.mint(user2.address, mintAmount);
-        console.log("✅ Minted USDT to test users");
+        console.log("✅ Minted Naira to test users");
 
         // Create a test property
         const propertyData = {
             title: "Test Investment Property",
             description: "Property for investment testing",
+            propertyType: 1, // LuxuryResidentialTowers
+            propertyUse: 0, // Commercial
+            developerName: "Test Developer",
+            developerAddress: deployer.address,
             city: "Test City",
             state: "TS",
             country: "Test",
-            tokenPrice: ethers.parseUnits("50", 6), // 50 USDT per token
-            developer: "Test Developer",
-            roiPercentage: 1200, // 12.00%
-            maxTokens: 1000,
-            minInvestment: ethers.parseUnits("100", 6), // 100 USDT minimum
-            maxInvestment: ethers.parseUnits("10000", 6), // 10,000 USDT maximum
-            propertyType: 1, // Residential
-            status: 1 // Active
+            ipfsImagesHash: "QmTestImages123",
+            ipfsMetadataHash: "QmTestMetadata123",
+            size: 2000,
+            bedrooms: 3,
+            bathrooms: 2,
+            amountToRaise: ethers.parseUnits("250000", 2), // 250,000 Naira (100 tokens at 2,500 Naira each)
+            investmentDuration: 0, // OneMonth
+            milestoneTitles: ["Foundation", "Structure", "Finishing"],
+            milestoneDescriptions: [
+                "Foundation and groundwork",
+                "Structural framework and walls",
+                "Interior finishing and amenities"
+            ],
+            milestonePercentages: [30, 40, 30],
+            roiPercentage: 12 // 12%
         };
 
         await propertyFacet.createProperty(propertyData);
-        const propertyId = 0;
-        console.log("✅ Test property created");
+        const propertyId = 1; // Property IDs start from 1
+        console.log("✅ Test property created with ID:", propertyId);
 
         // Test 3: Investment Process
         console.log("\n🔍 Test 3: Investment Process");
         
         // Check user balances
         const user1BalanceBefore = await mockStablecoin.balanceOf(user1.address);
-        console.log(`✅ User1 balance before: ${ethers.formatUnits(user1BalanceBefore, 6)} USDT`);
+        console.log(`✅ User1 balance before: ${ethers.formatUnits(user1BalanceBefore, 2)} Naira`);
 
-        // Approve USDT spending
-        const investmentAmount = ethers.parseUnits("500", 6); // 500 USDT
+        // Get property details
+        const property = await propertyFacet.getProperty(propertyId);
+        console.log(`✅ Property token price: ${ethers.formatUnits(property.tokenPrice, 2)} Naira`);
+        console.log(`✅ Property tokens left: ${property.tokensLeft}`);
+
+        // Calculate token amount to purchase
+        const investmentAmount = ethers.parseUnits("50000", 2); // 5,000 Naira (2 tokens at 2,500 Naira each)
+        const tokensToPurchase = investmentAmount / property.tokenPrice;
+        console.log(`✅ Investment amount: ${ethers.formatUnits(investmentAmount, 2)} Naira`);
+        console.log(`✅ Tokens to purchase: ${tokensToPurchase}`);
+
+        // Approve Naira spending
         await mockStablecoin.connect(user1).approve(deploymentData.diamond, investmentAmount);
-        console.log("✅ User1 approved USDT spending");
+        console.log("✅ User1 approved Naira spending");
 
-        // Create investment
-        const investmentData = {
-            propertyId: propertyId,
-            amount: investmentAmount,
-            investor: user1.address,
-            deadline: Math.floor(Date.now() / 1000) + 3600, // 1 hour from now
-            nonce: 1
-        };
-
-        // For testing, we'll skip signature verification and call directly
-        // In production, this would require a valid signature from the backend
+        // Purchase tokens
         try {
-            await investmentFacet.connect(user1).invest(investmentData);
-            console.log("✅ Investment created successfully");
+            await investmentFacet.connect(user1).purchaseTokens(propertyId, tokensToPurchase);
+            console.log("✅ User1 purchased tokens successfully");
         } catch (error) {
-            console.log("ℹ️ Investment requires signature (expected in production)");
+            console.log(`❌ Token purchase failed: ${error.message}`);
         }
 
         // Test 4: Investment Queries
         console.log("\n🔍 Test 4: Investment Queries");
         
-        const userInvestments = await investmentFacet.getUserInvestments(user1.address);
-        console.log(`✅ User1 investments count: ${userInvestments.length}`);
+        // Get user's token balance
+        const user1TokenBalance = await investmentFacet.getTokenBalance(propertyId, user1.address);
+        console.log(`✅ User1 token balance: ${user1TokenBalance} tokens`);
 
-        const propertyInvestments = await investmentFacet.getPropertyInvestments(propertyId);
-        console.log(`✅ Property ${propertyId} investments count: ${propertyInvestments.length}`);
+        // Get property token holders
+        const propertyTokenHolders = await propertyFacet.getPropertyTokenHolders(propertyId);
+        console.log(`✅ Property ${propertyId} token holders count: ${propertyTokenHolders.length}`);
 
         // Test 5: Investment Limits and Validation
         console.log("\n🔍 Test 5: Investment Limits and Validation");
         
-        const property = await propertyFacet.getProperty(propertyId);
-        console.log(`✅ Property min investment: ${ethers.formatUnits(property.minInvestment, 6)} USDT`);
-        console.log(`✅ Property max investment: ${ethers.formatUnits(property.maxInvestment, 6)} USDT`);
-        console.log(`✅ Property token price: ${ethers.formatUnits(property.tokenPrice, 6)} USDT`);
+        const updatedProperty = await propertyFacet.getProperty(propertyId);
+        console.log(`✅ Property tokens sold: ${updatedProperty.tokensSold}`);
+        console.log(`✅ Property tokens left: ${updatedProperty.tokensLeft}`);
+        console.log(`✅ Property is fully funded: ${updatedProperty.isFullyFunded}`);
 
         // Test 6: Token Calculation
         console.log("\n🔍 Test 6: Token Calculation");
         
-        const tokensToReceive = investmentAmount / property.tokenPrice;
-        console.log(`✅ Investment amount: ${ethers.formatUnits(investmentAmount, 6)} USDT`);
-        console.log(`✅ Tokens to receive: ${tokensToReceive} tokens`);
+        if (user1TokenBalance > 0) {
+            const tokenValue = await investmentFacet.getTokenValue(propertyId, user1.address);
+            console.log(`✅ User1 token value: ${ethers.formatUnits(tokenValue, 2)} Naira`);
+        } else {
+            console.log("ℹ️ User1 has no tokens to calculate value for");
+        }
 
         // Test 7: Multiple Investors
         console.log("\n🔍 Test 7: Multiple Investors");
         
         // User2 invests
-        await mockStablecoin.connect(user2).approve(deploymentData.diamond, investmentAmount);
-        console.log("✅ User2 approved USDT spending");
+        const user2InvestmentAmount = ethers.parseUnits("30000", 2); // 3,000 Naira (1.2 tokens at 2,500 Naira each)
+        const user2TokensToPurchase = user2InvestmentAmount / property.tokenPrice;
+        
+        await mockStablecoin.connect(user2).approve(deploymentData.diamond, user2InvestmentAmount);
+        console.log("✅ User2 approved Naira spending");
 
         try {
-            const investmentData2 = {
-                propertyId: propertyId,
-                amount: investmentAmount,
-                investor: user2.address,
-                deadline: Math.floor(Date.now() / 1000) + 3600,
-                nonce: 2
-            };
-            
-            await investmentFacet.connect(user2).invest(investmentData2);
-            console.log("✅ User2 investment created successfully");
+            await investmentFacet.connect(user2).purchaseTokens(propertyId, user2TokensToPurchase);
+            console.log("✅ User2 purchased tokens successfully");
         } catch (error) {
-            console.log("ℹ️ User2 investment requires signature (expected in production)");
+            console.log(`❌ User2 token purchase failed: ${error.message}`);
         }
 
-        const totalPropertyInvestments = await investmentFacet.getPropertyInvestments(propertyId);
-        console.log(`✅ Total property investments: ${totalPropertyInvestments.length}`);
+        const finalProperty = await propertyFacet.getProperty(propertyId);
+        const finalTokenHolders = await propertyFacet.getPropertyTokenHolders(propertyId);
+        console.log(`✅ Final property tokens sold: ${finalProperty.tokensSold}`);
+        console.log(`✅ Final property tokens left: ${finalProperty.tokensLeft}`);
+        console.log(`✅ Total token holders: ${finalTokenHolders.length}`);
 
         console.log("\n✅ InvestmentFacet Tests Passed!");
 

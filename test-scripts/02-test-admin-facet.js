@@ -29,7 +29,7 @@ async function main() {
         console.log("\n🔍 Test 2: Global Token Price");
         
         const globalTokenPrice = await adminFacet.getGlobalTokenPrice();
-        console.log(`✅ Global token price: ${ethers.formatUnits(globalTokenPrice, 6)} USDT`);
+        console.log(`✅ Global token price: ${ethers.formatUnits(globalTokenPrice, 2)} Naira`);
 
         // Test 3: Stablecoin Configuration
         console.log("\n🔍 Test 3: Stablecoin Configuration");
@@ -43,7 +43,7 @@ async function main() {
         
         // Test that non-owner cannot call admin functions
         try {
-            await adminFacet.connect(user1).setGlobalTokenPrice(ethers.parseUnits("2.0", 6));
+            await adminFacet.connect(user1).setGlobalTokenPrice(ethers.parseUnits("2000", 2));
             console.log("❌ Non-owner was able to set global token price (should fail)");
         } catch (error) {
             console.log("✅ Non-owner cannot set global token price (expected)");
@@ -52,13 +52,14 @@ async function main() {
         // Test 5: Admin Functions (Owner Only)
         console.log("\n🔍 Test 5: Admin Functions (Owner Only)");
         
-        const newTokenPrice = ethers.parseUnits("1.5", 6);
+        const newTokenPrice = ethers.parseUnits("1500", 2);
         await adminFacet.setGlobalTokenPrice(newTokenPrice);
         console.log("✅ Owner set new global token price");
         
         const updatedPrice = await adminFacet.getGlobalTokenPrice();
-        console.log(`✅ Updated token price: ${ethers.formatUnits(updatedPrice, 6)} USDT`);
+        console.log(`✅ Updated token price: ${ethers.formatUnits(updatedPrice, 2)} Naira`);
         console.log(`✅ Price updated correctly: ${updatedPrice === newTokenPrice}`);
+
 
         // Test 6: Transfer Ownership
         console.log("\n🔍 Test 6: Transfer Ownership");
@@ -73,12 +74,12 @@ async function main() {
         // Test 7: New Owner Can Call Admin Functions
         console.log("\n🔍 Test 7: New Owner Can Call Admin Functions");
         
-        const newPrice = ethers.parseUnits("2.5", 6);
+        const newPrice = ethers.parseUnits("2500", 2);
         await adminFacet.connect(user1).setGlobalTokenPrice(newPrice);
         console.log("✅ New owner set global token price");
         
         const finalPrice = await adminFacet.getGlobalTokenPrice();
-        console.log(`✅ Final token price: ${ethers.formatUnits(finalPrice, 6)} USDT`);
+        console.log(`✅ Final token price: ${ethers.formatUnits(finalPrice, 2)} Naira`);
 
         console.log("\n✅ AdminFacet Tests Passed!");
 

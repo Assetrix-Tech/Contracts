@@ -49,7 +49,7 @@ async function main() {
             size: 1000,
             bedrooms: 0,
             bathrooms: 0,
-            amountToRaise: ethers.parseUnits("1000000", 6), // 1M USDT
+            amountToRaise: ethers.parseUnits("250000", 2), // 250,000 Naira (100 tokens at 2,500 Naira each)
             investmentDuration: 0, // OneMonth
             milestoneTitles: ["Test Milestone"],
             milestoneDescriptions: ["Test milestone description"],

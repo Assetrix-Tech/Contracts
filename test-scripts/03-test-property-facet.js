@@ -31,37 +31,44 @@ async function main() {
     console.log("\n🔍 Test 2: Create Property");
 
     const propertyData = {
-      title: "Luxury Apartment Complex",
-      description: "Modern luxury apartments in prime location",
-      propertyType: 1, // LuxuryResidentialTowers
-      propertyUse: 1, // Hospitality
-      developerName: "Premium Developers Inc",
-      developerAddress: user1.address,
-      city: "New York",
-      state: "NY",
-      country: "USA",
-      ipfsImagesHash: "QmHash123456789",
-      ipfsMetadataHash: "QmMetadata123456789",
-      size: 50000, // 50,000 sq ft
-      bedrooms: 0, // Commercial property
-      bathrooms: 0, // Commercial property
-      amountToRaise: ethers.parseUnits("1000000", 6), // 1M USDT (10 tokens at 100,000 USDT per token)
-      investmentDuration: 5, // FiveMonths
-      milestoneTitles: ["Foundation", "Structure", "Interior", "Finishing"],
+      title: "Test Property",
+      description: "A test property for testing purposes",
+      city: "Test City",
+      state: "TS",
+      country: "Test",
+      amountToRaise: ethers.parseUnits("250000", 2), // 250,000 Naira (should create 100 tokens at 2,500 Naira each)
+      developerName: "Test Developer",
+      developerAddress: deployer.address, // Use deployer since they are the owner
+      propertyType: 1, // Residential
+      propertyUse: 1, // Residential
+      ipfsImagesHash: "QmTestImages123",
+      ipfsMetadataHash: "QmTestMetadata123",
+      size: 1500, // 1500 sq ft
+      bedrooms: 3,
+      bathrooms: 2,
+      investmentDuration: 7, // 7 = TwelveMonths (enum value), not 12
+      milestoneTitles: ["Foundation", "Framing", "Finishing"],
       milestoneDescriptions: [
-        "Foundation work",
-        "Structural work",
-        "Interior work",
-        "Final finishing",
+        "Foundation complete",
+        "Framing complete",
+        "Interior finishing",
       ],
-      milestonePercentages: [25, 25, 25, 25], // 25% each
+      milestonePercentages: [30, 30, 35], // Changed from [30, 30, 40] to [30, 30, 35] = 95%
       roiPercentage: 15, // 15%
     };
 
-    const createPropertyTx = await propertyFacet.createProperty(propertyData);
-    const receipt = await createPropertyTx.wait();
-    console.log("✅ Property creation transaction successful");
-    console.log(`✅ Gas used: ${receipt.gasUsed.toString()}`);
+    // Create property
+    await propertyFacet.createProperty(propertyData);
+
+    // Get the property ID (it should be the next available ID)
+    const newPropertyId = await propertyFacet.getTotalProperties();
+    console.log(`✅ Property created with ID: ${newPropertyId}`);
+
+    // Get the created property
+    const createdProperty = await propertyFacet.getProperty(newPropertyId);
+    console.log(`✅ Property title: ${createdProperty.title}`);
+    console.log(`✅ Property developer: ${createdProperty.developer}`);
+    console.log(`✅ Property ROI: ${createdProperty.roiPercentage}%`);
 
     // Test 3: Verify Property Creation
     console.log("\n🔍 Test 3: Verify Property Creation");
@@ -73,15 +80,15 @@ async function main() {
     );
 
     // Get the newly created property ID
-    const newPropertyId = newTotalProperties;
-    const property = await propertyFacet.getProperty(newPropertyId);
-    console.log(`✅ Property ${newPropertyId} retrieved successfully`);
-    console.log(`✅ Property title: ${property.title}`);
-    console.log(`✅ Property city: ${property.city}`);
-    console.log(
-      `✅ Property token price: ${ethers.formatUnits(property.tokenPrice, 6)} USDT`
-    );
-    console.log(`✅ Property ROI: ${property.roiPercentage}%`);
+    // const newPropertyId = newTotalProperties; // This line is now redundant
+    // const property = await propertyFacet.getProperty(newPropertyId); // This line is now redundant
+    // console.log(`✅ Property ${newPropertyId} retrieved successfully`); // This line is now redundant
+    // console.log(`✅ Property title: ${property.title}`); // This line is now redundant
+    // console.log(`✅ Property city: ${property.city}`); // This line is now redundant
+    // console.log(
+    //   `✅ Property token price: ${ethers.formatUnits(property.tokenPrice, 6)} USDT`
+    // ); // This line is now redundant
+    // console.log(`✅ Property ROI: ${property.roiPercentage}%`); // This line is now redundant
 
     // Test 4: Property Status Check
     console.log("\n🔍 Test 4: Property Status Check");
@@ -112,55 +119,54 @@ async function main() {
 
     console.log(`✅ Property details match input:`);
     console.log(
-      `   Title: ${property.title === propertyData.title ? "✅" : "❌"}`
+      `   Title: ${createdProperty.title === propertyData.title ? "✅" : "❌"}`
     );
     console.log(
-      `   City: ${property.city === propertyData.city ? "✅" : "❌"}`
+      `   City: ${createdProperty.city === propertyData.city ? "✅" : "❌"}`
     );
     console.log(
-      `   Developer: ${property.developer === propertyData.developerName ? "✅" : "❌"}`
+      `   Developer: ${createdProperty.developer === propertyData.developerName ? "✅" : "❌"}`
     );
     console.log(
-      `   Property Type: ${Number(property.propertyType) === propertyData.propertyType ? "✅" : "❌"} (stored: ${property.propertyType}, input: ${propertyData.propertyType})`
+      `   Property Type: ${Number(createdProperty.propertyType) === propertyData.propertyType ? "✅" : "❌"} (stored: ${createdProperty.propertyType}, input: ${propertyData.propertyType})`
     );
     console.log(
-      `   Property Use: ${Number(property.propertyUse) === propertyData.propertyUse ? "✅" : "❌"} (stored: ${property.propertyUse}, input: ${propertyData.propertyUse})`
+      `   Property Use: ${Number(createdProperty.propertyUse) === propertyData.propertyUse ? "✅" : "❌"} (stored: ${createdProperty.propertyUse}, input: ${propertyData.propertyUse})`
     );
     console.log(
-      `   ROI: ${Number(property.roiPercentage) === propertyData.roiPercentage ? "✅" : "❌"} (stored: ${property.roiPercentage}, input: ${propertyData.roiPercentage})`
+      `   ROI: ${Number(createdProperty.roiPercentage) === propertyData.roiPercentage ? "✅" : "❌"} (stored: ${createdProperty.roiPercentage}, input: ${propertyData.roiPercentage})`
     );
 
     // Test 7: Create Multiple Properties
     console.log("\n🔍 Test 7: Create Multiple Properties");
-
+    
     const propertyData2 = {
-      title: "Commercial Office Building",
-      description: "Class A office space in business district",
+      title: "Test Property 2",
+      description: "A second test property for testing purposes",
+      city: "Test City 2",
+      state: "TS2",
+      country: "Test2",
+      amountToRaise: ethers.parseUnits("500000", 2), // 500,000 Naira (should create 200 tokens at 2,500 Naira each)
+      developerName: "Test Developer 2",
+      developerAddress: deployer.address, // Use deployer since they are the current owner
       propertyType: 0, // ShortStay
       propertyUse: 0, // Commercial
-      developerName: "Commercial Real Estate Corp",
-      developerAddress: user1.address,
-      city: "Los Angeles",
-      state: "CA",
-      country: "USA",
-      ipfsImagesHash: "QmHash987654321",
-      ipfsMetadataHash: "QmMetadata987654321",
-      size: 75000, // 75,000 sq ft
-      bedrooms: 0, // Commercial property
-      bathrooms: 0, // Commercial property
-      amountToRaise: ethers.parseUnits("1500000", 6), // 1.5M USDT (15 tokens at 100,000 USDT per token)
-      investmentDuration: 7, // SevenMonths
-      milestoneTitles: ["Planning", "Construction", "Finishing"],
+      ipfsImagesHash: "QmTestImages456",
+      ipfsMetadataHash: "QmTestMetadata456",
+      size: 2000, // 2000 sq ft
+      bedrooms: 4,
+      bathrooms: 3,
+      investmentDuration: 5, // 5 = NineMonths (enum value)
+      milestoneTitles: ["Foundation", "Framing"],
       milestoneDescriptions: [
-        "Planning phase",
-        "Construction phase",
-        "Final finishing",
+        "Foundation complete",
+        "Framing complete",
       ],
-      milestonePercentages: [30, 50, 20], // 30%, 50%, 20%
-      roiPercentage: 18, // 18%
+      milestonePercentages: [50, 45], // 95% total
+      roiPercentage: 20, // 20%
     };
 
-    await propertyFacet.createProperty(propertyData2);
+    const propertyId2 = await propertyFacet.createProperty(propertyData2);
     console.log("✅ Second property created successfully");
 
     const finalTotalProperties = await propertyFacet.getTotalProperties();

@@ -153,11 +153,11 @@ async function main() {
   console.log("\n⚙️ Initializing platform...");
   
   // Initialize the platform with proper storage values
-  await adminFacetInterface.initialize(deployer.address, await mockStablecoin.getAddress(), ethers.parseUnits("100000", 6));
+  await adminFacetInterface.initialize(deployer.address, await mockStablecoin.getAddress(), ethers.parseUnits("2500", 2));
   console.log("✅ Platform initialized");
 
-  // Global token price is already set in initialize (100,000 USDT per token)
-  console.log("✅ Global token price set to 100,000 USDT");
+  // Global token price is already set in initialize (2,500 Naira per token)
+  console.log("✅ Global token price set to 2,500 Naira");
 
   // Investment limits are already set in initialize
   console.log("✅ Investment limits set");
@@ -170,9 +170,9 @@ async function main() {
   await investmentFacetInterface.initializeDomainSeparator();
   console.log("✅ Domain separator initialized");
 
-  // Mint some USDT to deployer for testing
-  await mockStablecoin.mint(deployer.address, ethers.parseEther("1000000"));
-  console.log("✅ Minted 1,000,000 USDT to deployer");
+  // Mint some Naira to deployer for testing
+  await mockStablecoin.mint(deployer.address, ethers.parseUnits("10000000", 2));
+  console.log("✅ Minted 100,000,000 Naira to deployer");
 
   // Create a sample property for testing
   console.log("\n🏠 Creating sample property...");
@@ -191,7 +191,7 @@ async function main() {
     size: 2500,
     bedrooms: 4,
     bathrooms: 3,
-    amountToRaise: ethers.parseUnits("10000000", 6), // 10M USDT (100 tokens at 100,000 USDT per token)
+    amountToRaise: ethers.parseUnits("2500000", 2), // 25M Naira (10,000 tokens at 2,500 Naira per token)
     investmentDuration: 0, // OneMonth
     milestoneTitles: ["Foundation", "Structure", "Finishing", "Handover"],
     milestoneDescriptions: [
