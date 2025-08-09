@@ -42,28 +42,71 @@ async function main() {
 
         // Test 3: Record Property Creation Transaction
         console.log("\n🔍 Test 3: Record Property Creation Transaction");
-        console.log("ℹ️ Skipping transaction recording test - only authorized contracts can record transactions");
         
-        // Test 4: Get Transaction History
-        console.log("\n🔍 Test 4: Get Transaction History");
+        await transactionFacet.recordTransaction(
+            propertyId,
+            ethers.ZeroAddress, // from (no one for creation)
+            deployer.address, // to (developer)
+            6, // PropertyCreation
+            ethers.parseUnits("0", 6), // No amount for creation
+            "Property creation transaction"
+        );
+        console.log("✅ Property creation transaction recorded");
+
+        // Test 4: Record Investment Transaction
+        console.log("\n🔍 Test 4: Record Investment Transaction");
         
-        if (initialTransactionCount > 0) {
-            console.log(`✅ Found ${initialTransactionCount} existing transactions`);
-            
-            // Get the first transaction
-            const firstTransaction = await transactionFacet.getTransaction(1);
-            console.log(`✅ First transaction ID: ${firstTransaction.transactionId}`);
-            console.log(`✅ First transaction type: ${firstTransaction.transactionType}`);
-            
-            // Get user transaction history for deployer
-            const deployerTransactions = await transactionFacet.getUserTransactionHistory(deployer.address);
-            console.log(`✅ Deployer transaction count: ${deployerTransactions.length}`);
-            
-            // Get property transaction history
-            const propertyTransactions = await transactionFacet.getPropertyTransactionHistory(propertyId);
-            console.log(`✅ Property ${propertyId} transaction count: ${propertyTransactions.length}`);
-        } else {
-            console.log("ℹ️ No transactions found to test");
+        // Mint Naira to user1 for testing
+        const mintAmount = ethers.parseUnits("50000", 2); // 50,000 Naira
+        await mockStablecoin.mint(user1.address, mintAmount);
+        console.log("✅ Minted Naira to user1");
+
+        await transactionFacet.recordTransaction(
+            propertyId,
+            user1.address, // from (investor)
+            deployer.address, // to (developer)
+            0, // Investment
+            ethers.parseUnits("600", 2), // 600 Naira
+            "Investment transaction"
+        );
+        console.log("✅ Investment transaction recorded");
+
+        // Test 5: Record Withdrawal Transaction
+        console.log("\n🔍 Test 5: Record Withdrawal Transaction");
+        
+        await transactionFacet.recordTransaction(
+            propertyId,
+            deployer.address, // from (developer)
+            user1.address, // to (investor)
+            2, // Refund
+            ethers.parseUnits("100", 2), // 100 Naira
+            "Withdrawal transaction"
+        );
+        console.log("✅ Withdrawal transaction recorded");
+
+        // Test 6: Verify Transaction Recording
+        console.log("\n🔍 Test 6: Verify Transaction Recording");
+        
+        const newTransactionCount = await transactionFacet.getTotalTransactions();
+        console.log(`✅ New transaction count: ${newTransactionCount}`);
+        console.log(`✅ Transaction count increased: ${newTransactionCount > initialTransactionCount}`);
+
+        // Test 7: Retrieve Transactions
+        console.log("\n🔍 Test 7: Retrieve Transactions");
+        
+        if (newTransactionCount > 0) {
+            const transaction0 = await transactionFacet.getTransaction(1); // Transaction IDs start from 1
+            console.log(`✅ Transaction 1: Type ${transaction0.transactionType}, Amount: ${ethers.formatUnits(transaction0.amount, 2)} Naira`);
+        }
+        
+        if (newTransactionCount > 1) {
+            const transaction1 = await transactionFacet.getTransaction(2);
+            console.log(`✅ Transaction 2: Type ${transaction1.transactionType}, Amount: ${ethers.formatUnits(transaction1.amount, 2)} Naira`);
+        }
+        
+        if (newTransactionCount > 2) {
+            const transaction2 = await transactionFacet.getTransaction(3);
+            console.log(`✅ Transaction 3: Type ${transaction2.transactionType}, Amount: ${ethers.formatUnits(transaction2.amount, 2)} Naira`);
         }
 
         // Test 8: Property Transaction Queries

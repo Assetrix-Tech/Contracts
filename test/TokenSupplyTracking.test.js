@@ -118,14 +118,14 @@ describe("Token Supply Tracking", function () {
     // Initialize the platform
     await adminFacet.initializeOwnership(owner.address);
     await adminFacet.setStablecoin(await mockStablecoin.getAddress());
-    await adminFacet.setGlobalTokenPrice(ethers.parseUnits("2500", 2)); // 2,500 Naira per token
+    await adminFacet.setGlobalTokenPrice(ethers.parseEther("100000")); // 100,000 USDT per token
     await adminFacet.setMinTokensPerInvestment(1);
     await adminFacet.setMinTokensPerProperty(100);
     await adminFacet.setMaxTokensPerProperty(10000);
     await investmentFacet.setBackendSigner(backendSigner.address);
 
-    // Mint some Naira to owner for testing
-    await mockStablecoin.mint(owner.address, ethers.parseUnits("1000000", 2));
+    // Mint some USDT to owner for testing
+    await mockStablecoin.mint(owner.address, ethers.parseEther("1000000"));
 
     // Create a sample property for testing
     const propertyData = {
@@ -143,7 +143,7 @@ describe("Token Supply Tracking", function () {
       size: 1000,
       bedrooms: 2,
       bathrooms: 2,
-      amountToRaise: ethers.parseUnits("250000", 2), // 250,000 Naira = 100 tokens at 2,500 Naira each
+      amountToRaise: ethers.parseEther("10000000"), // 10M USDT = 100 tokens at 100,000 USDT each
       investmentDuration: 0, // OneMonth
       milestoneTitles: ["Foundation", "Structure", "Finishing"],
       milestoneDescriptions: [
@@ -165,7 +165,7 @@ describe("Token Supply Tracking", function () {
     it("Should create property with correct initial token supply", async function () {
       const property = await propertyFacet.getProperty(1);
       
-      // Property should have 100 tokens total (250,000 Naira / 2,500 Naira per token)
+      // Property should have 100 tokens total (10M USDT / 100,000 USDT per token)
       expect(property.totalTokens).to.equal(100);
       expect(property.tokensSold).to.equal(0);
       expect(property.tokensLeft).to.equal(100);
@@ -174,7 +174,7 @@ describe("Token Supply Tracking", function () {
 
     it("Should calculate token price correctly", async function () {
       const property = await propertyFacet.getProperty(1);
-      const expectedTokenPrice = ethers.parseUnits("2500", 2); // 2,500 Naira
+      const expectedTokenPrice = ethers.parseEther("100000"); // 100,000 USDT
       
       expect(property.tokenPrice).to.equal(expectedTokenPrice);
     });
@@ -184,7 +184,7 @@ describe("Token Supply Tracking", function () {
     it("Should track tokens sold and remaining after first purchase", async function () {
       const propertyId = 1;
       const tokenAmount = 20; // Buy 20 tokens
-      const fiatAmount = ethers.parseUnits("50000", 2); // 50,000 Naira (20 * 2,500)
+      const fiatAmount = ethers.parseEther("2000000"); // 2M USDT (20 * 100,000)
       const paymentReference = "PAY_TEST_001";
       const nonce = await investmentFacet.getUserNonce(user1.address);
 
@@ -240,7 +240,7 @@ describe("Token Supply Tracking", function () {
       
       // First purchase: 30 tokens
       const tokenAmount1 = 30;
-      const fiatAmount1 = ethers.parseUnits("75000", 2); // 75,000 Naira
+      const fiatAmount1 = ethers.parseEther("3000000"); // 3M USDT
       const paymentReference1 = "PAY_TEST_002";
       const nonce1 = await investmentFacet.getUserNonce(user1.address);
 
@@ -279,7 +279,7 @@ describe("Token Supply Tracking", function () {
 
       // Second purchase: 25 tokens by different user
       const tokenAmount2 = 25;
-      const fiatAmount2 = ethers.parseUnits("62500", 2); // 62,500 Naira
+      const fiatAmount2 = ethers.parseEther("2500000"); // 2.5M USDT
       const paymentReference2 = "PAY_TEST_003";
       const nonce2 = await investmentFacet.getUserNonce(user2.address);
 
@@ -315,14 +315,9 @@ describe("Token Supply Tracking", function () {
     it("Should become fully funded when all tokens are sold", async function () {
       const propertyId = 1;
       
-      // Get current state to account for previous test purchases
-      const currentProperty = await propertyFacet.getProperty(propertyId);
-      const tokensAlreadySold = currentProperty.tokensSold;
-      const tokensRemaining = currentProperty.tokensLeft;
-      
-      // Buy all remaining tokens
-      const tokenAmount = tokensRemaining;
-      const fiatAmount = ethers.parseUnits((Number(tokensRemaining) * 2500).toString(), 2); // Calculate based on remaining tokens
+      // Buy all remaining tokens (45 tokens left)
+      const tokenAmount = 45;
+      const fiatAmount = ethers.parseEther("4500000"); // 4.5M USDT
       const paymentReference = "PAY_TEST_004";
       const nonce = await investmentFacet.getUserNonce(user1.address);
 
@@ -367,9 +362,9 @@ describe("Token Supply Tracking", function () {
       expect(property.totalTokens).to.equal(100);
       expect(property.isFullyFunded).to.be.true;
 
-      // Check user balance (should be previous balance + new tokens)
+      // Check user balance
       const userBalance = await investmentFacet.getTokenBalance(propertyId, user1.address);
-      expect(userBalance).to.equal(tokensAlreadySold + tokenAmount);
+      expect(userBalance).to.equal(45);
     });
   });
 
@@ -379,7 +374,7 @@ describe("Token Supply Tracking", function () {
       
       // Try to buy more tokens than available (101 tokens when only 100 exist)
       const tokenAmount = 101;
-      const fiatAmount = ethers.parseUnits("252500", 2); // 252,500 Naira
+      const fiatAmount = ethers.parseEther("10100000"); // 10.1M USDT
       const paymentReference = "PAY_TEST_005";
       const nonce = await investmentFacet.getUserNonce(user1.address);
 
@@ -425,7 +420,7 @@ describe("Token Supply Tracking", function () {
       
       // Buy 10 tokens
       const tokenAmount1 = 10;
-      const fiatAmount1 = ethers.parseUnits("25000", 2); // 25,000 Naira
+      const fiatAmount1 = ethers.parseEther("1000000"); // 1M USDT
       const paymentReference1 = "PAY_TEST_006";
       const nonce1 = await investmentFacet.getUserNonce(user1.address);
 
@@ -464,7 +459,7 @@ describe("Token Supply Tracking", function () {
 
       // Buy 15 more tokens
       const tokenAmount2 = 15;
-      const fiatAmount2 = ethers.parseUnits("37500", 2); // 37,500 Naira
+      const fiatAmount2 = ethers.parseEther("1500000"); // 1.5M USDT
       const paymentReference2 = "PAY_TEST_007";
       const nonce2 = await investmentFacet.getUserNonce(user1.address);
 
@@ -496,40 +491,11 @@ describe("Token Supply Tracking", function () {
 
   describe("Property Funding Status", function () {
     it("Should track funding percentage correctly", async function () {
-      // Create a new property for this test to ensure clean state
-      const propertyData2 = {
-        title: "Test Property 2 for Funding Status",
-        description: "A property to test funding percentage tracking",
-        propertyType: 1, // LuxuryResidentialTowers
-        propertyUse: 0, // Commercial
-        developerName: "Test Developer 2",
-        developerAddress: owner.address,
-        city: "Test City 2",
-        state: "Test State 2",
-        country: "Test Country 2",
-        ipfsImagesHash: "QmTestImages456",
-        ipfsMetadataHash: "QmTestMetadata456",
-        size: 2000,
-        bedrooms: 3,
-        bathrooms: 3,
-        amountToRaise: ethers.parseUnits("500000", 2), // 500,000 Naira = 200 tokens at 2,500 Naira each
-        investmentDuration: 0, // OneMonth
-        milestoneTitles: ["Foundation", "Structure", "Finishing"],
-        milestoneDescriptions: [
-          "Foundation work",
-          "Structural work", 
-          "Finishing touches"
-        ],
-        milestonePercentages: [30, 40, 30],
-        roiPercentage: 20
-      };
-
-      await propertyFacet.createProperty(propertyData2);
-      const propertyId = 2; // Use the new property
+      const propertyId = 1;
       
-      // Buy 100 tokens (50% of total 200 tokens)
-      const tokenAmount = 100;
-      const fiatAmount = ethers.parseUnits("250000", 2); // 250,000 Naira
+      // Buy 50 tokens (50% of total)
+      const tokenAmount = 50;
+      const fiatAmount = ethers.parseEther("5000000"); // 5M USDT
       const paymentReference = "PAY_TEST_008";
       const nonce = await investmentFacet.getUserNonce(user1.address);
 
@@ -543,8 +509,8 @@ describe("Token Supply Tracking", function () {
       const types = {
         FiatPayment: [
           { name: "user", type: "address" },
-          { name: "propertyId", type: "uint256" },
           { name: "tokenAmount", type: "uint256" },
+          { name: "propertyId", type: "uint256" },
           { name: "fiatAmount", type: "uint256" },
           { name: "paymentReference", type: "string" },
           { name: "nonce", type: "uint256" }
@@ -568,12 +534,12 @@ describe("Token Supply Tracking", function () {
 
       // Check funding status
       const property = await propertyFacet.getProperty(propertyId);
-      expect(property.tokensSold).to.equal(100);
-      expect(property.tokensLeft).to.equal(100); // 200 - 100 = 100 remaining
+      expect(property.tokensSold).to.equal(50);
+      expect(property.tokensLeft).to.equal(50);
       expect(property.isFullyFunded).to.be.false;
       
       // Funding percentage should be 50%
-      const fundingPercentage = (Number(property.tokensSold) * 100) / Number(property.totalTokens);
+      const fundingPercentage = (property.tokensSold * 100) / property.totalTokens;
       expect(fundingPercentage).to.equal(50);
     });
   });

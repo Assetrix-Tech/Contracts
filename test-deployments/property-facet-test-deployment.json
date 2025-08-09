@@ -1,0 +1,92 @@
+{
+  "testInfo": {
+    "name": "property-facet-test",
+    "network": "localhost",
+    "deploymentType": "test",
+    "timestamp": "2025-08-09T14:28:11.588Z"
+  },
+  "deployment": {
+    "timestamp": "2025-08-09T14:28:11.588Z",
+    "deployer": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+    "totalGasUsed": 0,
+    "contracts": {
+      "Diamond": {
+        "address": "0x8A53f48797EDE0e3046c2Ba7489f2099Fa780bEA",
+        "deployer": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+        "gasUsed": 0,
+        "deployedAt": "2025-08-09T14:28:18.984Z"
+      },
+      "MockStablecoin": {
+        "address": "0xB7a90aB16DC735fEef37B6Cc8c730800a0303C7A",
+        "deployer": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+        "gasUsed": 0,
+        "deployedAt": "2025-08-09T14:28:18.984Z"
+      },
+      "adminFacet": {
+        "address": "0x7a17B5e2C98AA337F59c945a3c8e33d15E0342aF",
+        "deployer": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+        "gasUsed": 0,
+        "deployedAt": "2025-08-09T14:28:18.984Z"
+      },
+      "investmentFacet": {
+        "address": "0xa2DFEA1F9e99Ded7c29a1c7f62B2288e4aC6c901",
+        "deployer": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+        "gasUsed": 0,
+        "deployedAt": "2025-08-09T14:28:18.985Z"
+      },
+      "propertyFacet": {
+        "address": "0x1E2584981e25c0DB38049B2dac719ABfBc3F5206",
+        "deployer": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+        "gasUsed": 0,
+        "deployedAt": "2025-08-09T14:28:18.985Z"
+      },
+      "transactionFacet": {
+        "address": "0x0530b3D2232dD50A51cf9C7A14fDA3c37F660c7F",
+        "deployer": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+        "gasUsed": 0,
+        "deployedAt": "2025-08-09T14:28:18.985Z"
+      },
+      "milestoneFacet": {
+        "address": "0x13550d1de41216cA49Cd8CB48f20c51E2DA093Ad",
+        "deployer": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+        "gasUsed": 0,
+        "deployedAt": "2025-08-09T14:28:18.985Z"
+      },
+      "diamondLoupeFacet": {
+        "address": "0x9f94b18226342043F50Cb19260f5cA79a32a8d0E",
+        "deployer": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+        "gasUsed": 0,
+        "deployedAt": "2025-08-09T14:28:18.986Z"
+      }
+    }
+  },
+  "testResults": {
+    "status": "completed",
+    "startTime": "2025-08-09T14:28:11.588Z",
+    "endTime": "2025-08-09T14:28:28.528Z",
+    "passed": true,
+    "output": "[dotenv@17.2.0] injecting env (5) from .env (tip: 🛠️  run anywhere with `dotenvx run -- yourcommand`)\n[dotenv@17.2.0] injecting env (0) from .env (tip: ⚙️  enable debug logging with { debug: true })\n🔍 Testing PropertyFacet Functionality\n======================================\n✅ Loaded deployment data\n👤 Deployer: 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266\n👤 User1: 0x70997970C51812dc3A010C7d01b50e0d17dc79C8\n✅ Connected to PropertyFacet\n\n🔍 Test 1: Initial State\n✅ Initial total properties: 1\n\n🔍 Test 2: Create Property\n✅ Property created with ID: 2\n✅ Property title: Test Property\n✅ Property developer: Test Developer\n✅ Property ROI: 15%\n\n🔍 Test 3: Verify Property Creation\n✅ New total properties: 2\n✅ Property count increased: true\n\n🔍 Test 4: Property Status Check\n✅ Property is active: true\n✅ Property is fully funded: false\n✅ Property tokens sold: 0\n✅ Property tokens left: 100\n\n🔍 Test 5: Property Search and Filtering\n✅ Total properties count: 2\n✅ Properties retrieved: 2\n✅ Property 2 is in properties list: true\n\n🔍 Test 6: Property Details Validation\n✅ Property details match input:\n   Title: ✅\n   City: ✅\n   Developer: ✅\n   Property Type: ✅ (stored: 1, input: 1)\n   Property Use: ✅ (stored: 1, input: 1)\n   ROI: ✅ (stored: 15, input: 15)\n\n🔍 Test 7: Create Multiple Properties\n✅ Second property created successfully\n✅ Final total properties: 3\n✅ Total properties created: 2\n\n✅ PropertyFacet Tests Passed!\n",
+    "summary": "Property Facet Test completed successfully"
+  },
+  "system": {
+    "diamond": {
+      "address": "0x8A53f48797EDE0e3046c2Ba7489f2099Fa780bEA",
+      "setupAt": "2025-08-09T14:28:18.986Z",
+      "gasUsed": 0
+    },
+    "facets": {
+      "adminFacet": "0x7a17B5e2C98AA337F59c945a3c8e33d15E0342aF",
+      "investmentFacet": "0xa2DFEA1F9e99Ded7c29a1c7f62B2288e4aC6c901",
+      "propertyFacet": "0x1E2584981e25c0DB38049B2dac719ABfBc3F5206",
+      "transactionFacet": "0x0530b3D2232dD50A51cf9C7A14fDA3c37F660c7F",
+      "milestoneFacet": "0x13550d1de41216cA49Cd8CB48f20c51E2DA093Ad",
+      "diamondLoupeFacet": "0x9f94b18226342043F50Cb19260f5cA79a32a8d0E"
+    },
+    "stablecoin": {
+      "address": "0xB7a90aB16DC735fEef37B6Cc8c730800a0303C7A",
+      "deployer": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+      "gasUsed": 0,
+      "deployedAt": "2025-08-09T14:28:18.986Z"
+    }
+  }
+}

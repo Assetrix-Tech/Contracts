@@ -38,7 +38,7 @@ async function main() {
       country: "Test",
       amountToRaise: ethers.parseUnits("250000", 2), // 250,000 Naira (should create 100 tokens at 2,500 Naira each)
       developerName: "Test Developer",
-      developerAddress: deployer.address, // Use deployer since they are the owner
+      developerAddress: user1.address, // Use user1 since they are now the owner
       propertyType: 1, // Residential
       propertyUse: 1, // Residential
       ipfsImagesHash: "QmTestImages123",
@@ -46,14 +46,14 @@ async function main() {
       size: 1500, // 1500 sq ft
       bedrooms: 3,
       bathrooms: 2,
-      investmentDuration: 7, // 7 = TwelveMonths (enum value), not 12
+      investmentDuration: 24, // 24 months
       milestoneTitles: ["Foundation", "Framing", "Finishing"],
       milestoneDescriptions: [
         "Foundation complete",
         "Framing complete",
         "Interior finishing",
       ],
-      milestonePercentages: [30, 30, 35], // Changed from [30, 30, 40] to [30, 30, 35] = 95%
+      milestonePercentages: [30, 30, 40],
       roiPercentage: 15, // 15%
     };
 
@@ -139,34 +139,35 @@ async function main() {
 
     // Test 7: Create Multiple Properties
     console.log("\n🔍 Test 7: Create Multiple Properties");
-    
+
     const propertyData2 = {
-      title: "Test Property 2",
-      description: "A second test property for testing purposes",
-      city: "Test City 2",
-      state: "TS2",
-      country: "Test2",
-      amountToRaise: ethers.parseUnits("500000", 2), // 500,000 Naira (should create 200 tokens at 2,500 Naira each)
-      developerName: "Test Developer 2",
-      developerAddress: deployer.address, // Use deployer since they are the current owner
+      title: "Commercial Office Building",
+      description: "Class A office space in business district",
       propertyType: 0, // ShortStay
       propertyUse: 0, // Commercial
-      ipfsImagesHash: "QmTestImages456",
-      ipfsMetadataHash: "QmTestMetadata456",
-      size: 2000, // 2000 sq ft
-      bedrooms: 4,
-      bathrooms: 3,
-      investmentDuration: 5, // 5 = NineMonths (enum value)
-      milestoneTitles: ["Foundation", "Framing"],
+      developerName: "Commercial Real Estate Corp",
+      developerAddress: user1.address,
+      city: "Los Angeles",
+      state: "CA",
+      country: "USA",
+      ipfsImagesHash: "QmHash987654321",
+      ipfsMetadataHash: "QmMetadata987654321",
+      size: 75000, // 75,000 sq ft
+      bedrooms: 0, // Commercial property
+      bathrooms: 0, // Commercial property
+      amountToRaise: ethers.parseUnits("375000", 2), // 375,000 Naira (150 tokens at 2,500 Naira each)
+      investmentDuration: 7, // SevenMonths
+      milestoneTitles: ["Planning", "Construction", "Finishing"],
       milestoneDescriptions: [
-        "Foundation complete",
-        "Framing complete",
+        "Planning phase",
+        "Construction phase",
+        "Final finishing",
       ],
-      milestonePercentages: [50, 45], // 95% total
-      roiPercentage: 20, // 20%
+      milestonePercentages: [30, 50, 20], // 30%, 50%, 20%
+      roiPercentage: 18, // 18%
     };
 
-    const propertyId2 = await propertyFacet.createProperty(propertyData2);
+    await propertyFacet.createProperty(propertyData2);
     console.log("✅ Second property created successfully");
 
     const finalTotalProperties = await propertyFacet.getTotalProperties();

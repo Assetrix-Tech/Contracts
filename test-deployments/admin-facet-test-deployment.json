@@ -1,0 +1,92 @@
+{
+  "testInfo": {
+    "name": "admin-facet-test",
+    "network": "localhost",
+    "deploymentType": "test",
+    "timestamp": "2025-08-09T14:27:49.672Z"
+  },
+  "deployment": {
+    "timestamp": "2025-08-09T14:27:49.672Z",
+    "deployer": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+    "totalGasUsed": 0,
+    "contracts": {
+      "Diamond": {
+        "address": "0x8A53f48797EDE0e3046c2Ba7489f2099Fa780bEA",
+        "deployer": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+        "gasUsed": 0,
+        "deployedAt": "2025-08-09T14:28:03.631Z"
+      },
+      "MockStablecoin": {
+        "address": "0xB7a90aB16DC735fEef37B6Cc8c730800a0303C7A",
+        "deployer": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+        "gasUsed": 0,
+        "deployedAt": "2025-08-09T14:28:03.631Z"
+      },
+      "adminFacet": {
+        "address": "0x7a17B5e2C98AA337F59c945a3c8e33d15E0342aF",
+        "deployer": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+        "gasUsed": 0,
+        "deployedAt": "2025-08-09T14:28:03.632Z"
+      },
+      "investmentFacet": {
+        "address": "0xa2DFEA1F9e99Ded7c29a1c7f62B2288e4aC6c901",
+        "deployer": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+        "gasUsed": 0,
+        "deployedAt": "2025-08-09T14:28:03.632Z"
+      },
+      "propertyFacet": {
+        "address": "0x1E2584981e25c0DB38049B2dac719ABfBc3F5206",
+        "deployer": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+        "gasUsed": 0,
+        "deployedAt": "2025-08-09T14:28:03.633Z"
+      },
+      "transactionFacet": {
+        "address": "0x0530b3D2232dD50A51cf9C7A14fDA3c37F660c7F",
+        "deployer": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+        "gasUsed": 0,
+        "deployedAt": "2025-08-09T14:28:03.633Z"
+      },
+      "milestoneFacet": {
+        "address": "0x13550d1de41216cA49Cd8CB48f20c51E2DA093Ad",
+        "deployer": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+        "gasUsed": 0,
+        "deployedAt": "2025-08-09T14:28:03.633Z"
+      },
+      "diamondLoupeFacet": {
+        "address": "0x9f94b18226342043F50Cb19260f5cA79a32a8d0E",
+        "deployer": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+        "gasUsed": 0,
+        "deployedAt": "2025-08-09T14:28:03.633Z"
+      }
+    }
+  },
+  "testResults": {
+    "status": "completed",
+    "startTime": "2025-08-09T14:27:49.672Z",
+    "endTime": "2025-08-09T14:28:11.576Z",
+    "passed": true,
+    "output": "[dotenv@17.2.0] injecting env (5) from .env (tip: 🔐 prevent building .env in docker: https://dotenvx.com/prebuild)\n[dotenv@17.2.0] injecting env (0) from .env (tip: 🔐 encrypt with dotenvx: https://dotenvx.com)\n🔍 Testing AdminFacet Functionality\n===================================\n✅ Loaded deployment data\n👤 Deployer: 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266\n👤 User1: 0x70997970C51812dc3A010C7d01b50e0d17dc79C8\n✅ Connected to AdminFacet\n\n🔍 Test 1: Ownership Functions\n✅ Current owner: 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266\n✅ Owner matches deployer: true\n\n🔍 Test 2: Global Token Price\n✅ Global token price: 2500.0 Naira\n\n🔍 Test 3: Stablecoin Configuration\n✅ Stablecoin address: 0xa786BE8889AE6c776295f750eED323fe8Bc0B843\n✅ Matches deployment: true\n\n🔍 Test 4: Access Control\n✅ Non-owner cannot set global token price (expected)\n\n🔍 Test 5: Admin Functions (Owner Only)\n✅ Owner set new global token price\n✅ Updated token price: 1500.0 Naira\n✅ Price updated correctly: true\n\n🔍 Test 6: Transfer Ownership\n✅ Ownership transferred to user1\n✅ New owner: 0x70997970C51812dc3A010C7d01b50e0d17dc79C8\n✅ New owner matches user1: true\n\n🔍 Test 7: New Owner Can Call Admin Functions\n✅ New owner set global token price\n✅ Final token price: 2500.0 Naira\n\n✅ AdminFacet Tests Passed!\n",
+    "summary": "Admin Facet Test completed successfully"
+  },
+  "system": {
+    "diamond": {
+      "address": "0x8A53f48797EDE0e3046c2Ba7489f2099Fa780bEA",
+      "setupAt": "2025-08-09T14:28:03.634Z",
+      "gasUsed": 0
+    },
+    "facets": {
+      "adminFacet": "0x7a17B5e2C98AA337F59c945a3c8e33d15E0342aF",
+      "investmentFacet": "0xa2DFEA1F9e99Ded7c29a1c7f62B2288e4aC6c901",
+      "propertyFacet": "0x1E2584981e25c0DB38049B2dac719ABfBc3F5206",
+      "transactionFacet": "0x0530b3D2232dD50A51cf9C7A14fDA3c37F660c7F",
+      "milestoneFacet": "0x13550d1de41216cA49Cd8CB48f20c51E2DA093Ad",
+      "diamondLoupeFacet": "0x9f94b18226342043F50Cb19260f5cA79a32a8d0E"
+    },
+    "stablecoin": {
+      "address": "0xB7a90aB16DC735fEef37B6Cc8c730800a0303C7A",
+      "deployer": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+      "gasUsed": 0,
+      "deployedAt": "2025-08-09T14:28:03.634Z"
+    }
+  }
+}
