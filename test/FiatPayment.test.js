@@ -2,99 +2,115 @@ const { expect } = require("chai");
 const { ethers } = require("hardhat");
 
 describe("Fiat Payment Integration", function () {
-  let diamond, adminFacet, investmentFacet, propertyFacet;
-  let mockStablecoin, owner, backendSigner, user, developer;
+  let diamond, investmentFacet, adminFacet, propertyFacet, mockStablecoin;
+  let owner, backendSigner, user, developer;
 
   beforeEach(async function () {
     [owner, backendSigner, user, developer] = await ethers.getSigners();
 
-    // Deploy contracts
+    // Deploy MockStablecoin
     const MockStablecoin = await ethers.getContractFactory("MockStablecoin");
     mockStablecoin = await MockStablecoin.deploy();
 
+    // Deploy Diamond
     const Diamond = await ethers.getContractFactory("Diamond");
     diamond = await Diamond.deploy(owner.address);
 
-    // Deploy facets
+    // Deploy all facets
     const AdminFacet = await ethers.getContractFactory("AdminFacet");
-    const adminFacetContract = await AdminFacet.deploy();
+    adminFacet = await AdminFacet.deploy();
 
     const InvestmentFacet = await ethers.getContractFactory("InvestmentFacet");
-    const investmentFacetContract = await InvestmentFacet.deploy();
+    investmentFacet = await InvestmentFacet.deploy();
 
     const PropertyFacet = await ethers.getContractFactory("PropertyFacet");
-    const propertyFacetContract = await PropertyFacet.deploy();
+    propertyFacet = await PropertyFacet.deploy();
 
     const TransactionFacet = await ethers.getContractFactory("TransactionFacet");
-    const transactionFacetContract = await TransactionFacet.deploy();
+    const transactionFacet = await TransactionFacet.deploy();
 
     const MilestoneFacet = await ethers.getContractFactory("MilestoneFacet");
-    const milestoneFacetContract = await MilestoneFacet.deploy();
+    const milestoneFacet = await MilestoneFacet.deploy();
 
     const DiamondLoupeFacet = await ethers.getContractFactory("DiamondLoupeFacet");
-    const diamondLoupeFacetContract = await DiamondLoupeFacet.deploy();
+    const diamondLoupeFacet = await DiamondLoupeFacet.deploy();
+
+    // Get function selectors for each facet
+    const adminSelectors = [
+      "0x8da5cb5b", "0x1794bb3c", "0x5cd9205f", "0xcc7ac330", "0xb6f67312",
+      "0x92b582e0", "0xd6c7d918", "0x8456cb59", "0x3f4ba83a", "0xf2fde38b",
+      "0x5c975abb", "0x842f6221", "0xe088bfc0", "0xfe9d0872", "0x2750b0d2",
+      "0xeb659dc1", "0x96241c97", "0xe109516b", "0xeec723bc", "0xdeba19e2",
+      "0x80521c91", "0xc4c5f624"
+    ];
+
+    const investmentSelectors = [
+      "0x36f95670", "0xd9e359cd", "0xf7770056", "0x6834e3a8", "0x149f2e88",
+      "0x8bf0af3e", "0xef57e2d2", "0xe2d253c9", "0xf2934a02", "0xda2a1bb5",
+      "0x0117b0ed", "0x1b48a3b0", "0x19580150", "0x93838cdb", "0xb8af3d3e",
+      "0xdae21c58", "0xad41f119", "0x93ffcce3", "0xb79f9f67", "0xb7ddac87",
+      "0x1a4847e9", "0x372896f1", "0x8682c64d", "0x2ff79161", "0x591723fd", "0x85e69128",
+      "0xed24911d", "0x5cf0e8a4"
+    ];
+
+    const propertySelectors = [
+      "0x1f346f07", "0x32665ffb", "0xb16aa470", "0x17aaf5ed", "0x4835ec06",
+      "0x759c7de8", "0x17fc2f96", "0x7ca28bc6", "0xc2f6f25c", "0x5ec231ba",
+      "0xe52097a0"
+    ];
+
+    const transactionSelectors = [
+      "0x9751e5fe", "0xb5c604ff", "0x33ea3dc8", "0xc51309db", "0x70c548f6"
+    ];
+
+    const milestoneSelectors = [
+      "0x359b3123", "0xe8049da1", "0xbc643619", "0x5cae48f5", "0x54d49e46",
+      "0xeb9d9a5d"
+    ];
+
+    const diamondLoupeSelectors = [
+      "0xcdffacc6", "0x52ef6b2c", "0xadfca15e", "0x7a0ed627"
+    ];
 
     // Add facets to diamond
     const diamondCut = await ethers.getContractAt("IDiamondCut", await diamond.getAddress());
+    
     const cut = [
       {
-        facetAddress: await adminFacetContract.getAddress(),
-        action: 0,
-        functionSelectors: [
-          "0x8da5cb5b", "0x1794bb3c", "0x5cd9205f", "0xcc7ac330", "0xb6f67312",
-          "0x92b582e0", "0xd6c7d918", "0x8456cb59", "0x3f4ba83a", "0xf2fde38b",
-          "0x5c975abb", "0x842f6221", "0xe088bfc0", "0xfe9d0872", "0x2750b0d2",
-          "0xeb659dc1", "0x96241c97", "0xe109516b", "0xeec723bc", "0xdeba19e2",
-          "0x80521c91", "0xc4c5f624"
-        ]
+        facetAddress: await adminFacet.getAddress(),
+        action: 0, // Add
+        functionSelectors: adminSelectors
       },
       {
-        facetAddress: await investmentFacetContract.getAddress(),
-        action: 0,
-        functionSelectors: [
-          "0x36f95670", "0xd9e359cd", "0xf7770056", "0x6834e3a8", "0x149f2e88",
-          "0x8bf0af3e", "0xef57e2d2", "0xe2d253c9", "0xf2934a02", "0xda2a1bb5",
-          "0x0117b0ed", "0x1b48a3b0", "0x19580150", "0x93838cdb", "0xb8af3d3e",
-          "0xdae21c58", "0xad41f119", "0x93ffcce3", "0xb79f9f67", "0xb7ddac87",
-          "0x1a4847e9", "0x372896f1", "0x8682c64d", "0x7ad226dc"
-        ]
+        facetAddress: await investmentFacet.getAddress(),
+        action: 0, // Add
+        functionSelectors: investmentSelectors
       },
       {
-        facetAddress: await propertyFacetContract.getAddress(),
-        action: 0,
-        functionSelectors: [
-          "0x1f346f07", "0x32665ffb", "0xb16aa470", "0x17aaf5ed", "0x4835ec06",
-          "0x759c7de8", "0x17fc2f96", "0x7ca28bc6", "0xc2f6f25c", "0x5ec231ba",
-          "0xe52097a0"
-        ]
+        facetAddress: await propertyFacet.getAddress(),
+        action: 0, // Add
+        functionSelectors: propertySelectors
       },
       {
-        facetAddress: await transactionFacetContract.getAddress(),
-        action: 0,
-        functionSelectors: [
-          "0x9751e5fe", "0xb5c604ff", "0x33ea3dc8", "0xc51309db", "0x70c548f6"
-        ]
+        facetAddress: await transactionFacet.getAddress(),
+        action: 0, // Add
+        functionSelectors: transactionSelectors
       },
       {
-        facetAddress: await milestoneFacetContract.getAddress(),
-        action: 0,
-        functionSelectors: [
-          "0x359b3123", "0xe8049da1", "0xbc643619", "0x5cae48f5", "0x54d49e46",
-          "0xeb9d9a5d"
-        ]
+        facetAddress: await milestoneFacet.getAddress(),
+        action: 0, // Add
+        functionSelectors: milestoneSelectors
       },
       {
-        facetAddress: await diamondLoupeFacetContract.getAddress(),
-        action: 0,
-        functionSelectors: [
-          "0xcdffacc6", "0x52ef6b2c", "0xadfca15e", "0x7a0ed627"
-        ]
+        facetAddress: await diamondLoupeFacet.getAddress(),
+        action: 0, // Add
+        functionSelectors: diamondLoupeSelectors
       }
     ];
 
     await diamondCut.diamondCut(cut, ethers.ZeroAddress, "0x");
 
-    // Get interfaces
+    // Get contract interfaces
     adminFacet = await ethers.getContractAt("AdminFacet", await diamond.getAddress());
     investmentFacet = await ethers.getContractAt("InvestmentFacet", await diamond.getAddress());
     propertyFacet = await ethers.getContractAt("PropertyFacet", await diamond.getAddress());
@@ -102,43 +118,45 @@ describe("Fiat Payment Integration", function () {
     // Initialize the platform
     await adminFacet.initializeOwnership(owner.address);
     await adminFacet.setStablecoin(await mockStablecoin.getAddress());
-    await adminFacet.setGlobalTokenPrice(ethers.parseEther("10000")); // 10,000 USDT per token
+            await adminFacet.setGlobalTokenPrice(ethers.parseEther("100000"));
     await adminFacet.setMinTokensPerInvestment(1);
     await adminFacet.setMinTokensPerProperty(100);
     await adminFacet.setMaxTokensPerProperty(10000);
-
-    // Set backend signer
     await investmentFacet.setBackendSigner(backendSigner.address);
 
-    // Create a test property
+    // Mint some USDT to owner for testing
+    await mockStablecoin.mint(owner.address, ethers.parseEther("1000000"));
+
+    // Create a sample property for testing
     const propertyData = {
-      title: "Test Luxury Property",
-      description: "A beautiful luxury property for testing",
+      title: "Luxury Residential Tower - Lagos",
+      description: "A premium residential development in the heart of Lagos",
       propertyType: 1, // LuxuryResidentialTowers
       propertyUse: 0, // Commercial
-      developerName: "Test Developer",
-      developerAddress: developer.address,
+      developerName: "Assetrix Development Ltd",
+      developerAddress: owner.address,
       city: "Lagos",
       state: "Lagos",
       country: "Nigeria",
-      ipfsImagesHash: "QmTestImages123",
-      ipfsMetadataHash: "QmTestMetadata123",
-      size: 1000,
-      bedrooms: 3,
-      bathrooms: 2,
-      amountToRaise: ethers.parseEther("1000000"), // 1M USDT
+      ipfsImagesHash: "QmSampleImages123",
+      ipfsMetadataHash: "QmSampleMetadata123",
+      size: 2500,
+      bedrooms: 4,
+      bathrooms: 3,
+              amountToRaise: ethers.parseEther("10000000"), // 10M USDT (100 tokens at 100,000 USDT per token)
       investmentDuration: 0, // OneMonth
-      milestoneTitles: ["Foundation", "Structure", "Finishing"],
-      milestoneDescriptions: ["Foundation work", "Structural work", "Finishing touches"],
-      milestonePercentages: [30, 40, 30],
-      roiPercentage: 15
+      milestoneTitles: ["Foundation", "Structure", "Finishing", "Handover"],
+      milestoneDescriptions: [
+        "Foundation and groundwork",
+        "Structural framework and walls",
+        "Interior finishing and amenities",
+        "Final inspection and handover"
+      ],
+      milestonePercentages: [25, 30, 30, 15],
+      roiPercentage: 18
     };
 
     await propertyFacet.createProperty(propertyData);
-
-    // Mint some USDT to the user for testing
-    await mockStablecoin.mint(user.address, ethers.parseEther("1000000"));
-    await mockStablecoin.mint(owner.address, ethers.parseEther("1000000"));
   });
 
   describe("Domain Separator Management", function () {
@@ -210,7 +228,7 @@ describe("Fiat Payment Integration", function () {
     it("Should increment nonce after successful fiat payment", async function () {
       await investmentFacet.initializeDomainSeparator();
       
-      const propertyId = 1, tokenAmount = 5, fiatAmount = ethers.parseEther("50000");
+      const propertyId = 1, tokenAmount = 5, fiatAmount = ethers.parseEther("500000");
       const paymentReference = "PAY_TEST_001";
       const nonce = await investmentFacet.getUserNonce(user.address);
       const initialNonce = nonce;
@@ -261,7 +279,7 @@ describe("Fiat Payment Integration", function () {
       const paymentReference = "PAY_TEST_002";
       expect(await investmentFacet.isPaymentProcessed(paymentReference)).to.be.false;
 
-      const propertyId = 1, tokenAmount = 5, fiatAmount = ethers.parseEther("50000");
+      const propertyId = 1, tokenAmount = 5, fiatAmount = ethers.parseEther("500000");
       const nonce = await investmentFacet.getUserNonce(user.address);
 
       // Create EIP-712 signature
@@ -305,7 +323,7 @@ describe("Fiat Payment Integration", function () {
       await investmentFacet.initializeDomainSeparator();
       
       const paymentReference = "PAY_TEST_003";
-      const propertyId = 1, tokenAmount = 5, fiatAmount = ethers.parseEther("50000");
+      const propertyId = 1, tokenAmount = 5, fiatAmount = ethers.parseEther("500000");
       const nonce = await investmentFacet.getUserNonce(user.address);
 
       // Create EIP-712 signature
@@ -354,7 +372,7 @@ describe("Fiat Payment Integration", function () {
     it("Should accept valid backend signature", async function () {
       await investmentFacet.initializeDomainSeparator();
       
-      const propertyId = 1, tokenAmount = 10, fiatAmount = ethers.parseEther("100000");
+      const propertyId = 1, tokenAmount = 10, fiatAmount = ethers.parseEther("1000000");
       const paymentReference = "PAY_TEST_004", nonce = await investmentFacet.getUserNonce(user.address);
 
       // Create EIP-712 signature
@@ -397,7 +415,7 @@ describe("Fiat Payment Integration", function () {
     it("Should reject signature from unauthorized signer", async function () {
       await investmentFacet.initializeDomainSeparator();
       
-      const propertyId = 1, tokenAmount = 10, fiatAmount = ethers.parseEther("100000");
+      const propertyId = 1, tokenAmount = 10, fiatAmount = ethers.parseEther("1000000");
       const paymentReference = "PAY_TEST_005", nonce = await investmentFacet.getUserNonce(user.address);
 
       // Create EIP-712 signature with wrong signer
@@ -440,7 +458,7 @@ describe("Fiat Payment Integration", function () {
     it("Should reject invalid signature length", async function () {
       await investmentFacet.initializeDomainSeparator();
       
-      const propertyId = 1, tokenAmount = 10, fiatAmount = ethers.parseEther("100000");
+      const propertyId = 1, tokenAmount = 10, fiatAmount = ethers.parseEther("1000000");
       const paymentReference = "PAY_TEST_006", nonce = await investmentFacet.getUserNonce(user.address);
       const invalidSignature = "0x1234"; // Too short
 
@@ -456,7 +474,7 @@ describe("Fiat Payment Integration", function () {
     it("Should distribute tokens correctly", async function () {
       await investmentFacet.initializeDomainSeparator();
       
-      const propertyId = 1, tokenAmount = 20, fiatAmount = ethers.parseEther("200000");
+      const propertyId = 1, tokenAmount = 10, fiatAmount = ethers.parseEther("1000000");
       const paymentReference = "PAY_TEST_007", nonce = await investmentFacet.getUserNonce(user.address);
 
       // Create EIP-712 signature
@@ -500,7 +518,7 @@ describe("Fiat Payment Integration", function () {
     it("Should emit correct events", async function () {
       await investmentFacet.initializeDomainSeparator();
       
-      const propertyId = 1, tokenAmount = 15, fiatAmount = ethers.parseEther("150000");
+      const propertyId = 1, tokenAmount = 15, fiatAmount = ethers.parseEther("1500000");
       const paymentReference = "PAY_TEST_008", nonce = await investmentFacet.getUserNonce(user.address);
 
       // Create EIP-712 signature
@@ -547,7 +565,7 @@ describe("Fiat Payment Integration", function () {
     it("Should allow backend signer to call distributeTokensFromFiat", async function () {
       await investmentFacet.initializeDomainSeparator();
       
-      const propertyId = 1, tokenAmount = 5, fiatAmount = ethers.parseEther("50000");
+      const propertyId = 1, tokenAmount = 5, fiatAmount = ethers.parseEther("500000");
       const paymentReference = "PAY_TEST_009", nonce = await investmentFacet.getUserNonce(user.address);
 
       // Create EIP-712 signature
@@ -590,7 +608,7 @@ describe("Fiat Payment Integration", function () {
     it("Should allow user to call distributeTokensFromFiat for themselves", async function () {
       await investmentFacet.initializeDomainSeparator();
       
-      const propertyId = 1, tokenAmount = 5, fiatAmount = ethers.parseEther("50000");
+      const propertyId = 1, tokenAmount = 5, fiatAmount = ethers.parseEther("500000");
       const paymentReference = "PAY_TEST_010", nonce = await investmentFacet.getUserNonce(user.address);
 
       // Create EIP-712 signature
@@ -633,7 +651,7 @@ describe("Fiat Payment Integration", function () {
     it("Should prevent unauthorized users from calling distributeTokensFromFiat", async function () {
       await investmentFacet.initializeDomainSeparator();
       
-      const propertyId = 1, tokenAmount = 5, fiatAmount = ethers.parseEther("50000");
+      const propertyId = 1, tokenAmount = 5, fiatAmount = ethers.parseEther("500000");
       const paymentReference = "PAY_TEST_011", nonce = await investmentFacet.getUserNonce(user.address);
 
       // Create EIP-712 signature
@@ -679,7 +697,7 @@ describe("Fiat Payment Integration", function () {
     it("Should reject zero user address", async function () {
       await investmentFacet.initializeDomainSeparator();
       
-      const propertyId = 1, tokenAmount = 5, fiatAmount = ethers.parseEther("50000");
+      const propertyId = 1, tokenAmount = 5, fiatAmount = ethers.parseEther("500000");
       const paymentReference = "PAY_TEST_012", nonce = await investmentFacet.getUserNonce(user.address);
 
       // Create EIP-712 signature
@@ -765,7 +783,7 @@ describe("Fiat Payment Integration", function () {
     it("Should reject insufficient tokens", async function () {
       await investmentFacet.initializeDomainSeparator();
       
-      const propertyId = 1, tokenAmount = 100000, fiatAmount = ethers.parseEther("1000000000");
+      const propertyId = 1, tokenAmount = 100000, fiatAmount = ethers.parseEther("10000000000");
       const paymentReference = "PAY_TEST_014", nonce = await investmentFacet.getUserNonce(user.address);
 
       // Create EIP-712 signature
@@ -808,7 +826,7 @@ describe("Fiat Payment Integration", function () {
     it("Should reject invalid nonce", async function () {
       await investmentFacet.initializeDomainSeparator();
       
-      const propertyId = 1, tokenAmount = 5, fiatAmount = ethers.parseEther("50000");
+      const propertyId = 1, tokenAmount = 5, fiatAmount = ethers.parseEther("500000");
       const paymentReference = "PAY_TEST_015", nonce = 999; // Invalid nonce
 
       // Create EIP-712 signature
@@ -849,7 +867,7 @@ describe("Fiat Payment Integration", function () {
     });
 
     it("Should reject when domain separator not initialized", async function () {
-      const propertyId = 1, tokenAmount = 5, fiatAmount = ethers.parseEther("50000");
+      const propertyId = 1, tokenAmount = 5, fiatAmount = ethers.parseEther("500000");
       const paymentReference = "PAY_TEST_016", nonce = 0;
 
       // Create EIP-712 signature
@@ -886,7 +904,7 @@ describe("Fiat Payment Integration", function () {
         investmentFacet.connect(backendSigner).distributeTokensFromFiat(
           propertyId, user.address, tokenAmount, fiatAmount, paymentReference, nonce, signature
         )
-      ).to.be.revertedWith("Backend signer not set");
+      ).to.be.revertedWith("Domain separator not initialized");
     });
   });
 
