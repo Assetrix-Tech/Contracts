@@ -54,9 +54,8 @@ async function runAllTests() {
             console.log("📋 Output:");
             console.log(result);
             
-            // Mark test as completed successfully
-            logger.markTestCompleted(true);
-            logger.updateField('testResults.output', result);
+            // Mark test as completed successfully with formatted output
+            logger.markTestCompleted(true, null, null, result);
             logger.saveLog();
             
             passedTests++;
@@ -66,9 +65,8 @@ async function runAllTests() {
             console.log("📋 Error Output:");
             console.log(error.stdout || error.message);
             
-            // Mark test as completed with error
-            logger.markTestCompleted(false, error.message);
-            logger.updateField('testResults.output', error.stdout || error.message);
+            // Mark test as completed with error and formatted output
+            logger.markTestCompleted(false, error.message, null, error.stdout || error.message);
             logger.saveLog();
             
             failedTests++;
@@ -90,7 +88,7 @@ async function runAllTests() {
     
     // Add individual test results
     summaryLogger.updateField('individualTests', testLogs.map(logger => ({
-        testName: logger.getLogData().testName,
+        testName: logger.testName,
         status: logger.getLogData().testResults.passed ? 'passed' : 'failed',
         error: logger.getLogData().testResults.error,
         logFile: logger.logFile
@@ -126,7 +124,7 @@ async function runAllTests() {
     testLogs.forEach(logger => {
         const data = logger.getLogData();
         const status = data.testResults.passed ? '✅' : '❌';
-        console.log(`   ${status} ${data.testName}: ${logger.logFile}`);
+        console.log(`   ${status} ${logger.testName}: ${logger.logFile}`);
     });
 }
 

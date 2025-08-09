@@ -162,7 +162,7 @@ class TestDeploymentLogger {
     }
 
     // Test result methods
-    markTestCompleted(passed, error = null, summary = null) {
+    markTestCompleted(passed, error = null, summary = null, rawOutput = null) {
         this.logData.testResults.status = passed ? "completed" : "failed";
         this.logData.testResults.endTime = new Date().toISOString();
         this.logData.testResults.passed = passed;
@@ -172,7 +172,110 @@ class TestDeploymentLogger {
             this.logData.testResults.error = error;
         }
         
+        // Format the raw output if provided
+        if (rawOutput) {
+            this.logData.testResults.output = this.formatTerminalOutput(rawOutput);
+        }
+        
         console.log(`📋 Marked test as ${passed ? 'completed' : 'failed'}`);
+    }
+
+    // Format raw terminal output into structured, readable format
+    formatTerminalOutput(rawOutput) {
+        if (!rawOutput || typeof rawOutput !== 'string') {
+            return null;
+        }
+
+        const lines = rawOutput.split('\n').filter(line => line.trim());
+        const formatted = {
+            summary: null,
+            tests: [],
+            errors: [],
+            warnings: [],
+            info: []
+        };
+
+        let currentTest = null;
+        let currentSection = null;
+
+        for (const line of lines) {
+            const trimmedLine = line.trim();
+            
+            // Skip dotenv messages and empty lines
+            if (trimmedLine.includes('[dotenv@') || !trimmedLine) {
+                continue;
+            }
+
+            // Extract test summary
+            if (trimmedLine.includes('✅') && trimmedLine.includes('Tests Passed!')) {
+                formatted.summary = trimmedLine;
+                continue;
+            }
+
+            // Extract test sections
+            if (trimmedLine.startsWith('🔍 Test')) {
+                currentSection = trimmedLine;
+                currentTest = {
+                    section: trimmedLine,
+                    results: []
+                };
+                formatted.tests.push(currentTest);
+                continue;
+            }
+
+            // Extract test results
+            if (trimmedLine.startsWith('✅') || trimmedLine.startsWith('❌')) {
+                if (currentTest) {
+                    currentTest.results.push(trimmedLine);
+                } else {
+                    formatted.info.push(trimmedLine);
+                }
+                continue;
+            }
+
+            // Extract errors
+            if (trimmedLine.startsWith('❌') || trimmedLine.includes('Error:') || trimmedLine.includes('Failed:')) {
+                formatted.errors.push(trimmedLine);
+                continue;
+            }
+
+            // Extract warnings
+            if (trimmedLine.startsWith('⚠️') || trimmedLine.includes('Warning:')) {
+                formatted.warnings.push(trimmedLine);
+                continue;
+            }
+
+            // Extract general info
+            if (trimmedLine.startsWith('👤') || trimmedLine.startsWith('📋') || trimmedLine.includes('Loaded') || trimmedLine.includes('Connected')) {
+                formatted.info.push(trimmedLine);
+                continue;
+            }
+
+            // Extract section headers
+            if (trimmedLine.includes('===') || trimmedLine.includes('---')) {
+                formatted.info.push(trimmedLine);
+                continue;
+            }
+
+            // Skip unrecognized selectors (normal for Diamond pattern)
+            if (trimmedLine.includes('<unrecognized-selector>')) {
+                continue;
+            }
+
+            // Add any other meaningful lines to info
+            if (trimmedLine.length > 3 && !trimmedLine.includes('tip:') && !trimmedLine.includes('https://')) {
+                formatted.info.push(trimmedLine);
+            }
+        }
+
+        // Clean up empty arrays
+        Object.keys(formatted).forEach(key => {
+            if (Array.isArray(formatted[key]) && formatted[key].length === 0) {
+                delete formatted[key];
+            }
+        });
+
+        return formatted;
     }
 
     updateField(fieldPath, value) {
@@ -243,6 +346,13 @@ class TestDeploymentLogger {
                 milestones: data.system.milestones
             }
         };
+
+        // Preserve additional fields that might be added by updateField
+        if (data.testResults.totalTests !== undefined) formatted.testResults.totalTests = data.testResults.totalTests;
+        if (data.testResults.passedTests !== undefined) formatted.testResults.passedTests = data.testResults.passedTests;
+        if (data.testResults.failedTests !== undefined) formatted.testResults.failedTests = data.testResults.failedTests;
+        if (data.testResults.successRate !== undefined) formatted.testResults.successRate = data.testResults.successRate;
+        if (data.individualTests !== undefined) formatted.individualTests = data.individualTests;
 
         // Remove empty sections and null values
         this.cleanObject(formatted);
