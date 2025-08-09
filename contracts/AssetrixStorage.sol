@@ -204,6 +204,10 @@ library AssetrixStorage {
         address backendSigner; // Backend wallet that can distribute tokens from fiat payments
         mapping(string => bool) processedFiatPayments; // paymentReference => processed
         mapping(address => uint256) userNonces; // user => nonce for signature verification
+        
+        // EIP-712 domain separator
+        bytes32 domainSeparator;
+        bool domainSeparatorInitialized;
     }
 
     bytes32 internal constant STORAGE_SLOT = keccak256("assetrix.storage.v1");

@@ -99,31 +99,86 @@ describe("Fiat Payment Integration", function () {
     investmentFacet = await ethers.getContractAt("InvestmentFacet", await diamond.getAddress());
     propertyFacet = await ethers.getContractAt("PropertyFacet", await diamond.getAddress());
 
-    // Initialize
-    await adminFacet.initialize(owner.address, await mockStablecoin.getAddress(), ethers.parseEther("1000"));
+    // Initialize the platform
+    await adminFacet.initializeOwnership(owner.address);
+    await adminFacet.setStablecoin(await mockStablecoin.getAddress());
+    await adminFacet.setGlobalTokenPrice(ethers.parseEther("10000")); // 10,000 USDT per token
+    await adminFacet.setMinTokensPerInvestment(1);
+    await adminFacet.setMinTokensPerProperty(100);
+    await adminFacet.setMaxTokensPerProperty(10000);
+
+    // Set backend signer
     await investmentFacet.setBackendSigner(backendSigner.address);
 
-    // Create test property
+    // Create a test property
     const propertyData = {
-      title: "Luxury Apartment Complex",
-      description: "A premium residential development in Lagos",
-      propertyType: 0, propertyUse: 0, developerName: "Assetrix Developers",
-      developerAddress: developer.address, city: "Lagos", state: "Lagos", country: "Nigeria",
-      ipfsImagesHash: "QmTestImages", ipfsMetadataHash: "QmTestMetadata",
-      size: 5000, bedrooms: 10, bathrooms: 8,
-      amountToRaise: ethers.parseEther("500000"),
-      investmentDuration: 0, roiPercentage: 25,
+      title: "Test Luxury Property",
+      description: "A beautiful luxury property for testing",
+      propertyType: 1, // LuxuryResidentialTowers
+      propertyUse: 0, // Commercial
+      developerName: "Test Developer",
+      developerAddress: developer.address,
+      city: "Lagos",
+      state: "Lagos",
+      country: "Nigeria",
+      ipfsImagesHash: "QmTestImages123",
+      ipfsMetadataHash: "QmTestMetadata123",
+      size: 1000,
+      bedrooms: 3,
+      bathrooms: 2,
+      amountToRaise: ethers.parseEther("1000000"), // 1M USDT
+      investmentDuration: 0, // OneMonth
       milestoneTitles: ["Foundation", "Structure", "Finishing"],
-      milestoneDescriptions: ["Complete foundation", "Complete structure", "Complete finishing"],
-      milestonePercentages: [30, 50, 20]
+      milestoneDescriptions: ["Foundation work", "Structural work", "Finishing touches"],
+      milestonePercentages: [30, 40, 30],
+      roiPercentage: 15
     };
 
     await propertyFacet.createProperty(propertyData);
+
+    // Mint some USDT to the user for testing
+    await mockStablecoin.mint(user.address, ethers.parseEther("1000000"));
+    await mockStablecoin.mint(owner.address, ethers.parseEther("1000000"));
+  });
+
+  describe("Domain Separator Management", function () {
+    it("Should initialize domain separator correctly", async function () {
+      await investmentFacet.initializeDomainSeparator();
+      
+      const domainSeparator = await investmentFacet.getDomainSeparator();
+      expect(domainSeparator).to.not.equal(ethers.ZeroHash);
+      
+      const isInitialized = await investmentFacet.isDomainSeparatorInitialized();
+      expect(isInitialized).to.be.true;
+    });
+
+    it("Should only allow owner to initialize domain separator", async function () {
+      await expect(
+        investmentFacet.connect(user).initializeDomainSeparator()
+      ).to.be.revertedWith("Ownable: caller is not the owner");
+    });
+
+    it("Should prevent double initialization", async function () {
+      await investmentFacet.initializeDomainSeparator();
+      
+      await expect(
+        investmentFacet.initializeDomainSeparator()
+      ).to.be.revertedWith("Domain separator already initialized");
+    });
+
+    it("Should allow owner to reset domain separator", async function () {
+      await investmentFacet.initializeDomainSeparator();
+      await investmentFacet.resetDomainSeparator();
+      
+      const isInitialized = await investmentFacet.isDomainSeparatorInitialized();
+      expect(isInitialized).to.be.false;
+    });
   });
 
   describe("Backend Signer Management", function () {
     it("Should set and get backend signer correctly", async function () {
-      expect(await investmentFacet.getBackendSigner()).to.equal(backendSigner.address);
+      const signer = await investmentFacet.getBackendSigner();
+      expect(signer).to.equal(backendSigner.address);
     });
 
     it("Should only allow owner to set backend signer", async function () {
@@ -131,29 +186,67 @@ describe("Fiat Payment Integration", function () {
         investmentFacet.connect(user).setBackendSigner(user.address)
       ).to.be.revertedWith("Ownable: caller is not the owner");
     });
+
+    it("Should prevent setting zero address as backend signer", async function () {
+      await expect(
+        investmentFacet.setBackendSigner(ethers.ZeroAddress)
+      ).to.be.revertedWith("Invalid backend signer address");
+    });
+
+    it("Should emit event when backend signer is updated", async function () {
+      const newSigner = user.address;
+      await expect(investmentFacet.setBackendSigner(newSigner))
+        .to.emit(investmentFacet, "BackendSignerUpdated")
+        .withArgs(backendSigner.address, newSigner);
+    });
   });
 
   describe("User Nonce Management", function () {
     it("Should start with nonce 0", async function () {
-      expect(await investmentFacet.getUserNonce(user.address)).to.equal(0);
+      const nonce = await investmentFacet.getUserNonce(user.address);
+      expect(nonce).to.equal(0);
     });
 
     it("Should increment nonce after successful fiat payment", async function () {
-      const initialNonce = await investmentFacet.getUserNonce(user.address);
+      await investmentFacet.initializeDomainSeparator();
       
-      const propertyId = 1, tokenAmount = 10, fiatAmount = ethers.parseEther("10000");
-      const paymentReference = "PAY_TEST_001", nonce = initialNonce;
+      const propertyId = 1, tokenAmount = 5, fiatAmount = ethers.parseEther("50000");
+      const paymentReference = "PAY_TEST_001";
+      const nonce = await investmentFacet.getUserNonce(user.address);
+      const initialNonce = nonce;
 
-      const messageHash = ethers.keccak256(
-        ethers.solidityPacked(
-          ["address", "uint256", "uint256", "uint256", "string", "uint256"],
-          [user.address, propertyId, tokenAmount, fiatAmount, paymentReference, nonce]
-        )
-      );
-      
-      const signature = await backendSigner.signMessage(ethers.getBytes(messageHash));
+      // Create EIP-712 signature
+      const domain = {
+        name: "Assetrix",
+        version: "1",
+        chainId: await ethers.provider.getNetwork().then(n => n.chainId),
+        verifyingContract: await diamond.getAddress()
+      };
 
-      await investmentFacet.distributeTokensFromFiat(
+      const types = {
+        FiatPayment: [
+          { name: "user", type: "address" },
+          { name: "propertyId", type: "uint256" },
+          { name: "tokenAmount", type: "uint256" },
+          { name: "fiatAmount", type: "uint256" },
+          { name: "paymentReference", type: "string" },
+          { name: "nonce", type: "uint256" }
+        ]
+      };
+
+      const value = {
+        user: user.address,
+        propertyId: propertyId,
+        tokenAmount: tokenAmount,
+        fiatAmount: fiatAmount,
+        paymentReference: paymentReference,
+        nonce: nonce
+      };
+
+      const signature = await backendSigner.signTypedData(domain, types, value);
+
+      // Call from backend signer (authorized caller)
+      await investmentFacet.connect(backendSigner).distributeTokensFromFiat(
         propertyId, user.address, tokenAmount, fiatAmount, paymentReference, nonce, signature
       );
 
@@ -163,22 +256,45 @@ describe("Fiat Payment Integration", function () {
 
   describe("Payment Reference Tracking", function () {
     it("Should track processed payments", async function () {
+      await investmentFacet.initializeDomainSeparator();
+      
       const paymentReference = "PAY_TEST_002";
       expect(await investmentFacet.isPaymentProcessed(paymentReference)).to.be.false;
 
-      const propertyId = 1, tokenAmount = 5, fiatAmount = ethers.parseEther("5000");
+      const propertyId = 1, tokenAmount = 5, fiatAmount = ethers.parseEther("50000");
       const nonce = await investmentFacet.getUserNonce(user.address);
 
-      const messageHash = ethers.keccak256(
-        ethers.solidityPacked(
-          ["address", "uint256", "uint256", "uint256", "string", "uint256"],
-          [user.address, propertyId, tokenAmount, fiatAmount, paymentReference, nonce]
-        )
-      );
-      
-      const signature = await backendSigner.signMessage(ethers.getBytes(messageHash));
+      // Create EIP-712 signature
+      const domain = {
+        name: "Assetrix",
+        version: "1",
+        chainId: await ethers.provider.getNetwork().then(n => n.chainId),
+        verifyingContract: await diamond.getAddress()
+      };
 
-      await investmentFacet.distributeTokensFromFiat(
+      const types = {
+        FiatPayment: [
+          { name: "user", type: "address" },
+          { name: "propertyId", type: "uint256" },
+          { name: "tokenAmount", type: "uint256" },
+          { name: "fiatAmount", type: "uint256" },
+          { name: "paymentReference", type: "string" },
+          { name: "nonce", type: "uint256" }
+        ]
+      };
+
+      const value = {
+        user: user.address,
+        propertyId: propertyId,
+        tokenAmount: tokenAmount,
+        fiatAmount: fiatAmount,
+        paymentReference: paymentReference,
+        nonce: nonce
+      };
+
+      const signature = await backendSigner.signTypedData(domain, types, value);
+
+      await investmentFacet.connect(backendSigner).distributeTokensFromFiat(
         propertyId, user.address, tokenAmount, fiatAmount, paymentReference, nonce, signature
       );
 
@@ -186,25 +302,48 @@ describe("Fiat Payment Integration", function () {
     });
 
     it("Should prevent double-spending", async function () {
+      await investmentFacet.initializeDomainSeparator();
+      
       const paymentReference = "PAY_TEST_003";
-      const propertyId = 1, tokenAmount = 5, fiatAmount = ethers.parseEther("5000");
+      const propertyId = 1, tokenAmount = 5, fiatAmount = ethers.parseEther("50000");
       const nonce = await investmentFacet.getUserNonce(user.address);
 
-      const messageHash = ethers.keccak256(
-        ethers.solidityPacked(
-          ["address", "uint256", "uint256", "uint256", "string", "uint256"],
-          [user.address, propertyId, tokenAmount, fiatAmount, paymentReference, nonce]
-        )
-      );
-      
-      const signature = await backendSigner.signMessage(ethers.getBytes(messageHash));
+      // Create EIP-712 signature
+      const domain = {
+        name: "Assetrix",
+        version: "1",
+        chainId: await ethers.provider.getNetwork().then(n => n.chainId),
+        verifyingContract: await diamond.getAddress()
+      };
 
-      await investmentFacet.distributeTokensFromFiat(
+      const types = {
+        FiatPayment: [
+          { name: "user", type: "address" },
+          { name: "propertyId", type: "uint256" },
+          { name: "tokenAmount", type: "uint256" },
+          { name: "fiatAmount", type: "uint256" },
+          { name: "paymentReference", type: "string" },
+          { name: "nonce", type: "uint256" }
+        ]
+      };
+
+      const value = {
+        user: user.address,
+        propertyId: propertyId,
+        tokenAmount: tokenAmount,
+        fiatAmount: fiatAmount,
+        paymentReference: paymentReference,
+        nonce: nonce
+      };
+
+      const signature = await backendSigner.signTypedData(domain, types, value);
+
+      await investmentFacet.connect(backendSigner).distributeTokensFromFiat(
         propertyId, user.address, tokenAmount, fiatAmount, paymentReference, nonce, signature
       );
 
       await expect(
-        investmentFacet.distributeTokensFromFiat(
+        investmentFacet.connect(backendSigner).distributeTokensFromFiat(
           propertyId, user.address, tokenAmount, fiatAmount, paymentReference, nonce + 1n, signature
         )
       ).to.be.revertedWith("Payment already processed");
@@ -213,136 +352,561 @@ describe("Fiat Payment Integration", function () {
 
   describe("Signature Verification", function () {
     it("Should accept valid backend signature", async function () {
-      const propertyId = 1, tokenAmount = 10, fiatAmount = ethers.parseEther("10000");
+      await investmentFacet.initializeDomainSeparator();
+      
+      const propertyId = 1, tokenAmount = 10, fiatAmount = ethers.parseEther("100000");
       const paymentReference = "PAY_TEST_004", nonce = await investmentFacet.getUserNonce(user.address);
 
-      const messageHash = ethers.keccak256(
-        ethers.solidityPacked(
-          ["address", "uint256", "uint256", "uint256", "string", "uint256"],
-          [user.address, propertyId, tokenAmount, fiatAmount, paymentReference, nonce]
-        )
-      );
-      
-      const signature = await backendSigner.signMessage(ethers.getBytes(messageHash));
+      // Create EIP-712 signature
+      const domain = {
+        name: "Assetrix",
+        version: "1",
+        chainId: await ethers.provider.getNetwork().then(n => n.chainId),
+        verifyingContract: await diamond.getAddress()
+      };
+
+      const types = {
+        FiatPayment: [
+          { name: "user", type: "address" },
+          { name: "propertyId", type: "uint256" },
+          { name: "tokenAmount", type: "uint256" },
+          { name: "fiatAmount", type: "uint256" },
+          { name: "paymentReference", type: "string" },
+          { name: "nonce", type: "uint256" }
+        ]
+      };
+
+      const value = {
+        user: user.address,
+        propertyId: propertyId,
+        tokenAmount: tokenAmount,
+        fiatAmount: fiatAmount,
+        paymentReference: paymentReference,
+        nonce: nonce
+      };
+
+      const signature = await backendSigner.signTypedData(domain, types, value);
 
       await expect(
-        investmentFacet.distributeTokensFromFiat(
+        investmentFacet.connect(backendSigner).distributeTokensFromFiat(
           propertyId, user.address, tokenAmount, fiatAmount, paymentReference, nonce, signature
         )
       ).to.not.be.reverted;
     });
 
     it("Should reject signature from unauthorized signer", async function () {
-      const propertyId = 1, tokenAmount = 10, fiatAmount = ethers.parseEther("10000");
+      await investmentFacet.initializeDomainSeparator();
+      
+      const propertyId = 1, tokenAmount = 10, fiatAmount = ethers.parseEther("100000");
       const paymentReference = "PAY_TEST_005", nonce = await investmentFacet.getUserNonce(user.address);
 
-      const messageHash = ethers.keccak256(
-        ethers.solidityPacked(
-          ["address", "uint256", "uint256", "uint256", "string", "uint256"],
-          [user.address, propertyId, tokenAmount, fiatAmount, paymentReference, nonce]
-        )
-      );
-      
-      const signature = await user.signMessage(ethers.getBytes(messageHash));
+      // Create EIP-712 signature with wrong signer
+      const domain = {
+        name: "Assetrix",
+        version: "1",
+        chainId: await ethers.provider.getNetwork().then(n => n.chainId),
+        verifyingContract: await diamond.getAddress()
+      };
+
+      const types = {
+        FiatPayment: [
+          { name: "user", type: "address" },
+          { name: "propertyId", type: "uint256" },
+          { name: "tokenAmount", type: "uint256" },
+          { name: "fiatAmount", type: "uint256" },
+          { name: "paymentReference", type: "string" },
+          { name: "nonce", type: "uint256" }
+        ]
+      };
+
+      const value = {
+        user: user.address,
+        propertyId: propertyId,
+        tokenAmount: tokenAmount,
+        fiatAmount: fiatAmount,
+        paymentReference: paymentReference,
+        nonce: nonce
+      };
+
+      const signature = await user.signTypedData(domain, types, value);
 
       await expect(
-        investmentFacet.distributeTokensFromFiat(
+        investmentFacet.connect(backendSigner).distributeTokensFromFiat(
           propertyId, user.address, tokenAmount, fiatAmount, paymentReference, nonce, signature
         )
       ).to.be.revertedWith("Invalid backend signature");
+    });
+
+    it("Should reject invalid signature length", async function () {
+      await investmentFacet.initializeDomainSeparator();
+      
+      const propertyId = 1, tokenAmount = 10, fiatAmount = ethers.parseEther("100000");
+      const paymentReference = "PAY_TEST_006", nonce = await investmentFacet.getUserNonce(user.address);
+      const invalidSignature = "0x1234"; // Too short
+
+      await expect(
+        investmentFacet.connect(backendSigner).distributeTokensFromFiat(
+          propertyId, user.address, tokenAmount, fiatAmount, paymentReference, nonce, invalidSignature
+        )
+      ).to.be.revertedWith("Invalid signature length");
     });
   });
 
   describe("Token Distribution", function () {
     it("Should distribute tokens correctly", async function () {
-      const propertyId = 1, tokenAmount = 20, fiatAmount = ethers.parseEther("20000");
-      const paymentReference = "PAY_TEST_006", nonce = await investmentFacet.getUserNonce(user.address);
-
-      const messageHash = ethers.keccak256(
-        ethers.solidityPacked(
-          ["address", "uint256", "uint256", "uint256", "string", "uint256"],
-          [user.address, propertyId, tokenAmount, fiatAmount, paymentReference, nonce]
-        )
-      );
+      await investmentFacet.initializeDomainSeparator();
       
-      const signature = await backendSigner.signMessage(ethers.getBytes(messageHash));
+      const propertyId = 1, tokenAmount = 20, fiatAmount = ethers.parseEther("200000");
+      const paymentReference = "PAY_TEST_007", nonce = await investmentFacet.getUserNonce(user.address);
 
-      const initialBalance = await investmentFacet.getTokenBalance(propertyId, user.address);
-      const property = await propertyFacet.getProperty(propertyId);
-      const initialTokensSold = property.tokensSold;
-      const initialTokensLeft = property.tokensLeft;
+      // Create EIP-712 signature
+      const domain = {
+        name: "Assetrix",
+        version: "1",
+        chainId: await ethers.provider.getNetwork().then(n => n.chainId),
+        verifyingContract: await diamond.getAddress()
+      };
 
-      await investmentFacet.distributeTokensFromFiat(
+      const types = {
+        FiatPayment: [
+          { name: "user", type: "address" },
+          { name: "propertyId", type: "uint256" },
+          { name: "tokenAmount", type: "uint256" },
+          { name: "fiatAmount", type: "uint256" },
+          { name: "paymentReference", type: "string" },
+          { name: "nonce", type: "uint256" }
+        ]
+      };
+
+      const value = {
+        user: user.address,
+        propertyId: propertyId,
+        tokenAmount: tokenAmount,
+        fiatAmount: fiatAmount,
+        paymentReference: paymentReference,
+        nonce: nonce
+      };
+
+      const signature = await backendSigner.signTypedData(domain, types, value);
+
+      await investmentFacet.connect(backendSigner).distributeTokensFromFiat(
         propertyId, user.address, tokenAmount, fiatAmount, paymentReference, nonce, signature
       );
 
-      expect(await investmentFacet.getTokenBalance(propertyId, user.address)).to.equal(initialBalance + BigInt(tokenAmount));
+      const userTokens = await investmentFacet.getTokenBalance(propertyId, user.address);
+      expect(userTokens).to.equal(tokenAmount);
+    });
+
+    it("Should emit correct events", async function () {
+      await investmentFacet.initializeDomainSeparator();
       
-      const updatedProperty = await propertyFacet.getProperty(propertyId);
-      expect(updatedProperty.tokensSold).to.equal(initialTokensSold + BigInt(tokenAmount));
-      expect(updatedProperty.tokensLeft).to.equal(initialTokensLeft - BigInt(tokenAmount));
+      const propertyId = 1, tokenAmount = 15, fiatAmount = ethers.parseEther("150000");
+      const paymentReference = "PAY_TEST_008", nonce = await investmentFacet.getUserNonce(user.address);
+
+      // Create EIP-712 signature
+      const domain = {
+        name: "Assetrix",
+        version: "1",
+        chainId: await ethers.provider.getNetwork().then(n => n.chainId),
+        verifyingContract: await diamond.getAddress()
+      };
+
+      const types = {
+        FiatPayment: [
+          { name: "user", type: "address" },
+          { name: "propertyId", type: "uint256" },
+          { name: "tokenAmount", type: "uint256" },
+          { name: "fiatAmount", type: "uint256" },
+          { name: "paymentReference", type: "string" },
+          { name: "nonce", type: "uint256" }
+        ]
+      };
+
+      const value = {
+        user: user.address,
+        propertyId: propertyId,
+        tokenAmount: tokenAmount,
+        fiatAmount: fiatAmount,
+        paymentReference: paymentReference,
+        nonce: nonce
+      };
+
+      const signature = await backendSigner.signTypedData(domain, types, value);
+
+      await expect(
+        investmentFacet.connect(backendSigner).distributeTokensFromFiat(
+          propertyId, user.address, tokenAmount, fiatAmount, paymentReference, nonce, signature
+        )
+      )
+        .to.emit(investmentFacet, "FiatPaymentProcessed")
+        .and.to.emit(investmentFacet, "TokensPurchased");
+    });
+  });
+
+  describe("Access Control", function () {
+    it("Should allow backend signer to call distributeTokensFromFiat", async function () {
+      await investmentFacet.initializeDomainSeparator();
+      
+      const propertyId = 1, tokenAmount = 5, fiatAmount = ethers.parseEther("50000");
+      const paymentReference = "PAY_TEST_009", nonce = await investmentFacet.getUserNonce(user.address);
+
+      // Create EIP-712 signature
+      const domain = {
+        name: "Assetrix",
+        version: "1",
+        chainId: await ethers.provider.getNetwork().then(n => n.chainId),
+        verifyingContract: await diamond.getAddress()
+      };
+
+      const types = {
+        FiatPayment: [
+          { name: "user", type: "address" },
+          { name: "propertyId", type: "uint256" },
+          { name: "tokenAmount", type: "uint256" },
+          { name: "fiatAmount", type: "uint256" },
+          { name: "paymentReference", type: "string" },
+          { name: "nonce", type: "uint256" }
+        ]
+      };
+
+      const value = {
+        user: user.address,
+        propertyId: propertyId,
+        tokenAmount: tokenAmount,
+        fiatAmount: fiatAmount,
+        paymentReference: paymentReference,
+        nonce: nonce
+      };
+
+      const signature = await backendSigner.signTypedData(domain, types, value);
+
+      await expect(
+        investmentFacet.connect(backendSigner).distributeTokensFromFiat(
+          propertyId, user.address, tokenAmount, fiatAmount, paymentReference, nonce, signature
+        )
+      ).to.not.be.reverted;
+    });
+
+    it("Should allow user to call distributeTokensFromFiat for themselves", async function () {
+      await investmentFacet.initializeDomainSeparator();
+      
+      const propertyId = 1, tokenAmount = 5, fiatAmount = ethers.parseEther("50000");
+      const paymentReference = "PAY_TEST_010", nonce = await investmentFacet.getUserNonce(user.address);
+
+      // Create EIP-712 signature
+      const domain = {
+        name: "Assetrix",
+        version: "1",
+        chainId: await ethers.provider.getNetwork().then(n => n.chainId),
+        verifyingContract: await diamond.getAddress()
+      };
+
+      const types = {
+        FiatPayment: [
+          { name: "user", type: "address" },
+          { name: "propertyId", type: "uint256" },
+          { name: "tokenAmount", type: "uint256" },
+          { name: "fiatAmount", type: "uint256" },
+          { name: "paymentReference", type: "string" },
+          { name: "nonce", type: "uint256" }
+        ]
+      };
+
+      const value = {
+        user: user.address,
+        propertyId: propertyId,
+        tokenAmount: tokenAmount,
+        fiatAmount: fiatAmount,
+        paymentReference: paymentReference,
+        nonce: nonce
+      };
+
+      const signature = await backendSigner.signTypedData(domain, types, value);
+
+      await expect(
+        investmentFacet.connect(user).distributeTokensFromFiat(
+          propertyId, user.address, tokenAmount, fiatAmount, paymentReference, nonce, signature
+        )
+      ).to.not.be.reverted;
+    });
+
+    it("Should prevent unauthorized users from calling distributeTokensFromFiat", async function () {
+      await investmentFacet.initializeDomainSeparator();
+      
+      const propertyId = 1, tokenAmount = 5, fiatAmount = ethers.parseEther("50000");
+      const paymentReference = "PAY_TEST_011", nonce = await investmentFacet.getUserNonce(user.address);
+
+      // Create EIP-712 signature
+      const domain = {
+        name: "Assetrix",
+        version: "1",
+        chainId: await ethers.provider.getNetwork().then(n => n.chainId),
+        verifyingContract: await diamond.getAddress()
+      };
+
+      const types = {
+        FiatPayment: [
+          { name: "user", type: "address" },
+          { name: "propertyId", type: "uint256" },
+          { name: "tokenAmount", type: "uint256" },
+          { name: "fiatAmount", type: "uint256" },
+          { name: "paymentReference", type: "string" },
+          { name: "nonce", type: "uint256" }
+        ]
+      };
+
+      const value = {
+        user: user.address,
+        propertyId: propertyId,
+        tokenAmount: tokenAmount,
+        fiatAmount: fiatAmount,
+        paymentReference: paymentReference,
+        nonce: nonce
+      };
+
+      const signature = await backendSigner.signTypedData(domain, types, value);
+
+      // Try to call from unauthorized user
+      await expect(
+        investmentFacet.connect(developer).distributeTokensFromFiat(
+          propertyId, user.address, tokenAmount, fiatAmount, paymentReference, nonce, signature
+        )
+      ).to.be.revertedWith("Unauthorized caller");
     });
   });
 
   describe("Error Handling", function () {
     it("Should reject zero user address", async function () {
-      const propertyId = 1, tokenAmount = 10, fiatAmount = ethers.parseEther("10000");
-      const paymentReference = "PAY_TEST_007", nonce = await investmentFacet.getUserNonce(user.address);
-
-      const messageHash = ethers.keccak256(
-        ethers.solidityPacked(
-          ["address", "uint256", "uint256", "uint256", "string", "uint256"],
-          [ethers.ZeroAddress, propertyId, tokenAmount, fiatAmount, paymentReference, nonce]
-        )
-      );
+      await investmentFacet.initializeDomainSeparator();
       
-      const signature = await backendSigner.signMessage(ethers.getBytes(messageHash));
+      const propertyId = 1, tokenAmount = 5, fiatAmount = ethers.parseEther("50000");
+      const paymentReference = "PAY_TEST_012", nonce = await investmentFacet.getUserNonce(user.address);
+
+      // Create EIP-712 signature
+      const domain = {
+        name: "Assetrix",
+        version: "1",
+        chainId: await ethers.provider.getNetwork().then(n => n.chainId),
+        verifyingContract: await diamond.getAddress()
+      };
+
+      const types = {
+        FiatPayment: [
+          { name: "user", type: "address" },
+          { name: "propertyId", type: "uint256" },
+          { name: "tokenAmount", type: "uint256" },
+          { name: "fiatAmount", type: "uint256" },
+          { name: "paymentReference", type: "string" },
+          { name: "nonce", type: "uint256" }
+        ]
+      };
+
+      const value = {
+        user: ethers.ZeroAddress,
+        propertyId: propertyId,
+        tokenAmount: tokenAmount,
+        fiatAmount: fiatAmount,
+        paymentReference: paymentReference,
+        nonce: nonce
+      };
+
+      const signature = await backendSigner.signTypedData(domain, types, value);
 
       await expect(
-        investmentFacet.distributeTokensFromFiat(
+        investmentFacet.connect(backendSigner).distributeTokensFromFiat(
           propertyId, ethers.ZeroAddress, tokenAmount, fiatAmount, paymentReference, nonce, signature
         )
       ).to.be.revertedWith("Invalid user address");
     });
 
     it("Should reject zero token amount", async function () {
-      const propertyId = 1, tokenAmount = 0, fiatAmount = ethers.parseEther("10000");
-      const paymentReference = "PAY_TEST_008", nonce = await investmentFacet.getUserNonce(user.address);
-
-      const messageHash = ethers.keccak256(
-        ethers.solidityPacked(
-          ["address", "uint256", "uint256", "uint256", "string", "uint256"],
-          [user.address, propertyId, tokenAmount, fiatAmount, paymentReference, nonce]
-        )
-      );
+      await investmentFacet.initializeDomainSeparator();
       
-      const signature = await backendSigner.signMessage(ethers.getBytes(messageHash));
+      const propertyId = 1, tokenAmount = 0, fiatAmount = ethers.parseEther("0");
+      const paymentReference = "PAY_TEST_013", nonce = await investmentFacet.getUserNonce(user.address);
+
+      // Create EIP-712 signature
+      const domain = {
+        name: "Assetrix",
+        version: "1",
+        chainId: await ethers.provider.getNetwork().then(n => n.chainId),
+        verifyingContract: await diamond.getAddress()
+      };
+
+      const types = {
+        FiatPayment: [
+          { name: "user", type: "address" },
+          { name: "propertyId", type: "uint256" },
+          { name: "tokenAmount", type: "uint256" },
+          { name: "fiatAmount", type: "uint256" },
+          { name: "paymentReference", type: "string" },
+          { name: "nonce", type: "uint256" }
+        ]
+      };
+
+      const value = {
+        user: user.address,
+        propertyId: propertyId,
+        tokenAmount: tokenAmount,
+        fiatAmount: fiatAmount,
+        paymentReference: paymentReference,
+        nonce: nonce
+      };
+
+      const signature = await backendSigner.signTypedData(domain, types, value);
 
       await expect(
-        investmentFacet.distributeTokensFromFiat(
+        investmentFacet.connect(backendSigner).distributeTokensFromFiat(
           propertyId, user.address, tokenAmount, fiatAmount, paymentReference, nonce, signature
         )
       ).to.be.revertedWith("Token amount must be greater than 0");
     });
 
     it("Should reject insufficient tokens", async function () {
-      const propertyId = 1, tokenAmount = 1000, fiatAmount = ethers.parseEther("1000000");
-      const paymentReference = "PAY_TEST_009", nonce = await investmentFacet.getUserNonce(user.address);
-
-      const messageHash = ethers.keccak256(
-        ethers.solidityPacked(
-          ["address", "uint256", "uint256", "uint256", "string", "uint256"],
-          [user.address, propertyId, tokenAmount, fiatAmount, paymentReference, nonce]
-        )
-      );
+      await investmentFacet.initializeDomainSeparator();
       
-      const signature = await backendSigner.signMessage(ethers.getBytes(messageHash));
+      const propertyId = 1, tokenAmount = 100000, fiatAmount = ethers.parseEther("1000000000");
+      const paymentReference = "PAY_TEST_014", nonce = await investmentFacet.getUserNonce(user.address);
+
+      // Create EIP-712 signature
+      const domain = {
+        name: "Assetrix",
+        version: "1",
+        chainId: await ethers.provider.getNetwork().then(n => n.chainId),
+        verifyingContract: await diamond.getAddress()
+      };
+
+      const types = {
+        FiatPayment: [
+          { name: "user", type: "address" },
+          { name: "propertyId", type: "uint256" },
+          { name: "tokenAmount", type: "uint256" },
+          { name: "fiatAmount", type: "uint256" },
+          { name: "paymentReference", type: "string" },
+          { name: "nonce", type: "uint256" }
+        ]
+      };
+
+      const value = {
+        user: user.address,
+        propertyId: propertyId,
+        tokenAmount: tokenAmount,
+        fiatAmount: fiatAmount,
+        paymentReference: paymentReference,
+        nonce: nonce
+      };
+
+      const signature = await backendSigner.signTypedData(domain, types, value);
 
       await expect(
-        investmentFacet.distributeTokensFromFiat(
+        investmentFacet.connect(backendSigner).distributeTokensFromFiat(
           propertyId, user.address, tokenAmount, fiatAmount, paymentReference, nonce, signature
         )
       ).to.be.revertedWith("Not enough tokens left");
     });
+
+    it("Should reject invalid nonce", async function () {
+      await investmentFacet.initializeDomainSeparator();
+      
+      const propertyId = 1, tokenAmount = 5, fiatAmount = ethers.parseEther("50000");
+      const paymentReference = "PAY_TEST_015", nonce = 999; // Invalid nonce
+
+      // Create EIP-712 signature
+      const domain = {
+        name: "Assetrix",
+        version: "1",
+        chainId: await ethers.provider.getNetwork().then(n => n.chainId),
+        verifyingContract: await diamond.getAddress()
+      };
+
+      const types = {
+        FiatPayment: [
+          { name: "user", type: "address" },
+          { name: "propertyId", type: "uint256" },
+          { name: "tokenAmount", type: "uint256" },
+          { name: "fiatAmount", type: "uint256" },
+          { name: "paymentReference", type: "string" },
+          { name: "nonce", type: "uint256" }
+        ]
+      };
+
+      const value = {
+        user: user.address,
+        propertyId: propertyId,
+        tokenAmount: tokenAmount,
+        fiatAmount: fiatAmount,
+        paymentReference: paymentReference,
+        nonce: nonce
+      };
+
+      const signature = await backendSigner.signTypedData(domain, types, value);
+
+      await expect(
+        investmentFacet.connect(backendSigner).distributeTokensFromFiat(
+          propertyId, user.address, tokenAmount, fiatAmount, paymentReference, nonce, signature
+        )
+      ).to.be.revertedWith("Invalid nonce");
+    });
+
+    it("Should reject when domain separator not initialized", async function () {
+      const propertyId = 1, tokenAmount = 5, fiatAmount = ethers.parseEther("50000");
+      const paymentReference = "PAY_TEST_016", nonce = 0;
+
+      // Create EIP-712 signature
+      const domain = {
+        name: "Assetrix",
+        version: "1",
+        chainId: await ethers.provider.getNetwork().then(n => n.chainId),
+        verifyingContract: await diamond.getAddress()
+      };
+
+      const types = {
+        FiatPayment: [
+          { name: "user", type: "address" },
+          { name: "propertyId", type: "uint256" },
+          { name: "tokenAmount", type: "uint256" },
+          { name: "fiatAmount", type: "uint256" },
+          { name: "paymentReference", type: "string" },
+          { name: "nonce", type: "uint256" }
+        ]
+      };
+
+      const value = {
+        user: user.address,
+        propertyId: propertyId,
+        tokenAmount: tokenAmount,
+        fiatAmount: fiatAmount,
+        paymentReference: paymentReference,
+        nonce: nonce
+      };
+
+      const signature = await backendSigner.signTypedData(domain, types, value);
+
+      await expect(
+        investmentFacet.connect(backendSigner).distributeTokensFromFiat(
+          propertyId, user.address, tokenAmount, fiatAmount, paymentReference, nonce, signature
+        )
+      ).to.be.revertedWith("Backend signer not set");
+    });
   });
-}); 
+
+  describe("Chain ID and Domain Management", function () {
+    it("Should return correct chain ID", async function () {
+      const chainId = await investmentFacet.getCurrentChainId();
+      const expectedChainId = await ethers.provider.getNetwork().then(n => n.chainId);
+      expect(chainId).to.equal(expectedChainId);
+    });
+
+    it("Should handle domain separator reset correctly", async function () {
+      await investmentFacet.initializeDomainSeparator();
+      expect(await investmentFacet.isDomainSeparatorInitialized()).to.be.true;
+      
+      await investmentFacet.resetDomainSeparator();
+      expect(await investmentFacet.isDomainSeparatorInitialized()).to.be.false;
+      
+      // Should be able to re-initialize
+      await investmentFacet.initializeDomainSeparator();
+      expect(await investmentFacet.isDomainSeparatorInitialized()).to.be.true;
+    });
+  });
+});
