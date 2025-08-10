@@ -1,0 +1,16 @@
+{
+  "network": "localhost",
+  "diamond": "0xFD471836031dc5108809D173A067e8486B9047A3",
+  "facets": {
+    "admin": "0x5c74c94173F05dA1720953407cbb920F3DF9f887",
+    "property": "0xAA292E8611aDF267e563f334Ee42320aC96D0463",
+    "investment": "0x720472c8ce72c2A2D711333e064ABD3E6BbEAdd3",
+    "milestone": "0xe8D2A1E88c91DCd5433208d4152Cc4F399a7e91d",
+    "transaction": "0x5067457698Fd6Fa1C6964e416b3f42713513B3dD",
+    "diamondloupe": "0x4b6aB5F819A515382B0dEB6935D793817bB4af28",
+    "fiatpayment": "0x18E317A7D70d8fBf8e6E893616b52390EbBdb629"
+  },
+  "deployer": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+  "timestamp": "2025-08-10T09:41:57.211Z",
+  "deploymentType": "standard"
+}

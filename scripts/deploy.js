@@ -91,7 +91,8 @@ async function performStandardDeployment(deployer, networkName, deploymentPath) 
     investment: await deployFacet('InvestmentFacet'),
     milestone: await deployFacet('MilestoneFacet'),
     transaction: await deployFacet('TransactionFacet'),
-    diamondLoupe: await deployFacet('DiamondLoupeFacet')
+    diamondLoupe: await deployFacet('DiamondLoupeFacet'),
+    fiatPayment: await deployFacet('FiatPaymentFacet')
   }
 
   // Perform diamond cut for core facets
@@ -143,7 +144,8 @@ async function performDiamondCut(diamondAddress, facets) {
     investment: 'InvestmentFacet',
     milestone: 'MilestoneFacet',
     transaction: 'TransactionFacet',
-    diamondLoupe: 'DiamondLoupeFacet'
+    diamondLoupe: 'DiamondLoupeFacet',
+    fiatPayment: 'FiatPaymentFacet'
   }
   
   for (const [facetKey, facetAddress] of Object.entries(facets)) {
