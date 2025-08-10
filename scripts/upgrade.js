@@ -171,35 +171,32 @@ async function main() {
           }
           
           if (existingSelectors.length > 0) {
+            // Check which functions are actually mapped to different addresses
             const diamondLoupe = await ethers.getContractAt('DiamondLoupeFacet', diamondAddress)
-            const actualOldAddresses = new Set()
+            const selectorsToReplace = []
             
             for (const selector of existingSelectors) {
               try {
-                const actualAddress = await diamondLoupe.facetAddress(selector)
-                if (actualAddress !== ethers.ZeroAddress) {
-                  actualOldAddresses.add(actualAddress)
+                const currentAddress = await diamondLoupe.facetAddress(selector)
+                if (currentAddress !== facetV2Address) {
+                  selectorsToReplace.push(selector)
                 }
               } catch (error) {
-                console.log(`  ⚠️  Could not find address for selector ${selector}`)
+                // Function not found, safe to add
+                selectorsToReplace.push(selector)
               }
             }
             
-            for (const actualOldAddress of actualOldAddresses) {
+            if (selectorsToReplace.length > 0) {
               cut.push({
-                facetAddress: ethers.ZeroAddress,
-                action: 2,
-                functionSelectors: existingSelectors
+                facetAddress: facetV2Address,
+                action: 1, // REPLACE
+                functionSelectors: selectorsToReplace
               })
-              console.log(`  ✅ Remove: ${existingSelectors.length} functions from ${actualOldAddress}`)
+              console.log(`  ✅ Replace: ${selectorsToReplace.length} functions with new facet`)
+            } else {
+              console.log(`  ℹ️  All functions already mapped to new facet`)
             }
-            
-            cut.push({
-              facetAddress: facetV2Address,
-              action: 0,
-              functionSelectors: existingSelectors
-            })
-            console.log(`  ✅ Add: ${existingSelectors.length} functions`)
           }
         } catch (error) {
           console.log(`  ❌ Failed: ${error.message}`)
@@ -252,9 +249,10 @@ async function main() {
           const facetSelectors = getSelectors(FacetContract.interface)
           
           if (facetSelectors.length > 0) {
+            // For new facets, use ADD operation
             cut.push({
               facetAddress: newFacetAddress,
-              action: 0,
+              action: 0, // ADD
               functionSelectors: facetSelectors
             })
             console.log(`  ✅ Add: ${facetSelectors.length} functions`)
@@ -292,31 +290,61 @@ async function main() {
           const diamondCut = await ethers.getContractAt('IDiamondCut', diamondAddress)
           
           try {
-            await diamondCut.diamondCut(validCut, ethers.ZeroAddress, "0x")
-            console.log('✅ Diamond cut successful')
+            // Set higher gas limit for diamond cut operations
+            const tx = await diamondCut.diamondCut(validCut, ethers.ZeroAddress, "0x", {
+              gasLimit: 5000000 // 5M gas limit
+            })
+            
+            console.log(`⏳ Waiting for transaction: ${tx.hash}`)
+            const receipt = await tx.wait()
+            console.log(`✅ Diamond cut successful (gas used: ${receipt.gasUsed.toString()})`)
           } catch (error) {
             console.log(`❌ Diamond cut failed: ${error.message}`)
             
-            console.log('🔄 Trying individual operations...')
+            console.log('🔄 Trying individual operations with higher gas limits...')
             
             for (const operation of validCut) {
+              const actionName = operation.action === 0 ? 'ADD' : operation.action === 1 ? 'REPLACE' : 'REMOVE'
+              console.log(`  Trying ${actionName} operation...`)
+              
               try {
-                await diamondCut.diamondCut([operation], ethers.ZeroAddress, "0x")
-                console.log(`✅ ${operation.action === 0 ? 'ADD' : 'REPLACE'} successful`)
-              } catch (singleError) {
-                console.log(`❌ ${operation.action === 0 ? 'ADD' : 'REPLACE'} failed: ${singleError.message}`)
+                const tx = await diamondCut.diamondCut([operation], ethers.ZeroAddress, "0x", {
+                  gasLimit: 2000000 // 2M gas limit per operation
+                })
                 
-                if (operation.action === 0 && singleError.message.includes('already exists')) {
-                  console.log('🔄 Trying REPLACE instead...')
+                console.log(`  ⏳ Waiting for ${actionName} transaction: ${tx.hash}`)
+                const receipt = await tx.wait()
+                console.log(`  ✅ ${actionName} successful (gas used: ${receipt.gasUsed.toString()})`)
+              } catch (singleError) {
+                console.log(`  ❌ ${actionName} failed: ${singleError.message}`)
+                
+                // If REPLACE fails, try REMOVE + ADD
+                if (operation.action === 1) {
+                  console.log(`  🔄 Trying REMOVE + ADD for ${actionName}...`)
                   try {
-                    await diamondCut.diamondCut([{
-                      facetAddress: operation.facetAddress,
-                      action: 1,
+                    // First remove
+                    const removeTx = await diamondCut.diamondCut([{
+                      facetAddress: ethers.ZeroAddress,
+                      action: 2, // REMOVE
                       functionSelectors: operation.functionSelectors
-                    }], ethers.ZeroAddress, "0x")
-                    console.log('✅ REPLACE successful')
-                  } catch (replaceError) {
-                    console.log(`❌ REPLACE failed: ${replaceError.message}`)
+                    }], ethers.ZeroAddress, "0x", {
+                      gasLimit: 1000000
+                    })
+                    await removeTx.wait()
+                    console.log(`    ✅ REMOVE successful`)
+                    
+                    // Then add
+                    const addTx = await diamondCut.diamondCut([{
+                      facetAddress: operation.facetAddress,
+                      action: 0, // ADD
+                      functionSelectors: operation.functionSelectors
+                    }], ethers.ZeroAddress, "0x", {
+                      gasLimit: 1000000
+                    })
+                    await addTx.wait()
+                    console.log(`    ✅ ADD successful`)
+                  } catch (fallbackError) {
+                    console.log(`    ❌ REMOVE + ADD failed: ${fallbackError.message}`)
                   }
                 }
               }
@@ -355,27 +383,38 @@ async function main() {
             console.log(`✅ ${contractName} verified`)
             
             const diamondLoupe = await ethers.getContractAt('DiamondLoupeFacet', diamondAddress)
-            const facetSelectors = await diamondLoupe.facetFunctionSelectors(facetAddress)
-            console.log(`  Functions: ${facetSelectors.length}`)
             
-            if (facetSelectors.length === 0) {
-              console.log(`  ⚠️  No functions found - upgrade may have failed`)
-              
-              const newFacetSelectors = getSelectors(facetContract.interface)
-              console.log(`  🔍 Checking ${newFacetSelectors.length} expected functions...`)
-              
-              for (const selector of newFacetSelectors) {
-                try {
-                  const actualFacetAddress = await diamondLoupe.facetAddress(selector)
-                  if (actualFacetAddress !== ethers.ZeroAddress && actualFacetAddress !== facetAddress) {
-                    console.log(`  ⚠️  Function ${selector} at ${actualFacetAddress}`)
-                  }
-                } catch (error) {
-                  console.log(`  ❌ Function ${selector} not found`)
+            // Get the expected function selectors for this facet
+            const expectedSelectors = getSelectors(facetContract.interface)
+            console.log(`  Expected functions: ${expectedSelectors.length}`)
+            
+            // Check how many functions are actually routed to this facet
+            let routedFunctions = 0
+            let mismatchedFunctions = 0
+            
+            for (const selector of expectedSelectors) {
+              try {
+                const actualFacetAddress = await diamondLoupe.facetAddress(selector)
+                if (actualFacetAddress === facetAddress) {
+                  routedFunctions++
+                } else if (actualFacetAddress !== ethers.ZeroAddress) {
+                  mismatchedFunctions++
+                  console.log(`  ⚠️  Function ${selector} routed to ${actualFacetAddress} instead of ${facetAddress}`)
                 }
+              } catch (error) {
+                console.log(`  ❌ Function ${selector} not found in diamond`)
+              }
+            }
+            
+            if (routedFunctions === expectedSelectors.length) {
+              console.log(`  ✅ ${routedFunctions}/${expectedSelectors.length} functions correctly routed`)
+            } else if (routedFunctions > 0) {
+              console.log(`  ⚠️  ${routedFunctions}/${expectedSelectors.length} functions routed correctly`)
+              if (mismatchedFunctions > 0) {
+                console.log(`  ⚠️  ${mismatchedFunctions} functions routed to wrong facet`)
               }
             } else {
-              console.log(`  ✅ ${facetSelectors.length} functions available`)
+              console.log(`  ❌ 0/${expectedSelectors.length} functions routed correctly - upgrade failed`)
             }
           } catch (error) {
             console.log(`⚠️  Could not verify ${facetName}: ${error.message}`)

@@ -74,29 +74,42 @@ async function main() {
       console.log(`  ${facet.name}: ${facet.address}`);
     });
 
+    // Check if we're on localhost (skip Etherscan verification)
+    const network = await ethers.provider.getNetwork();
+    const isLocalhost = network.chainId === 31337n;
+    
     let verifiedCount = 0;
     let alreadyVerifiedCount = 0;
     let failedCount = 0;
 
-    for (const facet of facetsToVerify) {
-      console.log(`\n🔍 ${facet.name}...`);
-      try {
-        await run("verify:verify", {
-          address: facet.address,
-          constructorArguments: [],
-        });
-        console.log(`  ✅ Verified`);
+    if (isLocalhost) {
+      console.log(`\n🔍 Skipping Etherscan verification on localhost (chain ID: ${network.chainId})`);
+      console.log(`📦 Facets deployed:`);
+      for (const facet of facetsToVerify) {
+        console.log(`  ✅ ${facet.name}: ${facet.address}`);
         verifiedCount++;
-      } catch (error) {
-        if (error.message.toLowerCase().includes("already verified")) {
-          console.log(`  ✅ Already verified`);
-          alreadyVerifiedCount++;
-        } else if (error.message.toLowerCase().includes("contract not found")) {
-          console.log(`  ❌ Not found on network`);
-          failedCount++;
-        } else {
-          console.log(`  ⚠️  Failed: ${error.message}`);
-          failedCount++;
+      }
+    } else {
+      for (const facet of facetsToVerify) {
+        console.log(`\n🔍 ${facet.name}...`);
+        try {
+          await run("verify:verify", {
+            address: facet.address,
+            constructorArguments: [],
+          });
+          console.log(`  ✅ Verified`);
+          verifiedCount++;
+        } catch (error) {
+          if (error.message.toLowerCase().includes("already verified")) {
+            console.log(`  ✅ Already verified`);
+            alreadyVerifiedCount++;
+          } else if (error.message.toLowerCase().includes("contract not found")) {
+            console.log(`  ❌ Not found on network`);
+            failedCount++;
+          } else {
+            console.log(`  ⚠️  Failed: ${error.message}`);
+            failedCount++;
+          }
         }
       }
     }
@@ -138,7 +151,6 @@ async function main() {
 
     await verifyUpgradeSystem(diamondAddress, facetAddresses);
 
-    const network = await ethers.provider.getNetwork();
     const networkName = network.name === 'unknown' ? 'localhost' : network.name;
     const deploymentPath = path.join(__dirname, '..', 'deployments', `deployment-${networkName}.json`);
     
@@ -181,14 +193,55 @@ async function verifyUpgradeSystem(diamondAddress, facetAddresses) {
     console.log(`  Checking function availability...`);
     for (const [facetName, facetAddress] of Object.entries(facetAddresses)) {
       try {
-        const selectors = await diamondLoupe.facetFunctionSelectors(facetAddress);
-        console.log(`    ${facetName}: ${selectors.length} functions`);
+        // Get the expected function selectors for this facet
+        let contractName = null;
+        const possibleNames = [
+          facetName.charAt(0).toUpperCase() + facetName.slice(1) + 'Facet',
+          facetName === 'fiatpayment' ? 'FiatPaymentFacet' : null,
+          facetName === 'diamondloupe' ? 'DiamondLoupeFacet' : null,
+          facetName.toUpperCase() + 'FACET',
+          facetName + 'Facet'
+        ].filter(Boolean);
         
-        if (selectors.length === 0) {
-          console.log(`    ⚠️  ${facetName} has no functions - may need upgrade`);
+        for (const name of possibleNames) {
+          try {
+            await ethers.getContractFactory(name);
+            contractName = name;
+            break;
+          } catch (error) {
+            // Continue to next option
+          }
+        }
+        
+        if (contractName) {
+          const facetContract = await ethers.getContractAt(contractName, diamondAddress);
+          const expectedSelectors = getSelectors(facetContract.interface);
+          
+          // Check how many functions are actually routed to this facet
+          let routedFunctions = 0;
+          for (const selector of expectedSelectors) {
+            try {
+              const actualFacetAddress = await diamondLoupe.facetAddress(selector);
+              if (actualFacetAddress === facetAddress) {
+                routedFunctions++;
+              }
+            } catch (error) {
+              // Function not found
+            }
+          }
+          
+          console.log(`    ${facetName}: ${routedFunctions}/${expectedSelectors.length} functions`);
+          
+          if (routedFunctions === 0) {
+            console.log(`    ⚠️  ${facetName} has no functions routed - may need upgrade`);
+          } else if (routedFunctions < expectedSelectors.length) {
+            console.log(`    ⚠️  ${facetName} has ${routedFunctions}/${expectedSelectors.length} functions routed`);
+          }
+        } else {
+          console.log(`    ${facetName}: Could not determine contract name`);
         }
       } catch (error) {
-        console.log(`    ❌ ${facetName}: Error checking functions`);
+        console.log(`    ❌ ${facetName}: Error checking functions - ${error.message}`);
       }
     }
     
@@ -264,6 +317,21 @@ async function checkAndInitializeContract(diamondAddress) {
     console.log('❌ Initialization failed:', error.message);
     console.log('💡 You can manually initialize later');
   }
+}
+
+function getSelectors(contractInterface) {
+  const selectors = []
+  for (const fragment of contractInterface.fragments) {
+    if (fragment.type === 'function') {
+      try {
+        const selector = contractInterface.getFunction(fragment.name).selector
+        selectors.push(selector)
+      } catch (error) {
+        console.log(`⚠️ Could not get selector for function: ${fragment.name} - ${error.message}`)
+      }
+    }
+  }
+  return selectors
 }
 
 main()
