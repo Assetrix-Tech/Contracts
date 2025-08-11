@@ -1,0 +1,92 @@
+{
+  "testInfo": {
+    "name": "investment-facet",
+    "network": "localhost",
+    "deploymentType": "test",
+    "timestamp": "2025-08-11T09:40:23.300Z"
+  },
+  "deployment": {
+    "timestamp": "2025-08-11T09:40:23.300Z",
+    "totalGasUsed": 0
+  },
+  "testResults": {
+    "status": "completed",
+    "startTime": "2025-08-11T09:40:23.300Z",
+    "endTime": "2025-08-11T09:40:39.442Z",
+    "passed": true,
+    "output": {
+      "summary": "✅ InvestmentFacet Tests Passed!",
+      "tests": [
+        {
+          "section": "🔍 Testing InvestmentFacet Functionality",
+          "results": [
+            "✅ Loaded deployment data",
+            "✅ Connected to contracts"
+          ]
+        },
+        {
+          "section": "🔍 Test 1: Initial Configuration",
+          "results": [
+            "✅ InvestmentFacet initialized (backend signer and domain separator not available)"
+          ]
+        },
+        {
+          "section": "🔍 Test 2: Setup Test Environment",
+          "results": [
+            "✅ Minted Naira to test users",
+            "✅ Test property created with ID: 1"
+          ]
+        },
+        {
+          "section": "🔍 Test 3: Investment Process",
+          "results": [
+            "✅ User1 balance before: 100000.0 Naira",
+            "✅ Property token price: 2500.0 Naira",
+            "✅ Property tokens left: 1000",
+            "✅ Investment amount: 50000.0 Naira",
+            "✅ Tokens to purchase: 20",
+            "✅ User1 approved Naira spending",
+            "✅ User1 purchased tokens successfully"
+          ]
+        },
+        {
+          "section": "🔍 Test 4: Investment Queries",
+          "results": [
+            "✅ User1 token balance: 20 tokens",
+            "✅ Property 1 token holders count: 1"
+          ]
+        },
+        {
+          "section": "🔍 Test 5: Investment Limits and Validation",
+          "results": [
+            "✅ Property tokens sold: 20",
+            "✅ Property tokens left: 980",
+            "✅ Property is fully funded: false"
+          ]
+        },
+        {
+          "section": "🔍 Test 6: Token Calculation",
+          "results": [
+            "✅ User1 token value: 50000.0 Naira"
+          ]
+        },
+        {
+          "section": "🔍 Test 7: Multiple Investors",
+          "results": [
+            "✅ User2 approved Naira spending",
+            "✅ User2 purchased tokens successfully",
+            "✅ Final property tokens sold: 32",
+            "✅ Final property tokens left: 968",
+            "✅ Total token holders: 2"
+          ]
+        }
+      ],
+      "info": [
+        "========================================",
+        "👤 Deployer: 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+        "👤 User1: 0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+        "👤 User2: 0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC"
+      ]
+    }
+  }
+}

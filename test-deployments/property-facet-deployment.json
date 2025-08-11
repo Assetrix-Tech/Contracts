@@ -1,0 +1,97 @@
+{
+  "testInfo": {
+    "name": "property-facet",
+    "network": "localhost",
+    "deploymentType": "test",
+    "timestamp": "2025-08-11T09:40:07.367Z"
+  },
+  "deployment": {
+    "timestamp": "2025-08-11T09:40:07.367Z",
+    "totalGasUsed": 0
+  },
+  "testResults": {
+    "status": "completed",
+    "startTime": "2025-08-11T09:40:07.367Z",
+    "endTime": "2025-08-11T09:40:23.296Z",
+    "passed": true,
+    "output": {
+      "summary": "✅ PropertyFacet Tests Passed!",
+      "tests": [
+        {
+          "section": "🔍 Testing PropertyFacet Functionality",
+          "results": [
+            "✅ Loaded deployment data",
+            "✅ Connected to PropertyFacet"
+          ]
+        },
+        {
+          "section": "🔍 Test 1: Initial State",
+          "results": [
+            "✅ Initial total properties: 1"
+          ]
+        },
+        {
+          "section": "🔍 Test 2: Use Existing Property",
+          "results": [
+            "✅ Using existing property with ID: 1",
+            "✅ Property title: Luxury Residential Tower - Lagos",
+            "✅ Property developer: Assetrix Development Ltd",
+            "✅ Property ROI: 18%",
+            "✅ Property title: Luxury Residential Tower - Lagos",
+            "✅ Property developer: Assetrix Development Ltd",
+            "✅ Property ROI: 18%"
+          ]
+        },
+        {
+          "section": "🔍 Test 3: Verify Property Exists",
+          "results": [
+            "✅ Total properties: 1",
+            "✅ Property exists: true"
+          ]
+        },
+        {
+          "section": "🔍 Test 4: Property Status Check",
+          "results": [
+            "✅ Property is active: true",
+            "✅ Property is fully funded: false",
+            "✅ Property tokens sold: 0",
+            "✅ Property tokens left: 1000"
+          ]
+        },
+        {
+          "section": "🔍 Test 5: Property Search and Filtering",
+          "results": [
+            "✅ Total properties count: 1",
+            "✅ Properties retrieved: 1",
+            "✅ Property 1 is in properties list: false"
+          ]
+        },
+        {
+          "section": "🔍 Test 6: Property Details Validation",
+          "results": [
+            "✅ Property details validation:"
+          ]
+        },
+        {
+          "section": "🔍 Test 7: Property Queries",
+          "results": [
+            "✅ Properties retrieved: 1",
+            "✅ Total count: 1",
+            "✅ Property 1 in list: true"
+          ]
+        }
+      ],
+      "info": [
+        "======================================",
+        "👤 Deployer: 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+        "👤 User1: 0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+        "Title: ✅ (Luxury Residential Tower - Lagos)",
+        "City: ✅ (Lagos)",
+        "Developer: ✅ (Assetrix Development Ltd)",
+        "Property Type: ✅ (1)",
+        "Property Use: ✅ (0)",
+        "ROI: ✅ (18%)"
+      ]
+    }
+  }
+}

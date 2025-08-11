@@ -1,0 +1,107 @@
+{
+  "testInfo": {
+    "name": "transaction-facet",
+    "network": "localhost",
+    "deploymentType": "test",
+    "timestamp": "2025-08-11T09:40:57.783Z"
+  },
+  "deployment": {
+    "timestamp": "2025-08-11T09:40:57.783Z",
+    "totalGasUsed": 0
+  },
+  "testResults": {
+    "status": "completed",
+    "startTime": "2025-08-11T09:40:57.783Z",
+    "endTime": "2025-08-11T09:41:26.062Z",
+    "passed": true,
+    "output": {
+      "summary": "✅ TransactionFacet Tests Passed!",
+      "tests": [
+        {
+          "section": "🔍 Testing TransactionFacet Functionality",
+          "results": [
+            "✅ Loaded deployment data",
+            "✅ Connected to contracts"
+          ]
+        },
+        {
+          "section": "🔍 Test 1: Initial State",
+          "results": [
+            "✅ Initial transaction count: 0"
+          ]
+        },
+        {
+          "section": "🔍 Test 2: Get Test Property",
+          "results": [
+            "✅ Using existing property with ID: 1"
+          ]
+        },
+        {
+          "section": "🔍 Test 3: Record Property Creation Transaction",
+          "results": [
+            "✅ Property creation transaction recorded"
+          ]
+        },
+        {
+          "section": "🔍 Test 4: Record Investment Transaction",
+          "results": [
+            "✅ Minted Naira to user1",
+            "✅ Investment transaction recorded"
+          ]
+        },
+        {
+          "section": "🔍 Test 5: Record Withdrawal Transaction",
+          "results": [
+            "✅ Withdrawal transaction recorded"
+          ]
+        },
+        {
+          "section": "🔍 Test 6: Verify Transaction Recording",
+          "results": [
+            "✅ New transaction count: 3",
+            "✅ Transaction count increased: true"
+          ]
+        },
+        {
+          "section": "🔍 Test 7: Retrieve Transactions",
+          "results": [
+            "✅ Transaction 1: Type 6, Amount: 0.0 Naira",
+            "✅ Transaction 2: Type 0, Amount: 600.0 Naira",
+            "✅ Transaction 3: Type 2, Amount: 100.0 Naira"
+          ]
+        },
+        {
+          "section": "🔍 Test 8: Property Transaction Queries",
+          "results": [
+            "✅ Property 1 transactions count: 3",
+            "✅ All transactions belong to property: true"
+          ]
+        },
+        {
+          "section": "🔍 Test 9: User Transaction Queries",
+          "results": [
+            "✅ User1 transactions count: 2",
+            "✅ Deployer transactions count: 3"
+          ]
+        },
+        {
+          "section": "🔍 Test 10: Transaction Validation",
+          "results": [
+            "✅ Transaction data validation:"
+          ]
+        }
+      ],
+      "info": [
+        "=========================================",
+        "👤 Deployer: 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+        "👤 User1: 0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+        "👤 User2: 0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC",
+        "First transaction type: 6",
+        "First transaction amount: 0.0 Naira",
+        "First transaction propertyId: 1",
+        "User1 transaction type: 0",
+        "User1 transaction amount: 600.0 Naira"
+      ]
+    }
+  }
+}

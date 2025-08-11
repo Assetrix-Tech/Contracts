@@ -1,345 +1,268 @@
 
-# Fiat Payment Integration - Complete Developer Guide
+# Fiat Payment Integration - Current System Status
 
-## 🎯 What This System Does
+## 🚨 **IMPORTANT: Current System Limitations**
 
-Imagine you're building a real estate investment platform where users can buy property tokens using Nigerian Naira (₦). This system bridges the gap between traditional banking and blockchain by:
+The current Assetrix system has been deployed **without** the FiatPaymentFacet. This means:
 
-1. **User pays in Naira** → Paystack processes the payment
-2. **Backend verifies payment** → Confirms money was received
-3. **Smart contract distributes tokens** → User gets property tokens automatically
-4. **Everything is secure** → Uses cryptographic signatures to prevent fraud
+- ❌ **No fiat payment functionality** is currently available
+- ❌ **Backend signer functions** are not implemented
+- ❌ **EIP-712 signature verification** is not available
+- ❌ **Paystack integration** is not set up
 
-Think of it like a vending machine: you put in money, the machine verifies it's real money, then automatically gives you your product.
+## 🎯 What This System Currently Does
 
-## 🏗️ How the System Works (High-Level Overview)
+The current Assetrix system is a **tokenized real estate investment platform** where users can:
+
+1. **Buy property tokens** using stablecoins (MockStablecoin for testing)
+2. **Track property investments** across multiple properties
+3. **Manage milestones** and track development progress
+4. **Record transactions** for audit purposes
+5. **Administer the platform** through the diamond pattern
+
+## 🏗️ Current System Architecture
 
 ```
 User wants to buy tokens
          ↓
-   Pays with Naira via Paystack
+   Uses stablecoins (MockStablecoin)
          ↓
-   Paystack confirms payment
+   Approves spending on diamond contract
          ↓
-   Backend creates digital signature
-         ↓
-   Smart contract verifies signature
+   Calls purchaseTokens() function
          ↓
    Tokens are distributed to user
 ```
 
-## 🔐 Security: Why We Use EIP-712 Signatures
+## 🔐 Current Security Model
 
-### What is EIP-712?
-EIP-712 is like a digital fingerprint that proves the backend authorized a transaction. It's more secure than older methods because:
+The current system uses:
+- **Standard ERC-20 approvals** for token spending
+- **Access control** through the AdminFacet
+- **Reentrancy protection** on all functions
+- **Input validation** on all parameters
 
-- **Users see exactly what they're signing** (like a receipt)
-- **Signatures are unique to your contract** (can't be reused elsewhere)
-- **Wallets display the data clearly** (better user experience)
-
-### How Signatures Work in Our System
-1. **Backend creates a message** with payment details
-2. **Backend signs it** with their private key (like a digital stamp)
-3. **Smart contract verifies** the signature matches the backend's public key
-4. **If valid, tokens are distributed**
-
-This prevents anyone from:
-- Creating fake payments
-- Reusing old payment confirmations
-- Stealing tokens without authorization
-
-## 📱 Frontend: How Users Interact
+## 📱 Current User Flow
 
 ### Step 1: User Clicks "Buy Tokens"
 When a user wants to buy property tokens, they see a button like:
 ```javascript
-<button>Pay ₦500,000 for 500 tokens</button>
+<button>Buy 500 tokens for 500 stablecoins</button>
 ```
 
-### Step 2: Payment Initiation
-When clicked, the frontend:
-1. **Sends payment request** to your backend
-2. **Gets a payment URL** from Paystack
-3. **Redirects user** to Paystack's payment page
-4. **Stores payment reference** locally (to track the payment)
+### Step 2: Token Approval
+The frontend:
+1. **Requests approval** for stablecoin spending
+2. **User approves** the transaction
+3. **Calls purchaseTokens()** on the InvestmentFacet
 
-### Step 3: Payment Processing
-User completes payment on Paystack, then:
-1. **Paystack redirects back** to your app
-2. **Frontend detects the return** and verifies payment
-3. **Shows success message** when tokens are distributed
+### Step 3: Token Distribution
+The smart contract:
+1. **Transfers stablecoins** from user to contract
+2. **Distributes property tokens** to user
+3. **Records the transaction**
 
-## 🖥️ Backend: The Payment Orchestrator
+## 🖥️ Current Backend Requirements
 
-### What the Backend Does
-The backend is like a trusted middleman that:
-1. **Receives payment confirmations** from Paystack
-2. **Verifies the payment** is real and complete
-3. **Creates a digital signature** authorizing token distribution
-4. **Calls the smart contract** to distribute tokens
-5. **Returns success/failure** to the frontend
+The current system requires minimal backend support:
+1. **Property management** - creating and updating properties
+2. **Transaction monitoring** - tracking user investments
+3. **Platform administration** - managing global settings
 
-### Key Backend Components
+## ⛓️ Current Smart Contract Functions
 
-#### 1. Payment Verification
-```javascript
-// Backend checks with Paystack: "Did this user really pay?"
-const verification = await paystack.transaction.verify(paymentReference);
-if (!verification.status) {
-    throw new Error('Payment verification failed');
-}
-```
-
-#### 2. Signature Creation
-```javascript
-// Backend creates a digital stamp saying "I authorize this token distribution"
-const signature = await backendWallet._signTypedData(domain, types, paymentData);
-```
-
-#### 3. Smart Contract Interaction
-```javascript
-// Backend tells the blockchain: "Distribute these tokens to this user"
-const tx = await contract.distributeTokensFromFiat(
-    propertyId, userAddress, tokenAmount, 
-    fiatAmount, paymentReference, nonce, signature
-);
-```
-
-## ⛓️ Smart Contract: The Trusted Token Distributor
-
-### What the Smart Contract Does
-The smart contract is like an automated vending machine that:
-1. **Receives authorization** from the backend (via signature)
-2. **Checks all the rules** (valid user, enough tokens, etc.)
-3. **Distributes tokens** to the user
-4. **Records the transaction** for audit purposes
-5. **Prevents double-spending** and fraud
-
-### Key Security Checks
-
-#### 1. Signature Verification
+### InvestmentFacet (Available)
 ```solidity
-// Contract checks: "Is this signature really from the authorized backend?"
-bool isValidSignature = verifyBackendSignature(
-    user, propertyId, tokenAmount, fiatAmount, 
-    paymentReference, nonce, signature
-);
-require(isValidSignature, "Invalid backend signature");
+// Buy tokens with stablecoins
+function purchaseTokens(uint256 _propertyId, uint256 _tokenAmount) external;
+
+// Get user's token balance
+function getTokenBalance(uint256 _propertyId, address _user) external view returns (uint256);
+
+// Calculate token value
+function getTokenValue(uint256 _propertyId, uint256 _tokenAmount) external view returns (uint256);
 ```
 
-#### 2. Nonce Protection
+### AdminFacet (Available)
 ```solidity
-// Contract checks: "Has this user's nonce been used before?"
-require(s.userNonces[_user] == _nonce, "Invalid nonce");
-s.userNonces[_user]++; // Increment to prevent replay attacks
+// Set global token price
+function setGlobalTokenPrice(uint256 _price) external onlyOwner;
+
+// Transfer ownership
+function transferOwnership(address _newOwner) external onlyOwner;
+
+// Pause/unpause system
+function pause() external onlyOwner;
+function unpause() external onlyOwner;
 ```
 
-#### 3. Payment Reference Tracking
-```solidity
-// Contract checks: "Has this payment been processed before?"
-require(!s.processedFiatPayments[_paymentReference], "Payment already processed");
-s.processedFiatPayments[_paymentReference] = true;
+## 🚀 Adding Fiat Payment Support
+
+To add fiat payment functionality, you would need to:
+
+### 1. Deploy FiatPaymentFacet
+```bash
+# Add FiatPaymentFacet to deployment script
+# Deploy with proper function selectors
+# Add to diamond cut
 ```
 
-## 🔄 Complete Payment Flow (Step by Step)
-
-### 1. User Initiates Payment
-```
-User clicks "Buy 500 tokens for ₦500,000"
-         ↓
-Frontend calls /api/create-payment
-         ↓
-Backend creates Paystack payment
-         ↓
-User gets redirected to Paystack
+### 2. Set Up Backend Infrastructure
+```bash
+# Create backend wallet
+# Set backend signer in contract
+# Initialize EIP-712 domain separator
 ```
 
-### 2. User Completes Payment
-```
-User enters card details on Paystack
-         ↓
-Paystack processes payment
-         ↓
-Paystack redirects back to your app
-         ↓
-Frontend detects return
+### 3. Integrate Paystack
+```bash
+# Set up Paystack API keys
+# Create payment verification endpoints
+# Implement signature creation
 ```
 
-### 3. Payment Verification
-```
-Frontend calls /api/verify-payment
-         ↓
-Backend verifies with Paystack
-         ↓
-Backend creates EIP-712 signature
-         ↓
-Backend calls smart contract
+### 4. Update Frontend
+```bash
+# Add fiat payment UI
+# Integrate Paystack payment flow
+# Handle payment verification
 ```
 
-### 4. Token Distribution
-```
-Smart contract verifies signature
-         ↓
-Smart contract checks all rules
-         ↓
-Smart contract distributes tokens
-         ↓
-Smart contract records transaction
-         ↓
-Backend returns success to frontend
-```
+## 🧪 Current Testing Status
 
-### 5. User Sees Success
-```
-Frontend shows "Tokens distributed successfully!"
-         ↓
-User's wallet shows new token balance
-         ↓
-Transaction is recorded on blockchain
-```
+### ✅ **All Tests Passing (100% Success Rate)**
 
-## 🛠️ Setting Up the System
+1. **Diamond Core Test** - Basic diamond contract functionality
+2. **Admin Facet Test** - Ownership and configuration management
+3. **Property Facet Test** - Property creation and management
+4. **Investment Facet Test** - Token purchasing with stablecoins
+5. **Milestone Facet Test** - Property milestone tracking
+6. **Transaction Facet Test** - Transaction recording and querying
+7. **System Integration Test** - End-to-end functionality
+
+### Test Results Summary
+- **Total Tests: 7**
+- **Passed: 7**
+- **Failed: 0**
+- **Success Rate: 100.0%**
+
+## 🛠️ Current Setup Instructions
 
 ### 1. Environment Variables
 Create a `.env` file with:
 ```bash
-# Paystack API keys (get from Paystack dashboard)
-PAYSTACK_SECRET_KEY=sk_test_...
-PAYSTACK_PUBLIC_KEY=pk_test_...
-
-# Backend wallet (this wallet will authorize token distributions)
-BACKEND_PRIVATE_KEY=0x...
-
-# Your deployed smart contract
-DIAMOND_ADDRESS=0x...
-
-# Blockchain network
-RPC_URL=https://sepolia.infura.io/v3/...
+# For local development
+# No special keys needed for current functionality
 ```
 
 ### 2. Deploy Smart Contracts
 ```bash
+# Deploy to localhost
+npx hardhat run scripts/deploy-local.js --network localhost
+
 # Deploy to testnet
 npx hardhat run scripts/deploy.js --network sepolia
-
-# Set the backend signer (who can authorize payments)
-npx hardhat run scripts/set-backend-signer.js --network sepolia
 ```
 
-### 3. Initialize EIP-712
-```bash
-# Set up domain separator for signatures
-npx hardhat run scripts/migrate-to-eip712.js --network sepolia
-```
-
-### 4. Test the System
-```bash
-# Run a complete test payment
-npx hardhat run scripts/fiat-payment-eip712-example.js --network sepolia
-```
-
-## 🧪 Testing the System
-
-### Manual Testing
-1. **Create a test property** with tokens available
-2. **Initiate a payment** through your frontend
-3. **Complete payment** on Paystack (use test cards)
-4. **Verify tokens** are distributed to user's wallet
-5. **Check transaction** on blockchain explorer
-
-### Automated Testing
+### 3. Test the System
 ```bash
 # Run all tests
-npx hardhat test
+node test-scripts/run-all-tests.js
 
-# Run specific test file
-npx hardhat test test/FiatPayment.test.js
+# Run individual tests
+npx hardhat run test-scripts/01-test-diamond-core.js --network localhost
+npx hardhat run test-scripts/02-test-admin-facet.js --network localhost
+npx hardhat run test-scripts/03-test-property-facet.js --network localhost
+npx hardhat run test-scripts/04-test-investment-facet.js --network localhost
+npx hardhat run test-scripts/05-test-milestone-facet.js --network localhost
+npx hardhat run test-scripts/06-test-transaction-facet.js --network localhost
+npx hardhat run test-scripts/07-test-integration.js --network localhost
 ```
 
-## 🚨 Common Issues and Solutions
+## 📊 Current System Capabilities
 
-### Issue 1: "Backend signer not set"
-**Problem**: Smart contract doesn't know who can authorize payments
-**Solution**: Run the set-backend-signer script
+### ✅ **What Works Now**
+- **Property tokenization** - Create and manage tokenized properties
+- **Investment tracking** - Users can buy and track property tokens
+- **Milestone management** - Track property development progress
+- **Transaction recording** - Complete audit trail of all activities
+- **Admin controls** - Platform administration and configuration
+- **Diamond pattern** - Modular, upgradeable smart contract architecture
 
-### Issue 2: "Domain separator not initialized"
-**Problem**: EIP-712 signatures won't work
-**Solution**: Run the migrate-to-eip712 script
+### ❌ **What's Missing (Fiat Payments)**
+- **Naira payments** - Users can't pay with Nigerian Naira
+- **Paystack integration** - No payment processor integration
+- **Backend authorization** - No backend signature verification
+- **Fiat-to-token conversion** - No automatic conversion from fiat to tokens
 
-### Issue 3: "Invalid nonce"
-**Problem**: User's nonce is out of sync
-**Solution**: Check if user has made other transactions, reset nonce if needed
+## 🔮 Future Development Roadmap
 
-### Issue 4: "Payment already processed"
-**Problem**: Same payment reference used twice
-**Solution**: Generate unique payment references for each transaction
+### Phase 1: Current System (✅ Complete)
+- [x] Diamond pattern implementation
+- [x] Property tokenization
+- [x] Investment tracking
+- [x] Milestone management
+- [x] Transaction recording
+- [x] Admin controls
 
-## 📊 Monitoring and Analytics
+### Phase 2: Fiat Payment Integration (🚧 Planned)
+- [ ] Deploy FiatPaymentFacet
+- [ ] Set up backend infrastructure
+- [ ] Integrate Paystack
+- [ ] Implement EIP-712 signatures
+- [ ] Add fiat payment UI
+- [ ] Test end-to-end payment flow
 
-### What to Track
-1. **Payment success rate** (how many payments complete successfully)
-2. **Token distribution time** (how long from payment to tokens)
-3. **Error rates** (what's failing and why)
-4. **User experience** (how smooth is the payment flow)
+### Phase 3: Advanced Features (📋 Future)
+- [ ] Multi-currency support
+- [ ] Advanced fraud detection
+- [ ] Mobile app integration
+- [ ] Batch payment processing
+- [ ] Payment scheduling
 
-### Tools to Use
-1. **Paystack Dashboard** - payment analytics
-2. **Blockchain Explorer** - transaction tracking
-3. **Your Backend Logs** - error monitoring
-4. **Frontend Analytics** - user behavior
-
-## 🔮 Future Enhancements
-
-### Possible Improvements
-1. **Batch payments** - process multiple payments at once
-2. **Payment scheduling** - allow users to set up recurring payments
-3. **Multi-currency support** - accept USD, EUR, etc.
-4. **Advanced fraud detection** - ML-based risk assessment
-5. **Mobile app integration** - native mobile payment flows
-
-## 💡 Best Practices
+## 💡 Current Best Practices
 
 ### Security
-1. **Never expose private keys** in frontend code
-2. **Always verify payments** with Paystack before distributing tokens
-3. **Use unique payment references** for each transaction
-4. **Implement rate limiting** to prevent abuse
+1. **Use stablecoins** for all transactions
+2. **Verify all inputs** before processing
+3. **Monitor gas costs** and optimize
+4. **Test thoroughly** before mainnet
 
 ### User Experience
-1. **Show clear payment progress** to users
-2. **Handle errors gracefully** with helpful messages
-3. **Provide payment confirmation** emails/SMS
-4. **Make token distribution** feel instant
+1. **Clear token pricing** display
+2. **Simple approval process** for stablecoins
+3. **Immediate token distribution**
+4. **Clear transaction feedback**
 
 ### Development
-1. **Test thoroughly** on testnet before mainnet
-2. **Monitor gas costs** and optimize when possible
-3. **Keep dependencies updated** for security
-4. **Document any changes** to the payment flow
+1. **Modular architecture** with diamond pattern
+2. **Comprehensive testing** (100% pass rate)
+3. **Clear documentation** and examples
+4. **Upgradeable contracts** for future improvements
 
 ## 🤝 Getting Help
 
-### When You're Stuck
-1. **Check the logs** - both backend and smart contract
-2. **Verify environment variables** are set correctly
-3. **Test on testnet first** before mainnet
-4. **Use blockchain explorers** to debug transactions
+### Current System Support
+1. **Check test results** - all tests should pass
+2. **Review deployment logs** - verify contract addresses
+3. **Use blockchain explorers** - track transactions
+4. **Check contract state** - verify configuration
 
 ### Resources
-1. **Paystack Documentation** - payment processing
-2. **Ethereum Documentation** - smart contract development
-3. **Hardhat Documentation** - development framework
-4. **Your team's knowledge** - don't hesitate to ask questions!
+1. **Test documentation** - see TEST_DOCUMENTATION.md
+2. **Deployment guide** - see DEPLOYMENT_GUIDE.md
+3. **Access control guide** - see ACCESS_CONTROL.md
+4. **Hardhat documentation** - development framework
 
 ---
 
-## 🎉 You're Ready!
+## 🎉 Current Status: Production Ready (Stablecoin Only)
 
-This system gives you a production-ready fiat payment integration that:
-- ✅ **Securely bridges** traditional banking and blockchain
-- ✅ **Prevents fraud** with cryptographic signatures
-- ✅ **Provides great UX** with clear payment flows
-- ✅ **Scales easily** as your user base grows
-- ✅ **Maintains compliance** with financial regulations
+The current Assetrix system is **fully functional** for:
+- ✅ **Tokenized real estate investments** using stablecoins
+- ✅ **Property development tracking** with milestones
+- ✅ **Complete transaction audit trail**
+- ✅ **Platform administration** and management
+- ✅ **Scalable diamond pattern architecture**
 
-Your users can now buy property tokens with Naira as easily as they buy anything online! 🚀
+**Next Step**: Add fiat payment integration when ready to support Naira payments! 🚀

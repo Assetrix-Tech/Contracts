@@ -54,6 +54,8 @@ async function main() {
   await diamondLoupeFacet.waitForDeployment();
   console.log(`✅ DiamondLoupeFacet deployed to: ${await diamondLoupeFacet.getAddress()}`);
 
+
+
   // Get function selectors for each facet
   console.log("\n🔍 Getting function selectors...");
   
@@ -92,6 +94,8 @@ async function main() {
     "0xcdffacc6", "0x52ef6b2c", "0xadfca15e", "0x7a0ed627"
   ];
 
+
+
   // Add facets to diamond
   console.log("\n🔗 Adding facets to diamond...");
   const diamondCut = await ethers.getContractAt("IDiamondCut", await diamond.getAddress());
@@ -126,7 +130,8 @@ async function main() {
       facetAddress: await diamondLoupeFacet.getAddress(),
       action: 0, // Add
       functionSelectors: diamondLoupeSelectors
-    }
+    },
+
   ];
 
   const tx = await diamondCut.diamondCut(cut, ethers.ZeroAddress, "0x");
@@ -162,13 +167,7 @@ async function main() {
   // Investment limits are already set in initialize
   console.log("✅ Investment limits set");
 
-  // Set backend signer (using deployer for testing)
-  await investmentFacetInterface.setBackendSigner(deployer.address);
-  console.log("✅ Backend signer set");
 
-  // Initialize domain separator for EIP-712
-  await investmentFacetInterface.initializeDomainSeparator();
-  console.log("✅ Domain separator initialized");
 
   // Mint some Naira to deployer for testing
   await mockStablecoin.mint(deployer.address, ethers.parseUnits("10000000", 2));
@@ -218,6 +217,7 @@ async function main() {
     transactionFacet: await transactionFacet.getAddress(),
     milestoneFacet: await milestoneFacet.getAddress(),
     diamondLoupeFacet: await diamondLoupeFacet.getAddress(),
+
     deployer: deployer.address,
     backendSigner: deployer.address,
     network: "localhost",
@@ -241,6 +241,7 @@ async function main() {
   console.log(`💸 TransactionFacet: ${await transactionFacet.getAddress()}`);
   console.log(`📊 MilestoneFacet: ${await milestoneFacet.getAddress()}`);
   console.log(`🔍 DiamondLoupeFacet: ${await diamondLoupeFacet.getAddress()}`);
+
   console.log(`👤 Deployer: ${deployer.address}`);
   console.log(`🔐 Backend Signer: ${deployer.address}`);
   console.log("=".repeat(60));
