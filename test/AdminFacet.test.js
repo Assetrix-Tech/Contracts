@@ -205,10 +205,10 @@ describe("AdminFacet", function () {
 
     it("Should allow owner to withdraw stablecoin funds", async function () {
       // Transfer some tokens to the diamond contract
-      await stablecoin.transfer(await diamond.getAddress(), ethers.parseEther("1000"));
+      await stablecoin.transfer(await diamond.getAddress(), ethers.parseUnits("1000", 2));
       
       const recipient = nonOwner.address;
-      const amount = ethers.parseEther("100");
+      const amount = ethers.parseUnits("100", 2);
       
       await expect(
         adminFacet.withdrawStablecoin(recipient, amount)

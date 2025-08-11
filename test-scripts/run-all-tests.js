@@ -12,9 +12,10 @@ async function runAllTests() {
         { name: "Admin Facet", file: "test-scripts/02-test-admin-facet.js" },
         { name: "Property Facet", file: "test-scripts/03-test-property-facet.js" },
         { name: "Investment Facet", file: "test-scripts/04-test-investment-facet.js" },
-        { name: "Milestone Facet", file: "test-scripts/05-test-milestone-facet.js" },
-        { name: "Transaction Facet", file: "test-scripts/06-test-transaction-facet.js" },
-        { name: "System Integration", file: "test-scripts/07-test-integration.js" }
+        { name: "Fiat Payment Facet", file: "test-scripts/05-test-fiat-payment-facet.js" },
+        { name: "Milestone Facet", file: "test-scripts/06-test-milestone-facet.js" },
+        { name: "Transaction Facet", file: "test-scripts/07-test-transaction-facet.js" },
+        { name: "System Integration", file: "test-scripts/08-test-integration.js" }
     ];
 
     let passedTests = 0;

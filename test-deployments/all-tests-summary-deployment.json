@@ -3,19 +3,19 @@
     "name": "all-tests-summary",
     "network": "localhost",
     "deploymentType": "test",
-    "timestamp": "2025-08-11T09:41:46.518Z"
+    "timestamp": "2025-08-11T13:20:31.550Z"
   },
   "deployment": {
-    "timestamp": "2025-08-11T09:41:46.518Z",
+    "timestamp": "2025-08-11T13:20:31.550Z",
     "totalGasUsed": 0
   },
   "testResults": {
     "status": "all_passed",
-    "startTime": "2025-08-11T09:41:46.518Z",
-    "endTime": "2025-08-11T09:41:46.525Z",
+    "startTime": "2025-08-11T13:20:31.550Z",
+    "endTime": "2025-08-11T13:20:31.555Z",
     "passed": true,
-    "totalTests": 7,
-    "passedTests": 7,
+    "totalTests": 8,
+    "passedTests": 8,
     "failedTests": 0,
     "successRate": "100.0%"
   },
@@ -39,6 +39,11 @@
       "testName": "investment-facet",
       "status": "passed",
       "logFile": "C:\\Users\\sulay\\Documents\\Assetrix\\test-deployments\\investment-facet-deployment.json"
+    },
+    {
+      "testName": "fiat-payment-facet",
+      "status": "passed",
+      "logFile": "C:\\Users\\sulay\\Documents\\Assetrix\\test-deployments\\fiat-payment-facet-deployment.json"
     },
     {
       "testName": "milestone-facet",

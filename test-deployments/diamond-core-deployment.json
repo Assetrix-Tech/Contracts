@@ -3,16 +3,16 @@
     "name": "diamond-core",
     "network": "localhost",
     "deploymentType": "test",
-    "timestamp": "2025-08-11T09:39:25.144Z"
+    "timestamp": "2025-08-11T13:18:38.495Z"
   },
   "deployment": {
-    "timestamp": "2025-08-11T09:39:25.144Z",
+    "timestamp": "2025-08-11T13:18:38.495Z",
     "totalGasUsed": 0
   },
   "testResults": {
     "status": "completed",
-    "startTime": "2025-08-11T09:39:25.144Z",
-    "endTime": "2025-08-11T09:39:49.560Z",
+    "startTime": "2025-08-11T13:18:38.495Z",
+    "endTime": "2025-08-11T13:18:50.574Z",
     "passed": true,
     "output": {
       "summary": "✅ Diamond Core Tests Passed!",
@@ -32,8 +32,8 @@
         {
           "section": "🔍 Test 2: DiamondLoupe Functions",
           "results": [
-            "✅ Facets count: 6",
-            "✅ Facet addresses count: 6",
+            "✅ Facets count: 7",
+            "✅ Facet addresses count: 7",
             "✅ adminFacet: Present",
             "✅ propertyFacet: Present",
             "✅ investmentFacet: Present",

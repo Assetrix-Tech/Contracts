@@ -2,7 +2,7 @@ const { expect } = require("chai");
 const { ethers } = require("hardhat");
 
 describe("Token Supply Tracking", function () {
-  let diamond, investmentFacet, adminFacet, propertyFacet, mockStablecoin;
+  let diamond, investmentFacet, adminFacet, propertyFacet, fiatPaymentFacet, mockStablecoin;
   let owner, backendSigner, user1, user2, developer;
 
   beforeEach(async function () {
@@ -35,6 +35,9 @@ describe("Token Supply Tracking", function () {
     const DiamondLoupeFacet = await ethers.getContractFactory("DiamondLoupeFacet");
     const diamondLoupeFacet = await DiamondLoupeFacet.deploy();
 
+    const FiatPaymentFacet = await ethers.getContractFactory("FiatPaymentFacet");
+    const fiatPaymentFacetContract = await FiatPaymentFacet.deploy();
+
     // Get function selectors for each facet
     const adminSelectors = [
       "0x8da5cb5b", "0x1794bb3c", "0x5cd9205f", "0xcc7ac330", "0xb6f67312",
@@ -45,12 +48,10 @@ describe("Token Supply Tracking", function () {
     ];
 
     const investmentSelectors = [
-      "0x36f95670", "0xd9e359cd", "0xf7770056", "0x6834e3a8", "0x149f2e88",
       "0x8bf0af3e", "0xef57e2d2", "0xe2d253c9", "0xf2934a02", "0xda2a1bb5",
       "0x0117b0ed", "0x1b48a3b0", "0x19580150", "0x93838cdb", "0xb8af3d3e",
       "0xdae21c58", "0xad41f119", "0x93ffcce3", "0xb79f9f67", "0xb7ddac87",
-      "0x1a4847e9", "0x372896f1", "0x8682c64d", "0x2ff79161", "0x591723fd", "0x85e69128",
-      "0xed24911d", "0x5cf0e8a4"
+      "0x1a4847e9", "0x372896f1", "0x8682c64d", "0x7ad226dc"
     ];
 
     const propertySelectors = [
@@ -70,6 +71,12 @@ describe("Token Supply Tracking", function () {
 
     const diamondLoupeSelectors = [
       "0xcdffacc6", "0x52ef6b2c", "0xadfca15e", "0x7a0ed627"
+    ];
+
+    const fiatPaymentSelectors = [
+      "0xe474f042", "0xf7770056", "0xd9e359cd", "0x5cf0e8a4", "0xed24911d",
+      "0x6834e3a8", "0x2ff79161", "0x591723fd", "0x149f2e88", "0x85e69128",
+      "0x36f95670"
     ];
 
     // Add facets to diamond
@@ -105,6 +112,11 @@ describe("Token Supply Tracking", function () {
         facetAddress: await diamondLoupeFacet.getAddress(),
         action: 0, // Add
         functionSelectors: diamondLoupeSelectors
+      },
+      {
+        facetAddress: await fiatPaymentFacetContract.getAddress(),
+        action: 0, // Add
+        functionSelectors: fiatPaymentSelectors
       }
     ];
 
@@ -114,17 +126,19 @@ describe("Token Supply Tracking", function () {
     adminFacet = await ethers.getContractAt("AdminFacet", await diamond.getAddress());
     investmentFacet = await ethers.getContractAt("InvestmentFacet", await diamond.getAddress());
     propertyFacet = await ethers.getContractAt("PropertyFacet", await diamond.getAddress());
+    fiatPaymentFacet = await ethers.getContractAt("FiatPaymentFacet", await diamond.getAddress());
 
     // Initialize the platform
     await adminFacet.initializeOwnership(owner.address);
     await adminFacet.setStablecoin(await mockStablecoin.getAddress());
-    await adminFacet.setGlobalTokenPrice(ethers.parseEther("100000")); // 100,000 USDT per token
+    await adminFacet.setGlobalTokenPrice(ethers.parseEther("100000")); // 100,000 Naira per token
     await adminFacet.setMinTokensPerInvestment(1);
     await adminFacet.setMinTokensPerProperty(100);
     await adminFacet.setMaxTokensPerProperty(10000);
-    await investmentFacet.setBackendSigner(backendSigner.address);
+    await fiatPaymentFacet.setBackendSigner(backendSigner.address);
+    await fiatPaymentFacet.initializeDomainSeparator();
 
-    // Mint some USDT to owner for testing
+    // Mint some Naira to owner for testing
     await mockStablecoin.mint(owner.address, ethers.parseEther("1000000"));
 
     // Create a sample property for testing
@@ -143,7 +157,7 @@ describe("Token Supply Tracking", function () {
       size: 1000,
       bedrooms: 2,
       bathrooms: 2,
-      amountToRaise: ethers.parseEther("10000000"), // 10M USDT = 100 tokens at 100,000 USDT each
+      amountToRaise: ethers.parseEther("10000000"), // 10M Naira = 100 tokens at 100,000 Naira each
       investmentDuration: 0, // OneMonth
       milestoneTitles: ["Foundation", "Structure", "Finishing"],
       milestoneDescriptions: [
@@ -156,16 +170,13 @@ describe("Token Supply Tracking", function () {
     };
 
     await propertyFacet.createProperty(propertyData);
-
-    // Initialize domain separator for EIP-712
-    await investmentFacet.initializeDomainSeparator();
   });
 
   describe("Initial Token Supply", function () {
     it("Should create property with correct initial token supply", async function () {
       const property = await propertyFacet.getProperty(1);
       
-      // Property should have 100 tokens total (10M USDT / 100,000 USDT per token)
+      // Property should have 100 tokens total (10M Naira / 100,000 Naira per token)
       expect(property.totalTokens).to.equal(100);
       expect(property.tokensSold).to.equal(0);
       expect(property.tokensLeft).to.equal(100);
@@ -174,7 +185,7 @@ describe("Token Supply Tracking", function () {
 
     it("Should calculate token price correctly", async function () {
       const property = await propertyFacet.getProperty(1);
-      const expectedTokenPrice = ethers.parseEther("100000"); // 100,000 USDT
+      const expectedTokenPrice = ethers.parseEther("100000"); // 100,000 Naira
       
       expect(property.tokenPrice).to.equal(expectedTokenPrice);
     });
@@ -184,9 +195,9 @@ describe("Token Supply Tracking", function () {
     it("Should track tokens sold and remaining after first purchase", async function () {
       const propertyId = 1;
       const tokenAmount = 20; // Buy 20 tokens
-      const fiatAmount = ethers.parseEther("2000000"); // 2M USDT (20 * 100,000)
+      const fiatAmount = ethers.parseEther("2000000"); // 2M Naira (20 * 100,000)
       const paymentReference = "PAY_TEST_001";
-      const nonce = await investmentFacet.getUserNonce(user1.address);
+      const nonce = await fiatPaymentFacet.getUserNonce(user1.address);
 
       // Create EIP-712 signature
       const domain = {
@@ -219,7 +230,7 @@ describe("Token Supply Tracking", function () {
       const signature = await backendSigner.signTypedData(domain, types, value);
 
       // Process the fiat payment
-      await investmentFacet.connect(backendSigner).distributeTokensFromFiat(
+      await fiatPaymentFacet.connect(backendSigner).distributeTokensFromFiat(
         propertyId, user1.address, tokenAmount, fiatAmount, paymentReference, nonce, signature
       );
 
@@ -240,9 +251,9 @@ describe("Token Supply Tracking", function () {
       
       // First purchase: 30 tokens
       const tokenAmount1 = 30;
-      const fiatAmount1 = ethers.parseEther("3000000"); // 3M USDT
+      const fiatAmount1 = ethers.parseEther("3000000"); // 3M Naira
       const paymentReference1 = "PAY_TEST_002";
-      const nonce1 = await investmentFacet.getUserNonce(user1.address);
+      const nonce1 = await fiatPaymentFacet.getUserNonce(user1.address);
 
       const domain = {
         name: "Assetrix",
@@ -273,15 +284,15 @@ describe("Token Supply Tracking", function () {
 
       const signature1 = await backendSigner.signTypedData(domain, types, value1);
 
-      await investmentFacet.connect(backendSigner).distributeTokensFromFiat(
+      await fiatPaymentFacet.connect(backendSigner).distributeTokensFromFiat(
         propertyId, user1.address, tokenAmount1, fiatAmount1, paymentReference1, nonce1, signature1
       );
 
       // Second purchase: 25 tokens by different user
       const tokenAmount2 = 25;
-      const fiatAmount2 = ethers.parseEther("2500000"); // 2.5M USDT
+      const fiatAmount2 = ethers.parseEther("2500000"); // 2.5M Naira
       const paymentReference2 = "PAY_TEST_003";
-      const nonce2 = await investmentFacet.getUserNonce(user2.address);
+      const nonce2 = await fiatPaymentFacet.getUserNonce(user2.address);
 
       const value2 = {
         user: user2.address,
@@ -294,7 +305,7 @@ describe("Token Supply Tracking", function () {
 
       const signature2 = await backendSigner.signTypedData(domain, types, value2);
 
-      await investmentFacet.connect(backendSigner).distributeTokensFromFiat(
+      await fiatPaymentFacet.connect(backendSigner).distributeTokensFromFiat(
         propertyId, user2.address, tokenAmount2, fiatAmount2, paymentReference2, nonce2, signature2
       );
 
@@ -315,11 +326,11 @@ describe("Token Supply Tracking", function () {
     it("Should become fully funded when all tokens are sold", async function () {
       const propertyId = 1;
       
-      // Buy all remaining tokens (45 tokens left)
-      const tokenAmount = 45;
-      const fiatAmount = ethers.parseEther("4500000"); // 4.5M USDT
+      // Buy all 100 tokens in one transaction
+      const tokenAmount = 100;
+      const fiatAmount = ethers.parseEther("10000000"); // 10M Naira
       const paymentReference = "PAY_TEST_004";
-      const nonce = await investmentFacet.getUserNonce(user1.address);
+      const nonce = await fiatPaymentFacet.getUserNonce(user1.address);
 
       const domain = {
         name: "Assetrix",
@@ -351,7 +362,7 @@ describe("Token Supply Tracking", function () {
       const signature = await backendSigner.signTypedData(domain, types, value);
 
       // Process the fiat payment
-      await investmentFacet.connect(backendSigner).distributeTokensFromFiat(
+      await fiatPaymentFacet.connect(backendSigner).distributeTokensFromFiat(
         propertyId, user1.address, tokenAmount, fiatAmount, paymentReference, nonce, signature
       );
 
@@ -364,7 +375,7 @@ describe("Token Supply Tracking", function () {
 
       // Check user balance
       const userBalance = await investmentFacet.getTokenBalance(propertyId, user1.address);
-      expect(userBalance).to.equal(45);
+      expect(userBalance).to.equal(100);
     });
   });
 
@@ -374,9 +385,9 @@ describe("Token Supply Tracking", function () {
       
       // Try to buy more tokens than available (101 tokens when only 100 exist)
       const tokenAmount = 101;
-      const fiatAmount = ethers.parseEther("10100000"); // 10.1M USDT
+      const fiatAmount = ethers.parseEther("10100000"); // 10.1M Naira
       const paymentReference = "PAY_TEST_005";
-      const nonce = await investmentFacet.getUserNonce(user1.address);
+      const nonce = await fiatPaymentFacet.getUserNonce(user1.address);
 
       const domain = {
         name: "Assetrix",
@@ -409,7 +420,7 @@ describe("Token Supply Tracking", function () {
 
       // Should revert with "Not enough tokens left"
       await expect(
-        investmentFacet.connect(backendSigner).distributeTokensFromFiat(
+        fiatPaymentFacet.connect(backendSigner).distributeTokensFromFiat(
           propertyId, user1.address, tokenAmount, fiatAmount, paymentReference, nonce, signature
         )
       ).to.be.revertedWith("Not enough tokens left");
@@ -420,9 +431,9 @@ describe("Token Supply Tracking", function () {
       
       // Buy 10 tokens
       const tokenAmount1 = 10;
-      const fiatAmount1 = ethers.parseEther("1000000"); // 1M USDT
+      const fiatAmount1 = ethers.parseEther("1000000"); // 1M Naira
       const paymentReference1 = "PAY_TEST_006";
-      const nonce1 = await investmentFacet.getUserNonce(user1.address);
+      const nonce1 = await fiatPaymentFacet.getUserNonce(user1.address);
 
       const domain = {
         name: "Assetrix",
@@ -453,15 +464,15 @@ describe("Token Supply Tracking", function () {
 
       const signature1 = await backendSigner.signTypedData(domain, types, value1);
 
-      await investmentFacet.connect(backendSigner).distributeTokensFromFiat(
+      await fiatPaymentFacet.connect(backendSigner).distributeTokensFromFiat(
         propertyId, user1.address, tokenAmount1, fiatAmount1, paymentReference1, nonce1, signature1
       );
 
       // Buy 15 more tokens
       const tokenAmount2 = 15;
-      const fiatAmount2 = ethers.parseEther("1500000"); // 1.5M USDT
+      const fiatAmount2 = ethers.parseEther("1500000"); // 1.5M Naira
       const paymentReference2 = "PAY_TEST_007";
-      const nonce2 = await investmentFacet.getUserNonce(user1.address);
+      const nonce2 = await fiatPaymentFacet.getUserNonce(user1.address);
 
       const value2 = {
         user: user1.address,
@@ -474,7 +485,7 @@ describe("Token Supply Tracking", function () {
 
       const signature2 = await backendSigner.signTypedData(domain, types, value2);
 
-      await investmentFacet.connect(backendSigner).distributeTokensFromFiat(
+      await fiatPaymentFacet.connect(backendSigner).distributeTokensFromFiat(
         propertyId, user1.address, tokenAmount2, fiatAmount2, paymentReference2, nonce2, signature2
       );
 
@@ -495,9 +506,9 @@ describe("Token Supply Tracking", function () {
       
       // Buy 50 tokens (50% of total)
       const tokenAmount = 50;
-      const fiatAmount = ethers.parseEther("5000000"); // 5M USDT
+      const fiatAmount = ethers.parseEther("5000000"); // 5M Naira
       const paymentReference = "PAY_TEST_008";
-      const nonce = await investmentFacet.getUserNonce(user1.address);
+      const nonce = await fiatPaymentFacet.getUserNonce(user1.address);
 
       const domain = {
         name: "Assetrix",
@@ -509,8 +520,8 @@ describe("Token Supply Tracking", function () {
       const types = {
         FiatPayment: [
           { name: "user", type: "address" },
-          { name: "tokenAmount", type: "uint256" },
           { name: "propertyId", type: "uint256" },
+          { name: "tokenAmount", type: "uint256" },
           { name: "fiatAmount", type: "uint256" },
           { name: "paymentReference", type: "string" },
           { name: "nonce", type: "uint256" }
@@ -528,7 +539,7 @@ describe("Token Supply Tracking", function () {
 
       const signature = await backendSigner.signTypedData(domain, types, value);
 
-      await investmentFacet.connect(backendSigner).distributeTokensFromFiat(
+      await fiatPaymentFacet.connect(backendSigner).distributeTokensFromFiat(
         propertyId, user1.address, tokenAmount, fiatAmount, paymentReference, nonce, signature
       );
 
@@ -539,7 +550,7 @@ describe("Token Supply Tracking", function () {
       expect(property.isFullyFunded).to.be.false;
       
       // Funding percentage should be 50%
-      const fundingPercentage = (property.tokensSold * 100) / property.totalTokens;
+      const fundingPercentage = Number(property.tokensSold) * 100 / Number(property.totalTokens);
       expect(fundingPercentage).to.equal(50);
     });
   });

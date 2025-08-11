@@ -1,0 +1,100 @@
+{
+  "testInfo": {
+    "name": "fiat-payment-facet",
+    "network": "localhost",
+    "deploymentType": "test",
+    "timestamp": "2025-08-11T13:19:33.039Z"
+  },
+  "deployment": {
+    "timestamp": "2025-08-11T13:19:33.039Z",
+    "totalGasUsed": 0
+  },
+  "testResults": {
+    "status": "completed",
+    "startTime": "2025-08-11T13:19:33.039Z",
+    "endTime": "2025-08-11T13:19:47.767Z",
+    "passed": true,
+    "output": {
+      "summary": "✅ FiatPaymentFacet Tests Passed!",
+      "tests": [
+        {
+          "section": "🔍 Testing FiatPaymentFacet Functionality",
+          "results": [
+            "✅ Loaded deployment data",
+            "✅ Connected to FiatPaymentFacet"
+          ]
+        },
+        {
+          "section": "🔍 Test 1: Backend Signer Management",
+          "results": [
+            "✅ Current backend signer: 0x0000000000000000000000000000000000000000",
+            "✅ Set backend signer"
+          ]
+        },
+        {
+          "section": "🔍 Test 2: Domain Separator Management",
+          "results": [
+            "✅ Domain separator initialized: false",
+            "✅ Initialized domain separator",
+            "✅ Domain separator: 0xa28848d7c7675da9c50d1f3a2af4d332932a5039ebf8cee4486769f1da881ff5"
+          ]
+        },
+        {
+          "section": "🔍 Test 3: User Nonce Management",
+          "results": [
+            "✅ User nonce: 0"
+          ]
+        },
+        {
+          "section": "🔍 Test 4: Payment Reference Tracking",
+          "results": [
+            "✅ Payment TEST_PAYMENT_001 processed: false"
+          ]
+        },
+        {
+          "section": "🔍 Test 5: Chain ID Verification",
+          "results": [
+            "✅ Current chain ID: 31337"
+          ]
+        },
+        {
+          "section": "🔍 Test 6: Access Control",
+          "results": [
+            "✅ Non-owner cannot set backend signer (expected)",
+            "✅ Non-owner cannot initialize domain separator (expected)"
+          ]
+        },
+        {
+          "section": "🔍 Test 7: EIP-712 Signature Verification",
+          "results": [
+            "✅ EIP-712 signature created successfully",
+            "✅ Signature: 0x8a9393dc74dc64d1d1b32493aab7af200384c2a6ccd752c0c0080db70abd116445e0b1a49f7d48daf25b0f41996b7c5798516a004a5b780ab0c8dc4e996df9951c"
+          ]
+        },
+        {
+          "section": "🔍 Test 8: Domain Separator Reset",
+          "results": [
+            "✅ Domain separator reset successfully",
+            "✅ Domain separator initialized after reset: false",
+            "✅ Domain separator re-initialized"
+          ]
+        },
+        {
+          "section": "🔍 Test 9: Backend Signer Update",
+          "results": [
+            "✅ Backend signer updated",
+            "✅ Updated backend signer: 0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+            "✅ Matches new signer: true",
+            "✅ Restored original backend signer"
+          ]
+        }
+      ],
+      "info": [
+        "==========================================",
+        "👤 Deployer: 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+        "👤 User1: 0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+        "👤 Backend Signer: 0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC"
+      ]
+    }
+  }
+}

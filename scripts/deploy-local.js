@@ -54,6 +54,11 @@ async function main() {
   await diamondLoupeFacet.waitForDeployment();
   console.log(`✅ DiamondLoupeFacet deployed to: ${await diamondLoupeFacet.getAddress()}`);
 
+  const FiatPaymentFacet = await ethers.getContractFactory("FiatPaymentFacet");
+  const fiatPaymentFacet = await FiatPaymentFacet.deploy();
+  await fiatPaymentFacet.waitForDeployment();
+  console.log(`✅ FiatPaymentFacet deployed to: ${await fiatPaymentFacet.getAddress()}`);
+
 
 
   // Get function selectors for each facet
@@ -68,12 +73,10 @@ async function main() {
   ];
 
   const investmentSelectors = [
-    "0x36f95670", "0xd9e359cd", "0xf7770056", "0x6834e3a8", "0x149f2e88",
     "0x8bf0af3e", "0xef57e2d2", "0xe2d253c9", "0xf2934a02", "0xda2a1bb5",
     "0x0117b0ed", "0x1b48a3b0", "0x19580150", "0x93838cdb", "0xb8af3d3e",
     "0xdae21c58", "0xad41f119", "0x93ffcce3", "0xb79f9f67", "0xb7ddac87",
-    "0x1a4847e9", "0x372896f1", "0x8682c64d", "0x2ff79161", "0x591723fd", "0x85e69128",
-    "0xed24911d", "0x5cf0e8a4", "0xe474f042"
+    "0x1a4847e9", "0x372896f1", "0x8682c64d"
   ];
 
   const propertySelectors = [
@@ -92,6 +95,12 @@ async function main() {
 
   const diamondLoupeSelectors = [
     "0xcdffacc6", "0x52ef6b2c", "0xadfca15e", "0x7a0ed627"
+  ];
+
+  const fiatPaymentSelectors = [
+    "0xe474f042", "0xf7770056", "0xd9e359cd", "0x5cf0e8a4", "0xed24911d",
+    "0x6834e3a8", "0x2ff79161", "0x591723fd", "0x149f2e88", "0x85e69128",
+    "0x36f95670"
   ];
 
 
@@ -130,6 +139,11 @@ async function main() {
       facetAddress: await diamondLoupeFacet.getAddress(),
       action: 0, // Add
       functionSelectors: diamondLoupeSelectors
+    },
+    {
+      facetAddress: await fiatPaymentFacet.getAddress(),
+      action: 0, // Add
+      functionSelectors: fiatPaymentSelectors
     },
 
   ];
@@ -217,6 +231,7 @@ async function main() {
     transactionFacet: await transactionFacet.getAddress(),
     milestoneFacet: await milestoneFacet.getAddress(),
     diamondLoupeFacet: await diamondLoupeFacet.getAddress(),
+    fiatPaymentFacet: await fiatPaymentFacet.getAddress(),
 
     deployer: deployer.address,
     backendSigner: deployer.address,
@@ -241,6 +256,7 @@ async function main() {
   console.log(`💸 TransactionFacet: ${await transactionFacet.getAddress()}`);
   console.log(`📊 MilestoneFacet: ${await milestoneFacet.getAddress()}`);
   console.log(`🔍 DiamondLoupeFacet: ${await diamondLoupeFacet.getAddress()}`);
+  console.log(`💳 FiatPaymentFacet: ${await fiatPaymentFacet.getAddress()}`);
 
   console.log(`👤 Deployer: ${deployer.address}`);
   console.log(`🔐 Backend Signer: ${deployer.address}`);
