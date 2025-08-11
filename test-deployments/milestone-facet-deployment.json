@@ -3,16 +3,16 @@
     "name": "milestone-facet",
     "network": "localhost",
     "deploymentType": "test",
-    "timestamp": "2025-08-11T13:19:47.773Z"
+    "timestamp": "2025-08-11T14:23:43.175Z"
   },
   "deployment": {
-    "timestamp": "2025-08-11T13:19:47.773Z",
+    "timestamp": "2025-08-11T14:23:43.175Z",
     "totalGasUsed": 0
   },
   "testResults": {
     "status": "completed",
-    "startTime": "2025-08-11T13:19:47.773Z",
-    "endTime": "2025-08-11T13:20:00.882Z",
+    "startTime": "2025-08-11T14:23:43.175Z",
+    "endTime": "2025-08-11T14:24:07.593Z",
     "passed": true,
     "output": {
       "tests": [
