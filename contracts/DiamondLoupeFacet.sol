@@ -15,7 +15,7 @@ contract DiamondLoupeFacet is IDiamondLoupe {
             facets_[i].facetAddress = facetAddress_;
             facets_[i].functionSelectors = ds.facetFunctionSelectors[
                 facetAddress_
-            ];
+            ].functionSelectors;
         }
     }
 
@@ -24,7 +24,7 @@ contract DiamondLoupeFacet is IDiamondLoupe {
         address _facet
     ) external view override returns (bytes4[] memory facetFunctionSelectors_) {
         LibDiamond.DiamondStorage storage ds = LibDiamond.diamondStorage();
-        facetFunctionSelectors_ = ds.facetFunctionSelectors[_facet];
+        facetFunctionSelectors_ = ds.facetFunctionSelectors[_facet].functionSelectors;
     }
 
     // Get all facet addresses

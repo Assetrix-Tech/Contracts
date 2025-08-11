@@ -76,6 +76,8 @@ contract InvestmentFacet {
         s.reentrancyStatus = _NOT_ENTERED;
     }
 
+
+
     function purchaseTokens(
         uint256 _propertyId,
         uint256 _tokenAmount
@@ -506,4 +508,5 @@ contract InvestmentFacet {
         AssetrixStorage.Layout storage s = AssetrixStorage.layout();
         return s.payoutProcessed[_propertyId][_tokenHolder];
     }
+
 }

@@ -1,9 +1,15 @@
-require('dotenv').config()
-const { ethers } = require('hardhat')
-const fs = require('fs')
-const path = require('path')
+import 'dotenv/config';
+import hre from 'hardhat';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+//import path from 'path';
+const { ethers } = hre;
 
-async function main() {
+export async function main() {
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
   console.log('Starting Assetrix diamond pattern deployment')
   
   try {
@@ -91,7 +97,8 @@ async function performStandardDeployment(deployer, networkName, deploymentPath) 
     investment: await deployFacet('InvestmentFacet'),
     milestone: await deployFacet('MilestoneFacet'),
     transaction: await deployFacet('TransactionFacet'),
-    diamondLoupe: await deployFacet('DiamondLoupeFacet')
+    diamondLoupe: await deployFacet('DiamondLoupeFacet'),
+    fiatPayment: await deployFacet('FiatPaymentFacet')
   }
 
   // Perform diamond cut for core facets
@@ -143,7 +150,8 @@ async function performDiamondCut(diamondAddress, facets) {
     investment: 'InvestmentFacet',
     milestone: 'MilestoneFacet',
     transaction: 'TransactionFacet',
-    diamondLoupe: 'DiamondLoupeFacet'
+    diamondLoupe: 'DiamondLoupeFacet',
+    fiatPayment: 'FiatPaymentFacet'
   }
   
   for (const [facetKey, facetAddress] of Object.entries(facets)) {

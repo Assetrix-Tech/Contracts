@@ -141,7 +141,7 @@ describe("InvestmentFacet", function () {
     propertyId = 1; // First property
 
     // Fund the investor with stablecoin
-    await stablecoin.transfer(investor.address, ethers.parseEther("1000000")); // 1M tokens
+    await stablecoin.transfer(investor.address, ethers.parseUnits("1000000", 2)); // 1M tokens
   });
 
   describe("Investment Calculations", function () {

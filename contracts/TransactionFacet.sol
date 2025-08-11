@@ -61,7 +61,7 @@ contract TransactionFacet {
         AssetrixStorage.TransactionType _type,
         uint256 _amount,
         string memory _description
-    ) external onlyAuthorized whenNotPaused nonReentrant {
+    ) external onlyAuthorized whenNotPaused {
         AssetrixStorage.Layout storage s = AssetrixStorage.layout();
         s.transactionCount++;
         s.transactions[s.transactionCount] = AssetrixStorage.Transaction({

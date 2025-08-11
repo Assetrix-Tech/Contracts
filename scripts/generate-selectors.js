@@ -1,7 +1,7 @@
 const { ethers } = require('hardhat');
 
 async function main() {
-  const facets = ['AdminFacet', 'PropertyFacet', 'InvestmentFacet', 'MilestoneFacet', 'TransactionFacet', 'DiamondLoupeFacet'];
+  const facets = ['AdminFacet', 'PropertyFacet', 'InvestmentFacet', 'MilestoneFacet', 'TransactionFacet', 'DiamondLoupeFacet', 'FiatPaymentFacet'];
   
   for (const facetName of facets) {
     console.log(`\n🔍 Generating function selectors for ${facetName}...`);

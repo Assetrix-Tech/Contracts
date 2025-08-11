@@ -11,10 +11,8 @@ async function main() {
     console.log(`Account: ${deployer.address}`)
     console.log(`Balance: ${(await ethers.provider.getBalance(deployer.address)).toString()}`)
 
-    // Get the diamond address from environment variables or deployment file
     let diamondAddress = process.env.DIAMOND_ADDRESS
     
-    // If not in env, try to get from deployment file
     if (!diamondAddress) {
       const network = await ethers.provider.getNetwork()
       const networkName = network.name === 'unknown' ? 'localhost' : network.name
@@ -31,7 +29,6 @@ async function main() {
 
     console.log(`Target: ${diamondAddress}`)
     
-    // Get current facet addresses from deployment file
     const network = await ethers.provider.getNetwork()
     const networkName = network.name === 'unknown' ? 'localhost' : network.name
     const deploymentPath = path.join(__dirname, '..', 'deployments', `deployment-${networkName}.json`)
@@ -43,7 +40,6 @@ async function main() {
     const deploymentData = JSON.parse(fs.readFileSync(deploymentPath))
     const currentFacets = deploymentData.facets
 
-    // ===== LOAD UPGRADE CONFIGURATION =====
     const configPath = path.join(__dirname, '..', 'upgrade-config.json')
     let upgradeConfig = {
       upgradeFacets: [],
@@ -56,7 +52,6 @@ async function main() {
       console.log('Config loaded')
     } else {
       console.log('No config found, creating default...')
-      // Create default config with all existing facets
       upgradeConfig = {
         upgradeFacets: Object.keys(currentFacets),
         addFacets: [],
@@ -66,29 +61,24 @@ async function main() {
       console.log('Default config created')
     }
 
-    // ===== VALIDATE CONFIGURATION =====
     console.log('\n📋 Configuration:')
     
-    // Check for mistakes: new facets in upgradeFacets
     const newFacetsInUpgradeList = upgradeConfig.upgradeFacets.filter(facet => 
       !currentFacets[facet]
     )
 
     if (newFacetsInUpgradeList.length > 0) {
       console.log(`⚠️  Moving new facets to addFacets: ${newFacetsInUpgradeList.join(', ')}`)
-      // Add them to addFacets if not already there
       for (const facet of newFacetsInUpgradeList) {
         if (!upgradeConfig.addFacets.includes(facet)) {
           upgradeConfig.addFacets.push(facet)
         }
       }
-      // Remove them from upgradeFacets
       upgradeConfig.upgradeFacets = upgradeConfig.upgradeFacets.filter(facet => 
         !newFacetsInUpgradeList.includes(facet)
       )
     }
 
-    // Get all facet names that should be upgraded
     const facetsToUpgrade = upgradeConfig.upgradeFacets.filter(facet => 
       !upgradeConfig.skipFacets.includes(facet) && currentFacets[facet]
     )
@@ -97,7 +87,6 @@ async function main() {
     console.log(`Add: ${upgradeConfig.addFacets.join(', ') || 'none'}`)
     console.log(`Skip: ${upgradeConfig.skipFacets.join(', ') || 'none'}`)
 
-    // Get facets that exist but are not in config (auto-skip)
     const existingFacetsNotInConfig = Object.keys(currentFacets).filter(facet => 
       !upgradeConfig.upgradeFacets.includes(facet) && 
       !upgradeConfig.addFacets.includes(facet) &&
@@ -108,116 +97,113 @@ async function main() {
       console.log(`Auto-skip: ${existingFacetsNotInConfig.join(', ')}`)
     }
 
-    // ===== SMART UPGRADE STRATEGY =====
     console.log('\n🔄 Processing upgrades...')
     
     const upgradedFacets = {}
     const cut = []
     const failedUpgrades = []
 
-    // Deploy upgraded versions of existing facets
     for (const facetName of facetsToUpgrade) {
       console.log(`\n📦 ${facetName}...`)
       
-      try {
-        // Handle case sensitivity for contract names
-        let contractName = facetName.charAt(0).toUpperCase() + facetName.slice(1) + 'Facet'
-        
-        // Special case for DiamondLoupeFacet
-        if (facetName.toLowerCase() === 'diamondloupe') {
-          contractName = 'DiamondLoupeFacet'
-        }
-        
-        const FacetContract = await ethers.getContractFactory(contractName)
-        const facetV2 = await FacetContract.deploy()
-        await facetV2.waitForDeployment()
-        const facetV2Address = await facetV2.getAddress()
-        console.log(`  Deployed: ${facetV2Address}`)
-        upgradedFacets[facetName] = facetV2Address
-
-        // Get function selectors for new facet
-        const newFacetSelectors = getSelectors(FacetContract.interface)
-        
-        // Get function selectors for old facet from diamond loupe
-        const oldFacetAddress = currentFacets[facetName]
-        const diamondLoupe = await ethers.getContractAt('DiamondLoupeFacet', diamondAddress)
-        
-        // Get the actual function selectors that exist in the diamond for this facet
-        let oldFacetSelectors = []
-        try {
-          oldFacetSelectors = await diamondLoupe.facetFunctionSelectors(oldFacetAddress)
-          console.log(`  Old functions: ${oldFacetSelectors.length}`)
-        } catch (error) {
-          console.log(`  Old functions: 0 (not found)`)
-          // If we can't get the old selectors, assume all functions are new
-          oldFacetSelectors = []
-        }
-        
-        // Separate existing functions from new functions
-        const existingSelectors = newFacetSelectors.filter(selector => 
-          oldFacetSelectors.includes(selector)
-        )
-        
-        const newSelectors = newFacetSelectors.filter(selector => 
-          !oldFacetSelectors.includes(selector)
-        )
-        
-        console.log(`  New functions: ${newSelectors.length}`)
-        console.log(`  Existing functions: ${existingSelectors.length}`)
-        
-        // Step 1: Add new functions first (if any)
-        if (newSelectors.length > 0) {
-          cut.push({
-            facetAddress: facetV2Address,
-            action: 0, // Add
-            functionSelectors: newSelectors
-          })
-          console.log(`  ✅ Add: ${newSelectors.length} functions`)
-        }
-        
-        // Step 2: Handle existing functions - use REMOVE + ADD instead of REPLACE
-        if (existingSelectors.length > 0) {
-          // First, find where the functions actually are in the diamond
-          const diamondLoupe = await ethers.getContractAt('DiamondLoupeFacet', diamondAddress)
-          const actualOldAddresses = new Set()
+              try {
+          let contractName = null;
+          let FacetContract = null;
           
-          for (const selector of existingSelectors) {
+          const possibleNames = [
+            facetName.charAt(0).toUpperCase() + facetName.slice(1) + 'Facet',
+            facetName === 'fiatpayment' ? 'FiatPaymentFacet' : null,
+            facetName === 'diamondloupe' ? 'DiamondLoupeFacet' : null,
+            facetName.toUpperCase() + 'FACET',
+            facetName + 'Facet'
+          ].filter(Boolean);
+          
+          for (const name of possibleNames) {
             try {
-              const actualAddress = await diamondLoupe.facetAddress(selector)
-              if (actualAddress !== ethers.ZeroAddress) {
-                actualOldAddresses.add(actualAddress)
-              }
+              FacetContract = await ethers.getContractFactory(name);
+              contractName = name;
+              break;
             } catch (error) {
-              console.log(`  ⚠️  Could not find address for selector ${selector}`)
+              // Continue to next option
             }
           }
           
-          // Remove from all actual old addresses
-          for (const actualOldAddress of actualOldAddresses) {
-            cut.push({
-              facetAddress: ethers.ZeroAddress,
-              action: 2, // Remove
-              functionSelectors: existingSelectors
-            })
-            console.log(`  ✅ Remove: ${existingSelectors.length} functions from ${actualOldAddress}`)
+          if (!contractName || !FacetContract) {
+            throw new Error(`Could not find contract for facet "${facetName}". Tried: ${possibleNames.join(', ')}`);
           }
           
-          // Then, add to new facet
-          cut.push({
-            facetAddress: facetV2Address,
-            action: 0, // Add
-            functionSelectors: existingSelectors
-          })
-          console.log(`  ✅ Add: ${existingSelectors.length} functions`)
-        }
-        
-      } catch (error) {
-        console.log(`  ❌ Failed: ${error.message}`)
-        failedUpgrades.push(facetName)
-      }
-    }
+          const facetV2 = await FacetContract.deploy()
+          await facetV2.waitForDeployment()
+          const facetV2Address = await facetV2.getAddress()
+          console.log(`  Deployed: ${facetV2Address}`)
+          upgradedFacets[facetName] = facetV2Address
 
-    // ===== DEPLOY NEW FACETS =====
+          const newFacetSelectors = getSelectors(FacetContract.interface)
+          const oldFacetAddress = currentFacets[facetName]
+          const diamondLoupe = await ethers.getContractAt('DiamondLoupeFacet', diamondAddress)
+          
+          let oldFacetSelectors = []
+          try {
+            oldFacetSelectors = await diamondLoupe.facetFunctionSelectors(oldFacetAddress)
+            console.log(`  Old functions: ${oldFacetSelectors.length}`)
+          } catch (error) {
+            console.log(`  Old functions: 0 (not found)`)
+            oldFacetSelectors = []
+          }
+          
+          const existingSelectors = newFacetSelectors.filter(selector => 
+            oldFacetSelectors.includes(selector)
+          )
+          const newSelectors = newFacetSelectors.filter(selector => 
+            !oldFacetSelectors.includes(selector)
+          )
+          
+          console.log(`  New functions: ${newSelectors.length}`)
+          console.log(`  Existing functions: ${existingSelectors.length}`)
+          
+          if (newSelectors.length > 0) {
+            cut.push({
+              facetAddress: facetV2Address,
+              action: 0,
+              functionSelectors: newSelectors
+            })
+            console.log(`  ✅ Add: ${newSelectors.length} functions`)
+          }
+          
+          if (existingSelectors.length > 0) {
+            // Check which functions are actually mapped to different addresses
+            const diamondLoupe = await ethers.getContractAt('DiamondLoupeFacet', diamondAddress)
+            const selectorsToReplace = []
+            
+            for (const selector of existingSelectors) {
+              try {
+                const currentAddress = await diamondLoupe.facetAddress(selector)
+                if (currentAddress !== facetV2Address) {
+                  selectorsToReplace.push(selector)
+                }
+              } catch (error) {
+                // Function not found, safe to add
+                selectorsToReplace.push(selector)
+              }
+            }
+            
+            if (selectorsToReplace.length > 0) {
+              cut.push({
+                facetAddress: facetV2Address,
+                action: 1, // REPLACE
+                functionSelectors: selectorsToReplace
+              })
+              console.log(`  ✅ Replace: ${selectorsToReplace.length} functions with new facet`)
+            } else {
+              console.log(`  ℹ️  All functions already mapped to new facet`)
+            }
+          }
+        } catch (error) {
+          console.log(`  ❌ Failed: ${error.message}`)
+          failedUpgrades.push(facetName)
+        }
+      }
+
     const facetsToAdd = upgradeConfig.addFacets.filter(facet => 
       !upgradeConfig.skipFacets.includes(facet)
     )
@@ -229,29 +215,44 @@ async function main() {
         console.log(`\n📦 ${facetName}...`)
         
         try {
-          // Handle case sensitivity for contract names
-          let contractName = facetName.charAt(0).toUpperCase() + facetName.slice(1) + 'Facet'
+          let contractName = null;
+          let FacetContract = null;
           
-          // Special case for DiamondLoupeFacet
-          if (facetName.toLowerCase() === 'diamondloupe') {
-            contractName = 'DiamondLoupeFacet'
+          const possibleNames = [
+            facetName.charAt(0).toUpperCase() + facetName.slice(1) + 'Facet',
+            facetName === 'fiatpayment' ? 'FiatPaymentFacet' : null,
+            facetName === 'diamondloupe' ? 'DiamondLoupeFacet' : null,
+            facetName.toUpperCase() + 'FACET',
+            facetName + 'Facet'
+          ].filter(Boolean);
+          
+          for (const name of possibleNames) {
+            try {
+              FacetContract = await ethers.getContractFactory(name);
+              contractName = name;
+              break;
+            } catch (error) {
+              // Continue to next option
+            }
           }
           
-          const FacetContract = await ethers.getContractFactory(contractName)
+          if (!contractName || !FacetContract) {
+            throw new Error(`Could not find contract for facet "${facetName}". Tried: ${possibleNames.join(', ')}`);
+          }
+          
           const newFacet = await FacetContract.deploy()
           await newFacet.waitForDeployment()
           const newFacetAddress = await newFacet.getAddress()
           console.log(`  Deployed: ${newFacetAddress}`)
           upgradedFacets[facetName] = newFacetAddress
 
-          // Get function selectors for this facet
           const facetSelectors = getSelectors(FacetContract.interface)
           
-          // Only add to cut if we have selectors
           if (facetSelectors.length > 0) {
+            // For new facets, use ADD operation
             cut.push({
               facetAddress: newFacetAddress,
-              action: 0, // Add
+              action: 0, // ADD
               functionSelectors: facetSelectors
             })
             console.log(`  ✅ Add: ${facetSelectors.length} functions`)
@@ -263,106 +264,157 @@ async function main() {
       }
     }
 
-    // ===== PERFORM DIAMOND CUT =====
     if (cut.length > 0) {
       console.log('\n🔧 Executing diamond cut...')
       console.log(`Operations: ${cut.length}`)
       
-      if (failedUpgrades.length > 0) {
-        console.log(`Failed: ${failedUpgrades.join(', ')}`)
-      }
-      
-      // Validate cut array - ensure no zero addresses
-      const validCut = cut.filter(operation => {
-        if (operation.facetAddress === ethers.ZeroAddress && operation.action !== 2) {
-          console.log(`⚠️  Skipping invalid operation with zero address`)
-          return false
+              if (failedUpgrades.length > 0) {
+          console.log(`Failed: ${failedUpgrades.join(', ')}`)
         }
-        return true
-      })
-      
-      if (validCut.length > 0) {
-        console.log('Cut operations:')
-        validCut.forEach((operation, index) => {
-          const actionName = operation.action === 0 ? 'ADD' : operation.action === 1 ? 'REPLACE' : 'REMOVE'
-          console.log(`  ${index + 1}. ${actionName}: ${operation.functionSelectors.length} functions`)
+        
+        const validCut = cut.filter(operation => {
+          if (operation.facetAddress === ethers.ZeroAddress && operation.action !== 2) {
+            console.log(`⚠️  Skipping invalid operation with zero address`)
+            return false
+          }
+          return true
         })
         
-        const diamondCut = await ethers.getContractAt('IDiamondCut', diamondAddress)
-        
-        try {
-          await diamondCut.diamondCut(validCut, ethers.ZeroAddress, "0x")
-          console.log('✅ Diamond cut successful')
-        } catch (error) {
-          console.log(`❌ Diamond cut failed: ${error.message}`)
+        if (validCut.length > 0) {
+          console.log('Cut operations:')
+          validCut.forEach((operation, index) => {
+            const actionName = operation.action === 0 ? 'ADD' : operation.action === 1 ? 'REPLACE' : 'REMOVE'
+            console.log(`  ${index + 1}. ${actionName}: ${operation.functionSelectors.length} functions`)
+          })
           
-          // If the diamond cut failed, let's try a different approach
-          console.log('🔄 Trying individual operations...')
+          const diamondCut = await ethers.getContractAt('IDiamondCut', diamondAddress)
           
-          // Try to add functions one by one
-          for (const operation of validCut) {
-            try {
-              await diamondCut.diamondCut([operation], ethers.ZeroAddress, "0x")
-              console.log(`✅ ${operation.action === 0 ? 'ADD' : 'REPLACE'} successful`)
-            } catch (singleError) {
-              console.log(`❌ ${operation.action === 0 ? 'ADD' : 'REPLACE'} failed: ${singleError.message}`)
+          try {
+            // Set higher gas limit for diamond cut operations
+            const tx = await diamondCut.diamondCut(validCut, ethers.ZeroAddress, "0x", {
+              gasLimit: 5000000 // 5M gas limit
+            })
+            
+            console.log(`⏳ Waiting for transaction: ${tx.hash}`)
+            const receipt = await tx.wait()
+            console.log(`✅ Diamond cut successful (gas used: ${receipt.gasUsed.toString()})`)
+          } catch (error) {
+            console.log(`❌ Diamond cut failed: ${error.message}`)
+            
+            console.log('🔄 Trying individual operations with higher gas limits...')
+            
+            for (const operation of validCut) {
+              const actionName = operation.action === 0 ? 'ADD' : operation.action === 1 ? 'REPLACE' : 'REMOVE'
+              console.log(`  Trying ${actionName} operation...`)
               
-              // If this is an ADD operation that failed because functions already exist,
-              // try to use REPLACE instead
-              if (operation.action === 0 && singleError.message.includes('already exists')) {
-                console.log('🔄 Trying REPLACE instead...')
-                try {
-                  await diamondCut.diamondCut([{
-                    facetAddress: operation.facetAddress,
-                    action: 1, // Replace
-                    functionSelectors: operation.functionSelectors
-                  }], ethers.ZeroAddress, "0x")
-                  console.log('✅ REPLACE successful')
-                } catch (replaceError) {
-                  console.log(`❌ REPLACE failed: ${replaceError.message}`)
+              try {
+                const tx = await diamondCut.diamondCut([operation], ethers.ZeroAddress, "0x", {
+                  gasLimit: 2000000 // 2M gas limit per operation
+                })
+                
+                console.log(`  ⏳ Waiting for ${actionName} transaction: ${tx.hash}`)
+                const receipt = await tx.wait()
+                console.log(`  ✅ ${actionName} successful (gas used: ${receipt.gasUsed.toString()})`)
+              } catch (singleError) {
+                console.log(`  ❌ ${actionName} failed: ${singleError.message}`)
+                
+                // If REPLACE fails, try REMOVE + ADD
+                if (operation.action === 1) {
+                  console.log(`  🔄 Trying REMOVE + ADD for ${actionName}...`)
+                  try {
+                    // First remove
+                    const removeTx = await diamondCut.diamondCut([{
+                      facetAddress: ethers.ZeroAddress,
+                      action: 2, // REMOVE
+                      functionSelectors: operation.functionSelectors
+                    }], ethers.ZeroAddress, "0x", {
+                      gasLimit: 1000000
+                    })
+                    await removeTx.wait()
+                    console.log(`    ✅ REMOVE successful`)
+                    
+                    // Then add
+                    const addTx = await diamondCut.diamondCut([{
+                      facetAddress: operation.facetAddress,
+                      action: 0, // ADD
+                      functionSelectors: operation.functionSelectors
+                    }], ethers.ZeroAddress, "0x", {
+                      gasLimit: 1000000
+                    })
+                    await addTx.wait()
+                    console.log(`    ✅ ADD successful`)
+                  } catch (fallbackError) {
+                    console.log(`    ❌ REMOVE + ADD failed: ${fallbackError.message}`)
+                  }
                 }
               }
             }
           }
-        }
 
-        // Verify the changes
         console.log('\n🔍 Verifying...')
         
-        // Verify upgraded facets
         for (const [facetName, facetAddress] of Object.entries(upgradedFacets)) {
           try {
-            let contractName = facetName.charAt(0).toUpperCase() + facetName.slice(1) + 'Facet'
-            if (facetName.toLowerCase() === 'diamondloupe') {
-              contractName = 'DiamondLoupeFacet'
+            let contractName = null;
+            
+            const possibleNames = [
+              facetName.charAt(0).toUpperCase() + facetName.slice(1) + 'Facet',
+              facetName === 'fiatpayment' ? 'FiatPaymentFacet' : null,
+              facetName === 'diamondloupe' ? 'DiamondLoupeFacet' : null,
+              facetName.toUpperCase() + 'FACET',
+              facetName + 'Facet'
+            ].filter(Boolean);
+            
+            for (const name of possibleNames) {
+              try {
+                await ethers.getContractFactory(name);
+                contractName = name;
+                break;
+              } catch (error) {
+                // Continue to next option
+              }
             }
+            
+            if (!contractName) {
+              throw new Error(`Could not find contract for facet "${facetName}". Tried: ${possibleNames.join(', ')}`);
+            }
+            
             const facetContract = await ethers.getContractAt(contractName, diamondAddress)
             console.log(`✅ ${contractName} verified`)
             
-            // Check if functions are actually available
             const diamondLoupe = await ethers.getContractAt('DiamondLoupeFacet', diamondAddress)
-            const facetSelectors = await diamondLoupe.facetFunctionSelectors(facetAddress)
-            console.log(`  Functions: ${facetSelectors.length}`)
             
-            if (facetSelectors.length === 0) {
-              console.log(`  ⚠️  No functions found - upgrade may have failed`)
-              
-              // Try to find where the functions actually are
-              const newFacetSelectors = getSelectors(facetContract.interface)
-              console.log(`  🔍 Checking ${newFacetSelectors.length} expected functions...`)
-              
-              for (const selector of newFacetSelectors) {
-                try {
-                  const actualFacetAddress = await diamondLoupe.facetAddress(selector)
-                  if (actualFacetAddress !== ethers.ZeroAddress && actualFacetAddress !== facetAddress) {
-                    console.log(`  ⚠️  Function ${selector} at ${actualFacetAddress}`)
-                  }
-                } catch (error) {
-                  console.log(`  ❌ Function ${selector} not found`)
+            // Get the expected function selectors for this facet
+            const expectedSelectors = getSelectors(facetContract.interface)
+            console.log(`  Expected functions: ${expectedSelectors.length}`)
+            
+            // Check how many functions are actually routed to this facet
+            let routedFunctions = 0
+            let mismatchedFunctions = 0
+            
+            for (const selector of expectedSelectors) {
+              try {
+                const actualFacetAddress = await diamondLoupe.facetAddress(selector)
+                if (actualFacetAddress === facetAddress) {
+                  routedFunctions++
+                } else if (actualFacetAddress !== ethers.ZeroAddress) {
+                  mismatchedFunctions++
+                  console.log(`  ⚠️  Function ${selector} routed to ${actualFacetAddress} instead of ${facetAddress}`)
                 }
+              } catch (error) {
+                console.log(`  ❌ Function ${selector} not found in diamond`)
+              }
+            }
+            
+            if (routedFunctions === expectedSelectors.length) {
+              console.log(`  ✅ ${routedFunctions}/${expectedSelectors.length} functions correctly routed`)
+            } else if (routedFunctions > 0) {
+              console.log(`  ⚠️  ${routedFunctions}/${expectedSelectors.length} functions routed correctly`)
+              if (mismatchedFunctions > 0) {
+                console.log(`  ⚠️  ${mismatchedFunctions} functions routed to wrong facet`)
               }
             } else {
-              console.log(`  ✅ ${facetSelectors.length} functions available`)
+              console.log(`  ❌ 0/${expectedSelectors.length} functions routed correctly - upgrade failed`)
             }
           } catch (error) {
             console.log(`⚠️  Could not verify ${facetName}: ${error.message}`)
@@ -378,17 +430,16 @@ async function main() {
       }
     }
 
-    // Merge all facets as before
     const updatedFacets = {
       ...currentFacets,
       ...upgradedFacets
     };
-    // Always convert all keys to lowercase and remove duplicates
+    
     const normalizedFacets = {};
     for (const [key, value] of Object.entries(updatedFacets)) {
       normalizedFacets[key.toLowerCase()] = value;
     }
-    // Now use normalizedFacets in your deployment data
+    
     const updatedDeploymentData = {
       network: deploymentData.network,
       diamond: deploymentData.diamond,
@@ -404,7 +455,6 @@ async function main() {
     console.log(`\n✅ Deployment file updated`);
     console.log('🎉 Upgrade completed!');
     
-    // Summary
     if (Object.keys(upgradedFacets).length > 0) {
       console.log('\n📊 Summary:')
       for (const [facetName, address] of Object.entries(upgradedFacets)) {
@@ -423,7 +473,6 @@ function getSelectors(contractInterface) {
   for (const fragment of contractInterface.fragments) {
     if (fragment.type === 'function') {
       try {
-        // Use the correct method to get function selector
         const selector = contractInterface.getFunction(fragment.name).selector
         selectors.push(selector)
       } catch (error) {
@@ -441,3 +490,4 @@ main()
     process.exit(1)
   })
 
+ 
