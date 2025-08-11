@@ -1,0 +1,59 @@
+{
+  "testInfo": {
+    "name": "diamond-core",
+    "network": "localhost",
+    "deploymentType": "test",
+    "timestamp": "2025-08-11T13:18:38.495Z"
+  },
+  "deployment": {
+    "timestamp": "2025-08-11T13:18:38.495Z",
+    "totalGasUsed": 0
+  },
+  "testResults": {
+    "status": "completed",
+    "startTime": "2025-08-11T13:18:38.495Z",
+    "endTime": "2025-08-11T13:18:50.574Z",
+    "passed": true,
+    "output": {
+      "summary": "✅ Diamond Core Tests Passed!",
+      "tests": [
+        {
+          "section": "🔍 Testing Diamond Core Functionality",
+          "results": [
+            "✅ Loaded deployment data"
+          ]
+        },
+        {
+          "section": "🔍 Test 1: Diamond Contract Existence",
+          "results": [
+            "✅ Diamond contract has code"
+          ]
+        },
+        {
+          "section": "🔍 Test 2: DiamondLoupe Functions",
+          "results": [
+            "✅ Facets count: 7",
+            "✅ Facet addresses count: 7",
+            "✅ adminFacet: Present",
+            "✅ propertyFacet: Present",
+            "✅ investmentFacet: Present",
+            "✅ milestoneFacet: Present",
+            "✅ transactionFacet: Present"
+          ]
+        },
+        {
+          "section": "🔍 Test 3: Basic Function Routing",
+          "results": [
+            "✅ Owner: 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+            "✅ Owner matches deployer: true",
+            "✅ Total properties: 1"
+          ]
+        }
+      ],
+      "info": [
+        "=====================================",
+        "👤 Deployer: 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"
+      ]
+    }
+  }
+}

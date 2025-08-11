@@ -1,0 +1,64 @@
+{
+  "testInfo": {
+    "name": "all-tests-summary",
+    "network": "localhost",
+    "deploymentType": "test",
+    "timestamp": "2025-08-11T13:20:31.550Z"
+  },
+  "deployment": {
+    "timestamp": "2025-08-11T13:20:31.550Z",
+    "totalGasUsed": 0
+  },
+  "testResults": {
+    "status": "all_passed",
+    "startTime": "2025-08-11T13:20:31.550Z",
+    "endTime": "2025-08-11T13:20:31.555Z",
+    "passed": true,
+    "totalTests": 8,
+    "passedTests": 8,
+    "failedTests": 0,
+    "successRate": "100.0%"
+  },
+  "individualTests": [
+    {
+      "testName": "diamond-core",
+      "status": "passed",
+      "logFile": "C:\\Users\\sulay\\Documents\\Assetrix\\test-deployments\\diamond-core-deployment.json"
+    },
+    {
+      "testName": "admin-facet",
+      "status": "passed",
+      "logFile": "C:\\Users\\sulay\\Documents\\Assetrix\\test-deployments\\admin-facet-deployment.json"
+    },
+    {
+      "testName": "property-facet",
+      "status": "passed",
+      "logFile": "C:\\Users\\sulay\\Documents\\Assetrix\\test-deployments\\property-facet-deployment.json"
+    },
+    {
+      "testName": "investment-facet",
+      "status": "passed",
+      "logFile": "C:\\Users\\sulay\\Documents\\Assetrix\\test-deployments\\investment-facet-deployment.json"
+    },
+    {
+      "testName": "fiat-payment-facet",
+      "status": "passed",
+      "logFile": "C:\\Users\\sulay\\Documents\\Assetrix\\test-deployments\\fiat-payment-facet-deployment.json"
+    },
+    {
+      "testName": "milestone-facet",
+      "status": "passed",
+      "logFile": "C:\\Users\\sulay\\Documents\\Assetrix\\test-deployments\\milestone-facet-deployment.json"
+    },
+    {
+      "testName": "transaction-facet",
+      "status": "passed",
+      "logFile": "C:\\Users\\sulay\\Documents\\Assetrix\\test-deployments\\transaction-facet-deployment.json"
+    },
+    {
+      "testName": "system-integration",
+      "status": "passed",
+      "logFile": "C:\\Users\\sulay\\Documents\\Assetrix\\test-deployments\\system-integration-deployment.json"
+    }
+  ]
+}

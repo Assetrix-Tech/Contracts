@@ -44,6 +44,15 @@ contract TransactionFacet {
         s.reentrancyStatus = _NOT_ENTERED;
     }
 
+    modifier onlyAuthorized() {
+        AssetrixStorage.Layout storage s = AssetrixStorage.layout();
+        require(
+            msg.sender == s.owner || msg.sender == address(this),
+            "Only authorized contracts can record transactions"
+        );
+        _;
+    }
+
     //Record a new transaction
     function recordTransaction(
         uint256 _propertyId,
@@ -52,7 +61,7 @@ contract TransactionFacet {
         AssetrixStorage.TransactionType _type,
         uint256 _amount,
         string memory _description
-    ) external whenNotPaused nonReentrant {
+    ) external onlyAuthorized whenNotPaused {
         AssetrixStorage.Layout storage s = AssetrixStorage.layout();
         s.transactionCount++;
         s.transactions[s.transactionCount] = AssetrixStorage.Transaction({

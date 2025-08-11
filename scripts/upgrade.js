@@ -4,17 +4,15 @@ const fs = require('fs')
 const path = require('path')
 
 async function main() {
-  console.log('Starting diamond pattern upgrade and feature addition process')
+  console.log('🚀 Starting diamond upgrade...')
   
   try {
     const [deployer] = await ethers.getSigners()
-    console.log('Upgrading diamond with the account:', deployer.address)
-    console.log('Account balance:', (await ethers.provider.getBalance(deployer.address)).toString())
+    console.log(`Account: ${deployer.address}`)
+    console.log(`Balance: ${(await ethers.provider.getBalance(deployer.address)).toString()}`)
 
-    // Get the diamond address from environment variables or deployment file
     let diamondAddress = process.env.DIAMOND_ADDRESS
     
-    // If not in env, try to get from deployment file
     if (!diamondAddress) {
       const network = await ethers.provider.getNetwork()
       const networkName = network.name === 'unknown' ? 'localhost' : network.name
@@ -23,15 +21,14 @@ async function main() {
       if (fs.existsSync(deploymentPath)) {
         const deploymentData = JSON.parse(fs.readFileSync(deploymentPath))
         diamondAddress = deploymentData.diamond
-        console.log(`Found diamond address in deployment file: ${diamondAddress}`)
+        console.log(`Diamond: ${diamondAddress}`)
       } else {
         throw new Error('DIAMOND_ADDRESS not found in .env file and no deployment file found')
       }
     }
 
-    console.log(`Upgrading diamond at ${diamondAddress}...`)
+    console.log(`Target: ${diamondAddress}`)
     
-    // Get current facet addresses from deployment file
     const network = await ethers.provider.getNetwork()
     const networkName = network.name === 'unknown' ? 'localhost' : network.name
     const deploymentPath = path.join(__dirname, '..', 'deployments', `deployment-${networkName}.json`)
@@ -43,7 +40,6 @@ async function main() {
     const deploymentData = JSON.parse(fs.readFileSync(deploymentPath))
     const currentFacets = deploymentData.facets
 
-    // ===== LOAD UPGRADE CONFIGURATION =====
     const configPath = path.join(__dirname, '..', 'upgrade-config.json')
     let upgradeConfig = {
       upgradeFacets: [],
@@ -53,210 +49,397 @@ async function main() {
 
     if (fs.existsSync(configPath)) {
       upgradeConfig = JSON.parse(fs.readFileSync(configPath))
-      console.log('📋 Loaded upgrade configuration from upgrade-config.json')
+      console.log('Config loaded')
     } else {
-      console.log('ℹ️ No upgrade-config.json found. Creating default configuration...')
-      // Create default config with all existing facets
+      console.log('No config found, creating default...')
       upgradeConfig = {
         upgradeFacets: Object.keys(currentFacets),
         addFacets: [],
         skipFacets: []
       }
       fs.writeFileSync(configPath, JSON.stringify(upgradeConfig, null, 2))
-      console.log('✅ Created default upgrade-config.json')
+      console.log('Default config created')
     }
 
-    // ===== DEPLOY UPGRADED VERSIONS OF EXISTING FACETS =====
-    console.log('\n📦 Deploying upgraded facet versions...')
+    console.log('\n📋 Configuration:')
     
-    const upgradedFacets = {}
-    const cut = []
-
-    // Check for mistakes: new facets in upgradeFacets
     const newFacetsInUpgradeList = upgradeConfig.upgradeFacets.filter(facet => 
       !currentFacets[facet]
     )
 
     if (newFacetsInUpgradeList.length > 0) {
-      console.log(`⚠️ Warning: These facets don't exist yet and should be in addFacets instead: ${newFacetsInUpgradeList.join(', ')}`)
-      console.log(`💡 Moving them to addFacets automatically...`)
-      
-      // Add them to addFacets if not already there
+      console.log(`⚠️  Moving new facets to addFacets: ${newFacetsInUpgradeList.join(', ')}`)
       for (const facet of newFacetsInUpgradeList) {
         if (!upgradeConfig.addFacets.includes(facet)) {
           upgradeConfig.addFacets.push(facet)
         }
       }
-      
-      // Remove them from upgradeFacets
       upgradeConfig.upgradeFacets = upgradeConfig.upgradeFacets.filter(facet => 
         !newFacetsInUpgradeList.includes(facet)
       )
     }
 
-    // Get all facet names that should be upgraded
     const facetsToUpgrade = upgradeConfig.upgradeFacets.filter(facet => 
       !upgradeConfig.skipFacets.includes(facet) && currentFacets[facet]
     )
 
-    // Show which facets are being skipped
-    const existingFacets = Object.keys(currentFacets)
-    const skippedFacets = existingFacets.filter(facet => 
-      !upgradeConfig.upgradeFacets.includes(facet) && !upgradeConfig.skipFacets.includes(facet)
-    )
-    const explicitlySkippedFacets = upgradeConfig.skipFacets.filter(facet => 
-      existingFacets.includes(facet)
+    console.log(`Upgrade: ${facetsToUpgrade.join(', ') || 'none'}`)
+    console.log(`Add: ${upgradeConfig.addFacets.join(', ') || 'none'}`)
+    console.log(`Skip: ${upgradeConfig.skipFacets.join(', ') || 'none'}`)
+
+    const existingFacetsNotInConfig = Object.keys(currentFacets).filter(facet => 
+      !upgradeConfig.upgradeFacets.includes(facet) && 
+      !upgradeConfig.addFacets.includes(facet) &&
+      !upgradeConfig.skipFacets.includes(facet)
     )
 
-    console.log(`🔄 Facets to upgrade: ${facetsToUpgrade.length}`)
-    if (skippedFacets.length > 0) {
-      console.log(`⏭️ Facets not in config (auto-skipped): ${skippedFacets.join(', ')}`)
+    if (existingFacetsNotInConfig.length > 0) {
+      console.log(`Auto-skip: ${existingFacetsNotInConfig.join(', ')}`)
     }
-    if (explicitlySkippedFacets.length > 0) {
-      console.log(`⏭️ Facets explicitly skipped: ${explicitlySkippedFacets.join(', ')}`)
-    }
+
+    console.log('\n🔄 Processing upgrades...')
     
+    const upgradedFacets = {}
+    const cut = []
+    const failedUpgrades = []
+
     for (const facetName of facetsToUpgrade) {
-      console.log(`🔄 Upgrading ${facetName}Facet...`)
+      console.log(`\n📦 ${facetName}...`)
       
-      try {
-        const FacetContract = await ethers.getContractFactory(`${facetName.charAt(0).toUpperCase() + facetName.slice(1)}Facet`)
-        const facetV2 = await FacetContract.deploy()
-        await facetV2.waitForDeployment()
-        const facetV2Address = await facetV2.getAddress()
-        console.log(`✅ ${facetName}FacetV2 deployed to: ${facetV2Address}`)
-        upgradedFacets[facetName] = facetV2Address
-
-        // Remove old facet and add new one
-        const facetSelectors = getSelectors(FacetContract.interface)
-        cut.push(
-          {
-            facetAddress: ethers.ZeroAddress, // Remove old facet
-            action: 1, // Remove
-            functionSelectors: facetSelectors
-          },
-          {
-            facetAddress: facetV2Address, // Add new facet
-            action: 0, // Add
-            functionSelectors: facetSelectors
+              try {
+          let contractName = null;
+          let FacetContract = null;
+          
+          const possibleNames = [
+            facetName.charAt(0).toUpperCase() + facetName.slice(1) + 'Facet',
+            facetName === 'fiatpayment' ? 'FiatPaymentFacet' : null,
+            facetName === 'diamondloupe' ? 'DiamondLoupeFacet' : null,
+            facetName.toUpperCase() + 'FACET',
+            facetName + 'Facet'
+          ].filter(Boolean);
+          
+          for (const name of possibleNames) {
+            try {
+              FacetContract = await ethers.getContractFactory(name);
+              contractName = name;
+              break;
+            } catch (error) {
+              // Continue to next option
+            }
           }
-        )
-    } catch (error) {
-        console.log(`❌ Failed to upgrade ${facetName}Facet: ${error.message}`)
-        console.log(`⚠️ Skipping ${facetName}Facet upgrade`)
-        console.log(`💡 Check if ${facetName}Facet.sol exists and compiles correctly`)
+          
+          if (!contractName || !FacetContract) {
+            throw new Error(`Could not find contract for facet "${facetName}". Tried: ${possibleNames.join(', ')}`);
+          }
+          
+          const facetV2 = await FacetContract.deploy()
+          await facetV2.waitForDeployment()
+          const facetV2Address = await facetV2.getAddress()
+          console.log(`  Deployed: ${facetV2Address}`)
+          upgradedFacets[facetName] = facetV2Address
+
+          const newFacetSelectors = getSelectors(FacetContract.interface)
+          const oldFacetAddress = currentFacets[facetName]
+          const diamondLoupe = await ethers.getContractAt('DiamondLoupeFacet', diamondAddress)
+          
+          let oldFacetSelectors = []
+          try {
+            oldFacetSelectors = await diamondLoupe.facetFunctionSelectors(oldFacetAddress)
+            console.log(`  Old functions: ${oldFacetSelectors.length}`)
+          } catch (error) {
+            console.log(`  Old functions: 0 (not found)`)
+            oldFacetSelectors = []
+          }
+          
+          const existingSelectors = newFacetSelectors.filter(selector => 
+            oldFacetSelectors.includes(selector)
+          )
+          const newSelectors = newFacetSelectors.filter(selector => 
+            !oldFacetSelectors.includes(selector)
+          )
+          
+          console.log(`  New functions: ${newSelectors.length}`)
+          console.log(`  Existing functions: ${existingSelectors.length}`)
+          
+          if (newSelectors.length > 0) {
+            cut.push({
+              facetAddress: facetV2Address,
+              action: 0,
+              functionSelectors: newSelectors
+            })
+            console.log(`  ✅ Add: ${newSelectors.length} functions`)
+          }
+          
+          if (existingSelectors.length > 0) {
+            // Check which functions are actually mapped to different addresses
+            const diamondLoupe = await ethers.getContractAt('DiamondLoupeFacet', diamondAddress)
+            const selectorsToReplace = []
+            
+            for (const selector of existingSelectors) {
+              try {
+                const currentAddress = await diamondLoupe.facetAddress(selector)
+                if (currentAddress !== facetV2Address) {
+                  selectorsToReplace.push(selector)
+                }
+              } catch (error) {
+                // Function not found, safe to add
+                selectorsToReplace.push(selector)
+              }
+            }
+            
+            if (selectorsToReplace.length > 0) {
+              cut.push({
+                facetAddress: facetV2Address,
+                action: 1, // REPLACE
+                functionSelectors: selectorsToReplace
+              })
+              console.log(`  ✅ Replace: ${selectorsToReplace.length} functions with new facet`)
+            } else {
+              console.log(`  ℹ️  All functions already mapped to new facet`)
+            }
+          }
+        } catch (error) {
+          console.log(`  ❌ Failed: ${error.message}`)
+          failedUpgrades.push(facetName)
+        }
       }
-    }
 
-    // ===== DEPLOY NEW FACETS =====
-    console.log('\n🆕 Deploying new facets...')
-    
-    const newFacets = {}
-
-    // Get all new facets to add (exclude existing ones)
     const facetsToAdd = upgradeConfig.addFacets.filter(facet => 
-      !upgradeConfig.skipFacets.includes(facet) && !currentFacets[facet]
+      !upgradeConfig.skipFacets.includes(facet)
     )
 
-    // Check for mistakes: facets in addFacets that already exist
-    const existingFacetsInAddList = upgradeConfig.addFacets.filter(facet => 
-      currentFacets[facet]
-    )
-
-    if (existingFacetsInAddList.length > 0) {
-      console.log(`⚠️ Warning: These facets already exist and should be in upgradeFacets instead: ${existingFacetsInAddList.join(', ')}`)
-      console.log(`💡 Moving them to upgradeFacets automatically...`)
+    if (facetsToAdd.length > 0) {
+      console.log(`\n🆕 Adding new facets...`)
       
-      // Add them to upgradeFacets if not already there
-      for (const facet of existingFacetsInAddList) {
-        if (!upgradeConfig.upgradeFacets.includes(facet)) {
-          upgradeConfig.upgradeFacets.push(facet)
+      for (const facetName of facetsToAdd) {
+        console.log(`\n📦 ${facetName}...`)
+        
+        try {
+          let contractName = null;
+          let FacetContract = null;
+          
+          const possibleNames = [
+            facetName.charAt(0).toUpperCase() + facetName.slice(1) + 'Facet',
+            facetName === 'fiatpayment' ? 'FiatPaymentFacet' : null,
+            facetName === 'diamondloupe' ? 'DiamondLoupeFacet' : null,
+            facetName.toUpperCase() + 'FACET',
+            facetName + 'Facet'
+          ].filter(Boolean);
+          
+          for (const name of possibleNames) {
+            try {
+              FacetContract = await ethers.getContractFactory(name);
+              contractName = name;
+              break;
+            } catch (error) {
+              // Continue to next option
+            }
+          }
+          
+          if (!contractName || !FacetContract) {
+            throw new Error(`Could not find contract for facet "${facetName}". Tried: ${possibleNames.join(', ')}`);
+          }
+          
+          const newFacet = await FacetContract.deploy()
+          await newFacet.waitForDeployment()
+          const newFacetAddress = await newFacet.getAddress()
+          console.log(`  Deployed: ${newFacetAddress}`)
+          upgradedFacets[facetName] = newFacetAddress
+
+          const facetSelectors = getSelectors(FacetContract.interface)
+          
+          if (facetSelectors.length > 0) {
+            // For new facets, use ADD operation
+            cut.push({
+              facetAddress: newFacetAddress,
+              action: 0, // ADD
+              functionSelectors: facetSelectors
+            })
+            console.log(`  ✅ Add: ${facetSelectors.length} functions`)
+          }
+        } catch (error) {
+          console.log(`  ❌ Failed: ${error.message}`)
+          failedUpgrades.push(facetName)
         }
       }
     }
 
-    console.log(`🆕 Facets to add: ${facetsToAdd.length}`)
-    
-    for (const facetName of facetsToAdd) {
-      console.log(`🆕 Deploying ${facetName}Facet...`)
-      
-      try {
-        const FacetContract = await ethers.getContractFactory(`${facetName.charAt(0).toUpperCase() + facetName.slice(1)}Facet`)
-        const newFacet = await FacetContract.deploy()
-        await newFacet.waitForDeployment()
-        const newFacetAddress = await newFacet.getAddress()
-        console.log(`✅ ${facetName}Facet deployed to: ${newFacetAddress}`)
-        newFacets[facetName] = newFacetAddress
-
-        // Add new facet
-        const facetSelectors = getSelectors(FacetContract.interface)
-        cut.push({
-          facetAddress: newFacetAddress,
-          action: 0, // Add
-          functionSelectors: facetSelectors
-        })
-      } catch (error) {
-        console.log(`❌ Failed to deploy ${facetName}Facet: ${error.message}`)
-        console.log(`⚠️ Skipping ${facetName}Facet deployment`)
-      }
-    }
-
-    // ===== PERFORM DIAMOND CUT =====
     if (cut.length > 0) {
-      console.log('\n🔧 Preparing diamond cut for upgrade and additions...')
-      console.log(`📋 Cut operations: ${cut.length}`)
+      console.log('\n🔧 Executing diamond cut...')
+      console.log(`Operations: ${cut.length}`)
       
-      // Perform diamond cut
-      console.log('🔧 Performing diamond cut...')
-      const diamondCut = await ethers.getContractAt('IDiamondCut', diamondAddress)
-      await diamondCut.diamondCut(cut, ethers.ZeroAddress, "0x")
-      console.log('✅ Diamond cut completed successfully')
-
-      // Verify the changes
-      console.log('\n🔍 Verifying changes...')
-      
-      // Verify upgraded facets
-      for (const [facetName, facetAddress] of Object.entries(upgradedFacets)) {
-        try {
-          const facetContract = await ethers.getContractAt(facetName.charAt(0).toUpperCase() + facetName.slice(1) + 'Facet', diamondAddress)
-          console.log(`✅ ${facetName}Facet upgrade verified`)
-        } catch (error) {
-          console.log(`⚠️ Warning: Could not verify ${facetName}Facet after upgrade:`, error.message)
+              if (failedUpgrades.length > 0) {
+          console.log(`Failed: ${failedUpgrades.join(', ')}`)
         }
-      }
+        
+        const validCut = cut.filter(operation => {
+          if (operation.facetAddress === ethers.ZeroAddress && operation.action !== 2) {
+            console.log(`⚠️  Skipping invalid operation with zero address`)
+            return false
+          }
+          return true
+        })
+        
+        if (validCut.length > 0) {
+          console.log('Cut operations:')
+          validCut.forEach((operation, index) => {
+            const actionName = operation.action === 0 ? 'ADD' : operation.action === 1 ? 'REPLACE' : 'REMOVE'
+            console.log(`  ${index + 1}. ${actionName}: ${operation.functionSelectors.length} functions`)
+          })
+          
+          const diamondCut = await ethers.getContractAt('IDiamondCut', diamondAddress)
+          
+          try {
+            // Set higher gas limit for diamond cut operations
+            const tx = await diamondCut.diamondCut(validCut, ethers.ZeroAddress, "0x", {
+              gasLimit: 5000000 // 5M gas limit
+            })
+            
+            console.log(`⏳ Waiting for transaction: ${tx.hash}`)
+            const receipt = await tx.wait()
+            console.log(`✅ Diamond cut successful (gas used: ${receipt.gasUsed.toString()})`)
+          } catch (error) {
+            console.log(`❌ Diamond cut failed: ${error.message}`)
+            
+            console.log('🔄 Trying individual operations with higher gas limits...')
+            
+            for (const operation of validCut) {
+              const actionName = operation.action === 0 ? 'ADD' : operation.action === 1 ? 'REPLACE' : 'REMOVE'
+              console.log(`  Trying ${actionName} operation...`)
+              
+              try {
+                const tx = await diamondCut.diamondCut([operation], ethers.ZeroAddress, "0x", {
+                  gasLimit: 2000000 // 2M gas limit per operation
+                })
+                
+                console.log(`  ⏳ Waiting for ${actionName} transaction: ${tx.hash}`)
+                const receipt = await tx.wait()
+                console.log(`  ✅ ${actionName} successful (gas used: ${receipt.gasUsed.toString()})`)
+              } catch (singleError) {
+                console.log(`  ❌ ${actionName} failed: ${singleError.message}`)
+                
+                // If REPLACE fails, try REMOVE + ADD
+                if (operation.action === 1) {
+                  console.log(`  🔄 Trying REMOVE + ADD for ${actionName}...`)
+                  try {
+                    // First remove
+                    const removeTx = await diamondCut.diamondCut([{
+                      facetAddress: ethers.ZeroAddress,
+                      action: 2, // REMOVE
+                      functionSelectors: operation.functionSelectors
+                    }], ethers.ZeroAddress, "0x", {
+                      gasLimit: 1000000
+                    })
+                    await removeTx.wait()
+                    console.log(`    ✅ REMOVE successful`)
+                    
+                    // Then add
+                    const addTx = await diamondCut.diamondCut([{
+                      facetAddress: operation.facetAddress,
+                      action: 0, // ADD
+                      functionSelectors: operation.functionSelectors
+                    }], ethers.ZeroAddress, "0x", {
+                      gasLimit: 1000000
+                    })
+                    await addTx.wait()
+                    console.log(`    ✅ ADD successful`)
+                  } catch (fallbackError) {
+                    console.log(`    ❌ REMOVE + ADD failed: ${fallbackError.message}`)
+                  }
+                }
+              }
+            }
+          }
 
-      // Verify new facets
-      for (const [facetName, facetAddress] of Object.entries(newFacets)) {
-        try {
-          const facetContract = await ethers.getContractAt(facetName.charAt(0).toUpperCase() + facetName.slice(1) + 'Facet', diamondAddress)
-          console.log(`✅ ${facetName}Facet addition verified`)
-        } catch (error) {
-          console.log(`⚠️ Warning: Could not verify ${facetName}Facet after addition:`, error.message)
+        console.log('\n🔍 Verifying...')
+        
+        for (const [facetName, facetAddress] of Object.entries(upgradedFacets)) {
+          try {
+            let contractName = null;
+            
+            const possibleNames = [
+              facetName.charAt(0).toUpperCase() + facetName.slice(1) + 'Facet',
+              facetName === 'fiatpayment' ? 'FiatPaymentFacet' : null,
+              facetName === 'diamondloupe' ? 'DiamondLoupeFacet' : null,
+              facetName.toUpperCase() + 'FACET',
+              facetName + 'Facet'
+            ].filter(Boolean);
+            
+            for (const name of possibleNames) {
+              try {
+                await ethers.getContractFactory(name);
+                contractName = name;
+                break;
+              } catch (error) {
+                // Continue to next option
+              }
+            }
+            
+            if (!contractName) {
+              throw new Error(`Could not find contract for facet "${facetName}". Tried: ${possibleNames.join(', ')}`);
+            }
+            
+            const facetContract = await ethers.getContractAt(contractName, diamondAddress)
+            console.log(`✅ ${contractName} verified`)
+            
+            const diamondLoupe = await ethers.getContractAt('DiamondLoupeFacet', diamondAddress)
+            
+            // Get the expected function selectors for this facet
+            const expectedSelectors = getSelectors(facetContract.interface)
+            console.log(`  Expected functions: ${expectedSelectors.length}`)
+            
+            // Check how many functions are actually routed to this facet
+            let routedFunctions = 0
+            let mismatchedFunctions = 0
+            
+            for (const selector of expectedSelectors) {
+              try {
+                const actualFacetAddress = await diamondLoupe.facetAddress(selector)
+                if (actualFacetAddress === facetAddress) {
+                  routedFunctions++
+                } else if (actualFacetAddress !== ethers.ZeroAddress) {
+                  mismatchedFunctions++
+                  console.log(`  ⚠️  Function ${selector} routed to ${actualFacetAddress} instead of ${facetAddress}`)
+                }
+              } catch (error) {
+                console.log(`  ❌ Function ${selector} not found in diamond`)
+              }
+            }
+            
+            if (routedFunctions === expectedSelectors.length) {
+              console.log(`  ✅ ${routedFunctions}/${expectedSelectors.length} functions correctly routed`)
+            } else if (routedFunctions > 0) {
+              console.log(`  ⚠️  ${routedFunctions}/${expectedSelectors.length} functions routed correctly`)
+              if (mismatchedFunctions > 0) {
+                console.log(`  ⚠️  ${mismatchedFunctions} functions routed to wrong facet`)
+              }
+            } else {
+              console.log(`  ❌ 0/${expectedSelectors.length} functions routed correctly - upgrade failed`)
+            }
+          } catch (error) {
+            console.log(`⚠️  Could not verify ${facetName}: ${error.message}`)
+          }
         }
+      } else {
+        console.log('⚠️  No valid operations to perform')
       }
     } else {
-      console.log('ℹ️ No facets to upgrade or add.')
-      console.log('💡 Create or modify upgrade-config.json to specify which facets to modify.')
-      console.log('📝 Example configuration:')
-      console.log(JSON.stringify({
-        upgradeFacets: ["property", "investment", "milestone"],
-        addFacets: ["insurance", "analytics", "governance"],
-        skipFacets: ["admin"]
-      }, null, 2))
+      console.log('ℹ️  No facets to upgrade or add.')
+      if (failedUpgrades.length > 0) {
+        console.log(`❌ All deployments failed: ${failedUpgrades.join(', ')}`)
+      }
     }
 
-    // Merge all facets as before
     const updatedFacets = {
       ...currentFacets,
-      ...upgradedFacets,
-      ...newFacets
+      ...upgradedFacets
     };
-    // Always convert all keys to lowercase and remove duplicates
+    
     const normalizedFacets = {};
     for (const [key, value] of Object.entries(updatedFacets)) {
       normalizedFacets[key.toLowerCase()] = value;
     }
-    // Now use normalizedFacets in your deployment data
+    
     const updatedDeploymentData = {
       network: deploymentData.network,
       diamond: deploymentData.diamond,
@@ -269,40 +452,28 @@ async function main() {
       deploymentPath,
       JSON.stringify(updatedDeploymentData, null, 2)
     );
-    console.log(`✅ Updated deployment info saved to ${deploymentPath}`);
-    console.log('\n🎉 Diamond pattern upgrade and feature addition completed successfully!');
+    console.log(`\n✅ Deployment file updated`);
+    console.log('🎉 Upgrade completed!');
     
-    // Summary
     if (Object.keys(upgradedFacets).length > 0) {
-      console.log('\n📊 Summary of Upgrades:')
+      console.log('\n📊 Summary:')
       for (const [facetName, address] of Object.entries(upgradedFacets)) {
-        console.log(`  🔄 ${facetName}Facet: ${address}`)
+        console.log(`  ${facetName}: ${address}`)
       }
     }
-    
-    if (Object.keys(newFacets).length > 0) {
-      console.log('\n📊 Summary of New Features:')
-      for (const [facetName, address] of Object.entries(newFacets)) {
-        console.log(`  🆕 ${facetName}Facet: ${address}`)
-      }
-    }
-    
-    return updatedDeploymentData
+
   } catch (error) {
-    console.error('❌ Error in upgrade and addition process:', error)
+    console.error('❌ Error:', error)
     throw error
   }
 }
 
-// Helper function to get function selectors from contract interface
 function getSelectors(contractInterface) {
   const selectors = []
   for (const fragment of contractInterface.fragments) {
     if (fragment.type === 'function') {
       try {
-        // Create function signature and get selector
-        const functionSignature = `${fragment.name}(${fragment.inputs.map(input => input.type).join(',')})`
-        const selector = ethers.keccak256(ethers.toUtf8Bytes(functionSignature)).slice(0, 10)
+        const selector = contractInterface.getFunction(fragment.name).selector
         selectors.push(selector)
       } catch (error) {
         console.log(`⚠️ Could not get selector for function: ${fragment.name} - ${error.message}`)
@@ -318,3 +489,5 @@ main()
     console.error(error)
     process.exit(1)
   })
+
+ 

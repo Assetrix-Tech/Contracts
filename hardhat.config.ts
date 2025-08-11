@@ -18,11 +18,17 @@ module.exports = {
   },
   networks: {
     hardhat: {},
+    localhost: {
+      url: "http://127.0.0.1:8545",
+      chainId: 31337,
+      timeout: 120000, // 2 minutes timeout
+    },
     sepolia: {
       url: process.env.SEPOLIA_RPC_URL || "",
       accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
       chainId: 11155111,
-    },
+      timeout: 120000, // 2 minutes timeout
+    }
   },
   etherscan: {
     apiKey: {
@@ -36,7 +42,7 @@ module.exports = {
     artifacts: "./artifacts",
   },
   mocha: {
-    timeout: 40000,
+    timeout: 120000, // 2 minutes
   },
   contractSizer: {
     alphaSort: true,

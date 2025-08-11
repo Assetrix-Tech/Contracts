@@ -14,6 +14,26 @@ contract MilestoneFacet {
         _;
     }
 
+    modifier whenNotPaused() {
+        AssetrixStorage.Layout storage s = AssetrixStorage.layout();
+        require(!s.paused, "Pausable: paused");
+        _;
+    }
+
+    uint256 private constant _NOT_ENTERED = 1;
+    uint256 private constant _ENTERED = 2;
+
+    modifier nonReentrant() {
+        AssetrixStorage.Layout storage s = AssetrixStorage.layout();
+        require(
+            s.reentrancyStatus != _ENTERED,
+            "ReentrancyGuard: reentrant call"
+        );
+        s.reentrancyStatus = _ENTERED;
+        _;
+        s.reentrancyStatus = _NOT_ENTERED;
+    }
+
     event MilestoneCreated(
         uint256 indexed propertyId,
         uint256 milestoneId,
@@ -41,14 +61,25 @@ contract MilestoneFacet {
         address indexed developer,
         uint256 amount
     );
+    event MilestoneVerifiedAndReleased(
+        uint256 indexed propertyId,
+        uint256 indexed milestoneId,
+        uint256 amount,
+        address indexed developer,
+        address verifiedBy
+    );
 
     function requestMilestoneFunds(
         uint256 _propertyId,
         uint256 _milestoneId
-    ) external {
+    ) external whenNotPaused nonReentrant {
         AssetrixStorage.Layout storage s = AssetrixStorage.layout();
         AssetrixStorage.Property storage prop = s.properties[_propertyId];
         require(prop.isFullyFunded, "Property must be fully funded");
+        require(
+            prop.developerAddress != address(0),
+            "Developer address not set"
+        );
         require(
             msg.sender == prop.developerAddress,
             "Only property developer can request funds"
@@ -78,31 +109,15 @@ contract MilestoneFacet {
                 "Previous milestone must be completed first"
             );
         }
-        // Deduct admin fee on first milestone request
-        if (_milestoneId == 0 && !s.adminFeePaid[_propertyId]) {
-            uint256 totalFunds = prop.tokensSold * prop.tokenPrice;
-            uint256 adminFee = (totalFunds * s.adminFeePercentage) / 100;
-            require(adminFee < totalFunds, "Admin fee too high");
-            address stablecoin = s.stablecoin;
-            require(stablecoin != address(0), "Stablecoin not set");
-            address owner = s.owner;
-            require(owner != address(0), "Owner not set");
-            // Transfer admin fee to owner
-            require(
-                IERC20(stablecoin).transfer(owner, adminFee),
-                "Admin fee transfer failed"
-            );
-            s.adminFeePaid[_propertyId] = true;
-        }
         milestone.fundsRequested = true;
         milestone.requestedAt = block.timestamp;
         emit MilestoneFundsRequested(_propertyId, _milestoneId, msg.sender);
     }
 
-    function releaseMilestoneFunds(
+    function markMilestoneCompleted(
         uint256 _propertyId,
         uint256 _milestoneId
-    ) external onlyOwner {
+    ) external whenNotPaused nonReentrant {
         AssetrixStorage.Layout storage s = AssetrixStorage.layout();
         AssetrixStorage.Property storage prop = s.properties[_propertyId];
         require(prop.isFullyFunded, "Property must be fully funded");
@@ -114,74 +129,97 @@ contract MilestoneFacet {
             _milestoneId
         ];
         require(
-            milestone.fundsRequested,
-            "Funds must be requested before release"
+            prop.developerAddress != address(0),
+            "Developer address not set"
         );
         require(
-            !milestone.fundsReleased,
-            "Funds already released for this milestone"
+            msg.sender == prop.developerAddress,
+            "Only developer can mark completed"
         );
+        require(!milestone.fundsReleased, "Funds already released");
         require(!milestone.isCompleted, "Milestone already completed");
-        uint256 totalFunds = prop.tokensSold * prop.tokenPrice;
-        uint256 adminFee = (totalFunds * s.adminFeePercentage) / 100;
-        uint256 netFunds = totalFunds - adminFee;
-        uint256 releaseAmount = (netFunds * milestone.percentage) / 100;
+        milestone.isCompleted = true;
+        milestone.completedAt = block.timestamp;
+        emit MilestoneMarkedCompleted(_propertyId, _milestoneId);
+    }
+
+    function verifyAndMarkMilestoneCompleted(
+        uint256 _propertyId,
+        uint256 _milestoneId
+    ) external onlyOwner whenNotPaused nonReentrant {
+        AssetrixStorage.Layout storage s = AssetrixStorage.layout();
+        AssetrixStorage.Property storage prop = s.properties[_propertyId];
+        require(prop.isFullyFunded, "Property must be fully funded");
         require(
-            releaseAmount <= netFunds,
-            "Insufficient funds for milestone release"
+            _milestoneId < prop.milestones.length,
+            "Milestone does not exist"
+        );
+        AssetrixStorage.Milestone storage milestone = prop.milestones[
+            _milestoneId
+        ];
+        require(
+            milestone.isCompleted,
+            "Developer must mark milestone as completed before verification"
+        );
+        require(!milestone.fundsReleased, "Funds already released");
+
+        // Calculate funds with overflow protection
+        uint256 totalFunds = prop.tokensSold * prop.tokenPrice;
+        require(
+            totalFunds >= prop.tokensSold &&
+                totalFunds / prop.tokenPrice == prop.tokensSold,
+            "Overflow in totalFunds calculation"
+        );
+        uint256 releaseAmount = (totalFunds * milestone.percentage) / 100;
+        require(
+            milestone.percentage > 0 && milestone.percentage <= 100,
+            "Invalid percentage"
         );
 
+        // Admin fee is deducted from the release amount.
+        require(s.adminFeePercentage <= 10, "Admin fee cannot exceed 10%");
+        uint256 adminFee = (releaseAmount * s.adminFeePercentage) / 100;
+        uint256 netReleaseAmount = releaseAmount - adminFee;
+
+        // Check remaining funds instead of total funds
+        uint256 remainingFunds = totalFunds - s.releasedFunds[_propertyId];
+        require(
+            netReleaseAmount <= remainingFunds,
+            "Insufficient remaining funds for milestone release"
+        );
+
+        // Mark as completed (admin has verified off-chain)
+        milestone.isCompleted = true;
+        milestone.completedAt = block.timestamp;
+
+        // Release funds immediately after verification
         milestone.fundsReleased = true;
         milestone.releasedAt = block.timestamp;
-        s.releasedFunds[_propertyId] += releaseAmount;
+        s.releasedFunds[_propertyId] += netReleaseAmount;
+
+        // Record transaction after state changes
         ITransactionFacet(address(this)).recordTransaction(
             _propertyId,
             address(this),
             prop.developerAddress,
             AssetrixStorage.TransactionType.MilestoneRelease,
-            releaseAmount,
-            string(abi.encodePacked("Milestone release: ", milestone.title))
+            netReleaseAmount,
+            string(
+                abi.encodePacked(
+                    "Milestone verification and release: ",
+                    milestone.title
+                )
+            )
         );
-        emit MilestoneFundsReleased(
-            _propertyId,
-            _milestoneId,
-            releaseAmount,
-            prop.developerAddress
-        );
-        emit MilestoneFundsAvailable(
-            _propertyId,
-            _milestoneId,
-            prop.developerAddress,
-            releaseAmount
-        );
-    }
 
-    function markMilestoneCompleted(
-        uint256 _propertyId,
-        uint256 _milestoneId
-    ) external {
-        AssetrixStorage.Layout storage s = AssetrixStorage.layout();
-        AssetrixStorage.Property storage prop = s.properties[_propertyId];
-        require(prop.isFullyFunded, "Property must be fully funded");
-        require(
-            msg.sender == prop.developerAddress || msg.sender == s.owner,
-            "Only property developer or admin can mark milestone completed"
-        );
-        require(
-            _milestoneId < prop.milestones.length,
-            "Milestone does not exist"
-        );
-        AssetrixStorage.Milestone storage milestone = prop.milestones[
-            _milestoneId
-        ];
-        require(
-            milestone.fundsReleased,
-            "Funds must be released before marking as completed"
-        );
-        require(!milestone.isCompleted, "Milestone already completed");
-        milestone.isCompleted = true;
-        milestone.completedAt = block.timestamp;
         emit MilestoneMarkedCompleted(_propertyId, _milestoneId);
+        emit MilestoneVerifiedAndReleased(
+            _propertyId,
+            _milestoneId,
+            netReleaseAmount,
+            prop.developerAddress,
+            msg.sender
+        );
     }
 
     function getPropertyMilestones(
@@ -220,46 +258,6 @@ contract MilestoneFacet {
         );
     }
 
-    // Get next milestone that can be requested
-    function getNextRequestableMilestone(
-        uint256 _propertyId
-    ) external view returns (uint256) {
-        AssetrixStorage.Layout storage s = AssetrixStorage.layout();
-        require(
-            _propertyId > 0 && _propertyId <= s.propertyCount,
-            "Property does not exist"
-        );
-        AssetrixStorage.Property storage prop = s.properties[_propertyId];
-        return _getNextRequestable(prop);
-    }
-
-    // Get milestones that are ready for fund release (requested but not released)
-    function getMilestonesReadyForRelease(
-        uint256 _propertyId
-    ) external view returns (uint256[] memory) {
-        AssetrixStorage.Layout storage s = AssetrixStorage.layout();
-        require(
-            _propertyId > 0 && _propertyId <= s.propertyCount,
-            "Property does not exist"
-        );
-        AssetrixStorage.Property storage prop = s.properties[_propertyId];
-        return _getReadyForRelease(prop);
-    }
-
-    // Get milestones that are ready for completion marking (released but not completed)
-    function getMilestonesReadyForCompletion(
-        uint256 _propertyId
-    ) external view returns (uint256[] memory) {
-        AssetrixStorage.Layout storage s = AssetrixStorage.layout();
-        require(
-            _propertyId > 0 && _propertyId <= s.propertyCount,
-            "Property does not exist"
-        );
-        AssetrixStorage.Property storage prop = s.properties[_propertyId];
-        return _getReadyForCompletion(prop);
-    }
-
-    // Combined function for efficient frontend usage
     function getMilestoneDashboard(
         uint256 _propertyId
     )
@@ -267,7 +265,7 @@ contract MilestoneFacet {
         view
         returns (
             uint256 nextRequestable,
-            uint256[] memory readyForRelease,
+            uint256[] memory readyForVerification,
             uint256[] memory readyForCompletion
         )
     {
@@ -278,14 +276,17 @@ contract MilestoneFacet {
         );
         AssetrixStorage.Property storage prop = s.properties[_propertyId];
 
+        // Gas limit protection - limit to reasonable number of milestones
+        require(prop.milestones.length <= 4, "Too many milestones");
+
         // Calculate all three values in one pass
-        nextRequestable = _getNextRequestable(prop);
-        readyForRelease = _getReadyForRelease(prop);
+        nextRequestable = getNextRequestable(prop);
+        readyForVerification = _getReadyForVerification(prop);
         readyForCompletion = _getReadyForCompletion(prop);
     }
 
     // Internal helper function to get next requestable milestone
-    function _getNextRequestable(
+    function getNextRequestable(
         AssetrixStorage.Property storage prop
     ) internal view returns (uint256) {
         for (uint256 i = 0; i < prop.milestones.length; i++) {
@@ -296,7 +297,7 @@ contract MilestoneFacet {
                 continue;
             }
 
-            // If this milestone already has funds requested or released, check the next one
+            // If this milestone already has funds requested or released, check the next one for requestability
             if (milestone.fundsRequested || milestone.fundsReleased) {
                 continue;
             }
@@ -318,8 +319,8 @@ contract MilestoneFacet {
         return type(uint256).max;
     }
 
-    // Internal helper function to get milestones ready for release
-    function _getReadyForRelease(
+    // Internal helper function to get milestones ready for verification
+    function _getReadyForVerification(
         AssetrixStorage.Property storage prop
     ) internal view returns (uint256[] memory) {
         uint256[] memory tempArray = new uint256[](prop.milestones.length);
@@ -327,11 +328,7 @@ contract MilestoneFacet {
 
         for (uint256 i = 0; i < prop.milestones.length; i++) {
             AssetrixStorage.Milestone storage milestone = prop.milestones[i];
-            if (
-                milestone.fundsRequested &&
-                !milestone.fundsReleased &&
-                !milestone.isCompleted
-            ) {
+            if (milestone.fundsRequested && !milestone.isCompleted) {
                 tempArray[count] = i;
                 count++;
             }

@@ -24,8 +24,7 @@ contract PropertyFacet {
         AssetrixStorage.Layout storage s = AssetrixStorage.layout();
         require(
             msg.sender == s.properties[_propertyId].developerAddress ||
-                msg.sender == s.owner ||
-                msg.sender == address(this),
+                msg.sender == s.owner,
             "Unauthorized: Only property developer or admin can update"
         );
         _;
@@ -102,6 +101,10 @@ contract PropertyFacet {
                 _data.milestoneTitles.length <= 4,
             "Maximum 4 milestones allowed"
         );
+        require(
+            _data.milestoneTitles.length > 0,
+            "At least one milestone is required"
+        );
         uint256 calculatedTokens = _data.amountToRaise / s.globalTokenPrice;
         require(
             calculatedTokens >= s.minTokensPerProperty &&
@@ -136,6 +139,10 @@ contract PropertyFacet {
         prop.roiPercentage = _data.roiPercentage;
         s.developerProperties[_data.developerAddress].push(s.propertyCount);
         // Milestone creation logic
+        require(
+            _data.milestoneTitles.length > 0,
+            "At least one milestone is required"
+        );
         uint256 totalPercentage = 0;
         for (uint256 i = 0; i < _data.milestoneTitles.length; i++) {
             require(
@@ -197,6 +204,10 @@ contract PropertyFacet {
             "Maximum 4 milestones allowed"
         );
         require(
+            _data.milestoneTitles.length > 0,
+            "At least one milestone is required"
+        );
+        require(
             _data.roiPercentage > 0 && _data.roiPercentage <= 100,
             "ROI percentage must be between 1 and 100"
         );
@@ -213,7 +224,7 @@ contract PropertyFacet {
         prop.ipfsImagesHash = _data.ipfsImagesHash;
         prop.ipfsMetadataHash = _data.ipfsMetadataHash;
         prop.roiPercentage = _data.roiPercentage;
-        // Clear existing milestones before adding new ones
+        // Clear existing milestones before adding new ones(property update)
         delete prop.milestones;
         // Add new milestones
         uint256 totalPercentage = 0;
@@ -252,7 +263,7 @@ contract PropertyFacet {
         emit PropertyUpdated(_propertyId, _data.ipfsMetadataHash);
     }
 
-    // Deactivate Property by developer or admin
+    // Deactivate Property by developer or admin only if not fully funded
     function deactivateProperty(
         uint256 _propertyId
     ) external onlyDeveloperOrOwner(_propertyId) whenNotPaused nonReentrant {
