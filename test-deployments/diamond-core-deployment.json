@@ -3,16 +3,16 @@
     "name": "diamond-core",
     "network": "localhost",
     "deploymentType": "test",
-    "timestamp": "2025-08-11T13:18:38.495Z"
+    "timestamp": "2025-08-11T17:29:32.396Z"
   },
   "deployment": {
-    "timestamp": "2025-08-11T13:18:38.495Z",
+    "timestamp": "2025-08-11T17:29:32.396Z",
     "totalGasUsed": 0
   },
   "testResults": {
     "status": "completed",
-    "startTime": "2025-08-11T13:18:38.495Z",
-    "endTime": "2025-08-11T13:18:50.574Z",
+    "startTime": "2025-08-11T17:29:32.396Z",
+    "endTime": "2025-08-11T17:29:46.064Z",
     "passed": true,
     "output": {
       "summary": "✅ Diamond Core Tests Passed!",

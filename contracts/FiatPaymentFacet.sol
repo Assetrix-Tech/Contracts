@@ -62,22 +62,28 @@ contract FiatPaymentFacet {
     }
 
     // EIP-712 Constants
-    bytes32 public constant FIAT_PAYMENT_TYPEHASH = keccak256(
-        "FiatPayment(address user,uint256 propertyId,uint256 tokenAmount,uint256 fiatAmount,string paymentReference,uint256 nonce)"
-    );
+    bytes32 public constant FIAT_PAYMENT_TYPEHASH =
+        keccak256(
+            "FiatPayment(address user,uint256 propertyId,uint256 tokenAmount,uint256 fiatAmount,string paymentReference,uint256 nonce)"
+        );
 
     // Initialize EIP-712 domain separator (only owner can call this)
     function initializeDomainSeparator() external onlyOwner {
         AssetrixStorage.Layout storage s = AssetrixStorage.layout();
-        require(!s.domainSeparatorInitialized, "Domain separator already initialized");
-        
-        // FIXED: Add chain ID validation and use proper domain separator format
+        require(
+            !s.domainSeparatorInitialized,
+            "Domain separator already initialized"
+        );
+
+        // Add chain ID validation and use proper domain separator format
         uint256 chainId = block.chainid;
         require(chainId > 0, "Invalid chain ID");
-        
+
         s.domainSeparator = keccak256(
             abi.encode(
-                keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"),
+                keccak256(
+                    "EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"
+                ),
                 keccak256(bytes("Assetrix")),
                 keccak256(bytes("1")),
                 chainId,
@@ -93,11 +99,14 @@ contract FiatPaymentFacet {
         return s.domainSeparator;
     }
 
-    // FIXED: Add function to reset domain separator (only owner, for security updates)
+    // function to reset domain separator (only owner, for security updates)
     function resetDomainSeparator() external onlyOwner {
         AssetrixStorage.Layout storage s = AssetrixStorage.layout();
-        require(s.domainSeparatorInitialized, "Domain separator not initialized");
-        
+        require(
+            s.domainSeparatorInitialized,
+            "Domain separator not initialized"
+        );
+
         // Reset to allow re-initialization
         s.domainSeparatorInitialized = false;
         s.domainSeparator = bytes32(0);
@@ -131,10 +140,11 @@ contract FiatPaymentFacet {
         AssetrixStorage.Layout storage s = AssetrixStorage.layout();
         AssetrixStorage.Property storage prop = s.properties[_propertyId];
 
-        // FIXED: Add additional security validations
-        require(msg.sender == _user || msg.sender == s.backendSigner, "Unauthorized caller");
-        
-        // Validation checks
+        require(
+            msg.sender == _user || msg.sender == s.backendSigner,
+            "Unauthorized caller"
+        );
+
         require(_user != address(0), "Invalid user address");
         require(_tokenAmount > 0, "Token amount must be greater than 0");
         require(_fiatAmount > 0, "Fiat amount must be greater than 0");
@@ -148,7 +158,6 @@ contract FiatPaymentFacet {
         );
         require(s.userNonces[_user] == _nonce, "Invalid nonce");
 
-        // Property validation
         require(
             _propertyId > 0 && _propertyId <= s.propertyCount,
             "Property does not exist"
@@ -156,15 +165,19 @@ contract FiatPaymentFacet {
         require(prop.isActive, "Property is not active");
         require(_tokenAmount <= prop.tokensLeft, "Not enough tokens left");
 
-        // FIXED: Add maximum token amount check to prevent abuse
         require(_tokenAmount <= 10000000, "Token amount exceeds maximum limit");
 
         // Verify backend signature using EIP-712
         bool isValidSignature = verifyBackendSignature(
-            _user, _propertyId, _tokenAmount, _fiatAmount, 
-            _paymentReference, _nonce, _signature
+            _user,
+            _propertyId,
+            _tokenAmount,
+            _fiatAmount,
+            _paymentReference,
+            _nonce,
+            _signature
         );
-        
+
         require(isValidSignature, "Invalid backend signature");
 
         // Mark payment as processed
@@ -178,8 +191,10 @@ contract FiatPaymentFacet {
             "Insufficient fiat amount for tokens"
         );
 
-        // FIXED: Add overflow protection
-        require(prop.tokensSold + _tokenAmount >= prop.tokensSold, "Overflow in tokens sold");
+        require(
+            prop.tokensSold + _tokenAmount >= prop.tokensSold,
+            "Overflow in tokens sold"
+        );
         require(prop.tokensLeft >= _tokenAmount, "Overflow in tokens left");
 
         // Process token distribution (same logic as purchaseTokens but without stablecoin transfer)
@@ -231,7 +246,10 @@ contract FiatPaymentFacet {
     ) internal view returns (bool) {
         AssetrixStorage.Layout storage s = AssetrixStorage.layout();
         require(s.backendSigner != address(0), "Backend signer not set");
-        require(s.domainSeparatorInitialized, "Domain separator not initialized");
+        require(
+            s.domainSeparatorInitialized,
+            "Domain separator not initialized"
+        );
 
         // Create struct hash
         bytes32 structHash = keccak256(
@@ -252,11 +270,14 @@ contract FiatPaymentFacet {
         );
 
         (bytes32 r, bytes32 s_, uint8 v) = splitSignature(_signature);
-        
-        // FIXED: Add signature malleability protection
+
         require(v == 27 || v == 28, "Invalid signature 'v' value");
-        require(s_ <= 0x7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF5D576E7357A4501DDFE92F46681B20A0, "Invalid signature 's' value");
-        
+        require(
+            s_ <=
+                0x7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF5D576E7357A4501DDFE92F46681B20A0,
+            "Invalid signature 's' value"
+        );
+
         address signer = ecrecover(hash, v, r, s_);
         require(signer != address(0), "Invalid signature");
 
@@ -290,14 +311,14 @@ contract FiatPaymentFacet {
         return s.processedFiatPayments[_paymentReference];
     }
 
-    // FIXED: Add function to check domain separator status
+    // function to check domain separator status
     function isDomainSeparatorInitialized() external view returns (bool) {
         AssetrixStorage.Layout storage s = AssetrixStorage.layout();
         return s.domainSeparatorInitialized;
     }
 
-    // FIXED: Add function to get current chain ID for verification
+    // function to get current chain ID for verification
     function getCurrentChainId() external view returns (uint256) {
         return block.chainid;
     }
-} 
+}

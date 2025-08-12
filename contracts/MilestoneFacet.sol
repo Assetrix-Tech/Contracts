@@ -114,6 +114,7 @@ contract MilestoneFacet {
         emit MilestoneFundsRequested(_propertyId, _milestoneId, msg.sender);
     }
 
+    // Mark milestone as completed
     function markMilestoneCompleted(
         uint256 _propertyId,
         uint256 _milestoneId
@@ -143,6 +144,7 @@ contract MilestoneFacet {
         emit MilestoneMarkedCompleted(_propertyId, _milestoneId);
     }
 
+    // Verify and mark milestone as completed by admin after developer has marked it as completed
     function verifyAndMarkMilestoneCompleted(
         uint256 _propertyId,
         uint256 _milestoneId

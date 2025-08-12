@@ -3,16 +3,16 @@
     "name": "admin-facet",
     "network": "localhost",
     "deploymentType": "test",
-    "timestamp": "2025-08-11T13:18:50.579Z"
+    "timestamp": "2025-08-11T17:29:46.068Z"
   },
   "deployment": {
-    "timestamp": "2025-08-11T13:18:50.579Z",
+    "timestamp": "2025-08-11T17:29:46.068Z",
     "totalGasUsed": 0
   },
   "testResults": {
     "status": "completed",
-    "startTime": "2025-08-11T13:18:50.579Z",
-    "endTime": "2025-08-11T13:19:03.457Z",
+    "startTime": "2025-08-11T17:29:46.068Z",
+    "endTime": "2025-08-11T17:29:59.778Z",
     "passed": true,
     "output": {
       "summary": "✅ AdminFacet Tests Passed!",
@@ -40,7 +40,7 @@
         {
           "section": "🔍 Test 3: Stablecoin Configuration",
           "results": [
-            "✅ Stablecoin address: 0x76cec9299B6Fa418dc71416FF353737AB7933A7D",
+            "✅ Stablecoin address: 0x7a2088a1bFc9d81c55368AE168C2C02570cB814F",
             "✅ Matches deployment: true"
           ]
         },
