@@ -29,7 +29,7 @@ jobs:
           cache: 'npm'
       
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --legacy-peer-deps
       
       - name: Compile contracts
         run: npx hardhat compile
@@ -183,7 +183,7 @@ jobs:
       
       - name: Install backend dependencies
         working-directory: backend-repo
-        run: npm ci
+        run: npm ci --legacy-peer-deps
       
       - name: Create ABI directory structure
         run: |
