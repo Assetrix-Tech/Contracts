@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - dev
+      - fiat-payground
     paths:
       - 'contracts/**'
       - 'hardhat.config.ts'
