@@ -1,4 +1,4 @@
-name: Sync ABIs to Backend Repository
+name: Sync ABIs to Backend and Frontend Repositories
 
 on:
   push:
@@ -292,3 +292,138 @@ jobs:
           echo "- Contract ABIs in `src/smart-contract/abi/v1/`" >> $GITHUB_STEP_SUMMARY
           echo "- Contract addresses in `src/smart-contract/addresses/`" >> $GITHUB_STEP_SUMMARY
           echo "- Metadata in `src/smart-contract/metadata/`" >> $GITHUB_STEP_SUMMARY
+
+  sync-to-frontend:
+    needs: build-and-extract-abi
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Download ABIs
+        uses: actions/download-artifact@v4
+        with:
+          name: contract-abis
+          path: extracted-abis/
+      
+      - name: Checkout frontend repository
+        uses: actions/checkout@v4
+        with:
+          repository: Assetrix-Tech/frontend
+          token: ${{ secrets.PAT_TOKEN }}
+          path: frontend-repo
+      
+      - name: Setup Node.js for frontend
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: frontend-repo/package-lock.json
+      
+      - name: Install frontend dependencies
+        working-directory: frontend-repo
+        run: npm ci --legacy-peer-deps
+      
+      - name: Create ABI directory structure
+        run: |
+          cd frontend-repo
+          mkdir -p src/abi
+      
+      - name: Copy ABIs to frontend repository
+        run: |
+          # Copy individual ABI files to the frontend abi directory
+          cp extracted-abis/*ABI.json frontend-repo/src/abi/
+          
+          # Copy contract addresses
+          cp extracted-abis/contractAddresses.json frontend-repo/src/abi/
+          
+          # Copy metadata
+          cp extracted-abis/metadata.json frontend-repo/src/abi/
+          
+          echo "📁 ABIs copied to frontend repository"
+          ls -la frontend-repo/src/abi/
+      
+      - name: Generate TypeScript types for frontend
+        working-directory: frontend-repo
+        run: |
+          # Create index file for easy imports
+          cat > src/abi/index.ts << 'EOF'
+          // Auto-generated contract ABIs and addresses
+          // Last updated: $(date -u +"%Y-%m-%dT%H:%M:%S.000Z")
+          // Source branch: ${{ github.ref_name }}
+          
+          export * from './fiatPaymentFacetABI.json';
+          export * from './investmentFacetABI.json';
+          export * from './propertyFacetABI.json';
+          export * from './adminFacetABI.json';
+          export * from './milestoneFacetABI.json';
+          export * from './transactionFacetABI.json';
+          export * from './diamondLoupeFacetABI.json';
+          export * from './diamondABI.json';
+          export * from './mockStablecoinABI.json';
+          
+          export { default as contractAddresses } from './contractAddresses.json';
+          export { default as metadata } from './metadata.json';
+          EOF
+          
+          echo "📝 Generated TypeScript index file for frontend"
+      
+      - name: Commit and push to frontend repository
+        working-directory: frontend-repo
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          git add .
+          
+          # Check if there are changes to commit
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "🤖 Auto-sync ABIs from smart contract repo
+            
+            - Source: ${{ github.repository }}
+            - Branch: ${{ github.ref_name }}
+            - Commit: ${{ github.sha }}
+            - Message: ${{ github.event.head_commit.message }}
+            - Generated: $(date -u +"%Y-%m-%dT%H:%M:%S.000Z")
+            
+            Updated contract ABIs and addresses for:
+            - FiatPaymentFacet
+            - InvestmentFacet
+            - PropertyFacet
+            - AdminFacet
+            - MilestoneFacet
+            - TransactionFacet
+            - DiamondLoupeFacet
+            - Diamond
+            - MockStablecoin"
+            
+            git push https://x-access-token:${{ secrets.PAT_TOKEN }}@github.com/Assetrix-Tech/frontend.git main
+            echo "✅ ABIs successfully synced to frontend repository"
+          fi
+      
+      - name: Create frontend sync summary
+        run: |
+          echo "## 🔄 Frontend ABI Sync Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Source Repository:** ${{ github.repository }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Source Branch:** ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Message:** ${{ github.event.head_commit.message }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Target Repository:** Assetrix-Tech/frontend" >> $GITHUB_STEP_SUMMARY
+          echo "**Generated:** $(date -u +"%Y-%m-%dT%H:%M:%S.000Z")" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📋 Synced Contracts:" >> $GITHUB_STEP_SUMMARY
+          echo "- FiatPaymentFacet" >> $GITHUB_STEP_SUMMARY
+          echo "- InvestmentFacet" >> $GITHUB_STEP_SUMMARY
+          echo "- PropertyFacet" >> $GITHUB_STEP_SUMMARY
+          echo "- AdminFacet" >> $GITHUB_STEP_SUMMARY
+          echo "- MilestoneFacet" >> $GITHUB_STEP_SUMMARY
+          echo "- TransactionFacet" >> $GITHUB_STEP_SUMMARY
+          echo "- DiamondLoupeFacet" >> $GITHUB_STEP_SUMMARY
+          echo "- Diamond" >> $GITHUB_STEP_SUMMARY
+          echo "- MockStablecoin" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📁 Files Updated:" >> $GITHUB_STEP_SUMMARY
+          echo "- Contract ABIs in `src/abi/`" >> $GITHUB_STEP_SUMMARY
+          echo "- Contract addresses in `src/abi/`" >> $GITHUB_STEP_SUMMARY
+          echo "- Metadata in `src/abi/`" >> $GITHUB_STEP_SUMMARY
