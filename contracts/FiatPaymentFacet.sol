@@ -300,4 +300,4 @@ contract FiatPaymentFacet {
     function getCurrentChainId() external view returns (uint256) {
         return block.chainid;
     }
-} 
+} // Test comment for ABI sync
