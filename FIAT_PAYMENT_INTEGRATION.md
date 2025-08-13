@@ -3,12 +3,8 @@
 
 ## 🚨 **IMPORTANT: Current System Limitations**
 
-The current Assetrix system has been deployed **without** the FiatPaymentFacet. This means:
+The current Assetrix system has been deployed with the FiatPaymentFacet.
 
-- ❌ **No fiat payment functionality** is currently available
-- ❌ **Backend signer functions** are not implemented
-- ❌ **EIP-712 signature verification** is not available
-- ❌ **Paystack integration** is not set up
 
 ## 🎯 What This System Currently Does
 
