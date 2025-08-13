@@ -171,7 +171,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: ${{ secrets.BACKEND_REPOSITORY }}
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.PAT_TOKEN }}
           path: backend-repo
       
       - name: Setup Node.js for backend
@@ -262,7 +262,7 @@ jobs:
             - Diamond
             - MockStablecoin"
             
-            git push origin main
+            git push https://x-access-token:${{ secrets.PAT_TOKEN }}@github.com/${{ secrets.BACKEND_REPOSITORY }}.git main
             echo "✅ ABIs successfully synced to backend repository"
           fi
       

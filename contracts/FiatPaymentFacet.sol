@@ -323,5 +323,5 @@ contract FiatPaymentFacet {
     }
 }
 
-// Test comment for ABI sync, and hopefully it works.
+ // Test for ABI sync, and it should work.
 
