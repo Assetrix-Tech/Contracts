@@ -19,7 +19,7 @@ contract DiamondLoupeFacet is IDiamondLoupe {
         }
     }
 
-    // Get the function selectors for a given facet 
+    // Get the function selectors of a given facet 
     function facetFunctionSelectors(
         address _facet
     ) external view override returns (bytes4[] memory facetFunctionSelectors_) {
@@ -38,7 +38,7 @@ contract DiamondLoupeFacet is IDiamondLoupe {
         facetAddresses_ = ds.facetAddresses;
     }
 
-    // Get the facet address for a given function selector
+    // Get the facet address for a given function selector 
     function facetAddress(
         bytes4 _functionSelector
     ) external view override returns (address facetAddress_) {

@@ -293,7 +293,7 @@ contract PropertyFacet {
         emit PropertyUpdated(_propertyId, prop.ipfsMetadataHash);
     }
 
-    // forcefully deactivate Property by admin for emergency cases or other reasons
+    // forcefully deactivate Property by admin for emergency cases
     function adminDeactivateProperty(
         uint256 _propertyId
     ) external onlyOwner whenNotPaused nonReentrant {

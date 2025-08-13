@@ -77,7 +77,7 @@ contract InvestmentFacet {
     }
 
 
-
+    //Purchase tokens for users with stablecoin
     function purchaseTokens(
         uint256 _propertyId,
         uint256 _tokenAmount
@@ -139,6 +139,7 @@ contract InvestmentFacet {
         emit TokensPurchased(_propertyId, msg.sender, _tokenAmount, totalCost);
     }
 
+    //Payout investment for token holders
     function payoutInvestment(
         uint256 _propertyId,
         address _tokenHolder,
@@ -189,6 +190,7 @@ contract InvestmentFacet {
         );
     }
 
+    //Refund investment for token holders
     function refund(
         uint256 _propertyId,
         address _tokenHolder

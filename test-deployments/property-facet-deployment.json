@@ -3,16 +3,16 @@
     "name": "property-facet",
     "network": "localhost",
     "deploymentType": "test",
-    "timestamp": "2025-08-11T13:19:03.461Z"
+    "timestamp": "2025-08-11T17:29:59.782Z"
   },
   "deployment": {
-    "timestamp": "2025-08-11T13:19:03.461Z",
+    "timestamp": "2025-08-11T17:29:59.782Z",
     "totalGasUsed": 0
   },
   "testResults": {
     "status": "completed",
-    "startTime": "2025-08-11T13:19:03.461Z",
-    "endTime": "2025-08-11T13:19:17.808Z",
+    "startTime": "2025-08-11T17:29:59.782Z",
+    "endTime": "2025-08-11T17:30:11.129Z",
     "passed": true,
     "output": {
       "summary": "✅ PropertyFacet Tests Passed!",

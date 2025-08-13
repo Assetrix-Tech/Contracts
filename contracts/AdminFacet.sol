@@ -50,6 +50,7 @@ contract AdminFacet {
 
     bool private initialized;
 
+    // Initialize the ownership of the contract
     function initializeOwnership(address _owner) external {
         AssetrixStorage.Layout storage s = AssetrixStorage.layout();
         require(s.owner == address(0), "Already initialized");
@@ -273,6 +274,4 @@ contract AdminFacet {
 
         emit StablecoinWithdrawn(_to, _amount);
     }
-
-
 }
