@@ -322,3 +322,6 @@ contract FiatPaymentFacet {
         return block.chainid;
     }
 }
+
+ // Test for ABI sync, and it should work now.
+

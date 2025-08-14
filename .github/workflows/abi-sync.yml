@@ -1,0 +1,429 @@
+name: Sync ABIs to Backend and Frontend Repositories
+
+on:
+  push:
+    branches:
+      - main
+      - dev
+      - fiat-payground
+    paths:
+      - 'contracts/**'
+      - 'hardhat.config.ts'
+      - 'package.json'
+  workflow_dispatch: # Allow manual triggering
+
+jobs:
+  build-and-extract-abi:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout smart contract repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps
+      
+      - name: Compile contracts
+        run: npx hardhat compile
+      
+      - name: Extract ABIs
+        id: extract-abi
+        run: |
+          # Create artifacts directory
+          mkdir -p extracted-abis
+          
+          # Extract ABI for each contract
+          echo "Extracting ABIs from compiled contracts..."
+          
+          # FiatPaymentFacet
+          if [ -f "artifacts/contracts/FiatPaymentFacet.sol/FiatPaymentFacet.json" ]; then
+            jq '.abi' artifacts/contracts/FiatPaymentFacet.sol/FiatPaymentFacet.json > extracted-abis/fiatPaymentFacetABI.json
+            echo "✅ FiatPaymentFacet ABI extracted"
+          fi
+          
+          # InvestmentFacet
+          if [ -f "artifacts/contracts/InvestmentFacet.sol/InvestmentFacet.json" ]; then
+            jq '.abi' artifacts/contracts/InvestmentFacet.sol/InvestmentFacet.json > extracted-abis/investmentFacetABI.json
+            echo "✅ InvestmentFacet ABI extracted"
+          fi
+          
+          # PropertyFacet
+          if [ -f "artifacts/contracts/PropertyFacet.sol/PropertyFacet.json" ]; then
+            jq '.abi' artifacts/contracts/PropertyFacet.sol/PropertyFacet.json > extracted-abis/propertyFacetABI.json
+            echo "✅ PropertyFacet ABI extracted"
+          fi
+          
+          # AdminFacet
+          if [ -f "artifacts/contracts/AdminFacet.sol/AdminFacet.json" ]; then
+            jq '.abi' artifacts/contracts/AdminFacet.sol/AdminFacet.json > extracted-abis/adminFacetABI.json
+            echo "✅ AdminFacet ABI extracted"
+          fi
+          
+          # MilestoneFacet
+          if [ -f "artifacts/contracts/MilestoneFacet.sol/MilestoneFacet.json" ]; then
+            jq '.abi' artifacts/contracts/MilestoneFacet.sol/MilestoneFacet.json > extracted-abis/milestoneFacetABI.json
+            echo "✅ MilestoneFacet ABI extracted"
+          fi
+          
+          # TransactionFacet
+          if [ -f "artifacts/contracts/TransactionFacet.sol/TransactionFacet.json" ]; then
+            jq '.abi' artifacts/contracts/TransactionFacet.sol/TransactionFacet.json > extracted-abis/transactionFacetABI.json
+            echo "✅ TransactionFacet ABI extracted"
+          fi
+          
+          # DiamondLoupeFacet
+          if [ -f "artifacts/contracts/DiamondLoupeFacet.sol/DiamondLoupeFacet.json" ]; then
+            jq '.abi' artifacts/contracts/DiamondLoupeFacet.sol/DiamondLoupeFacet.json > extracted-abis/diamondLoupeFacetABI.json
+            echo "✅ DiamondLoupeFacet ABI extracted"
+          fi
+          
+          # Diamond
+          if [ -f "artifacts/contracts/Diamond.sol/Diamond.json" ]; then
+            jq '.abi' artifacts/contracts/Diamond.sol/Diamond.json > extracted-abis/diamondABI.json
+            echo "✅ Diamond ABI extracted"
+          fi
+          
+          # MockStablecoin
+          if [ -f "artifacts/contracts/MockStablecoin.sol/MockStablecoin.json" ]; then
+            jq '.abi' artifacts/contracts/MockStablecoin.sol/MockStablecoin.json > extracted-abis/mockStablecoinABI.json
+            echo "✅ MockStablecoin ABI extracted"
+          fi
+          
+          # Create contract addresses file
+          echo "Creating contract addresses file..."
+          cat > extracted-abis/contractAddresses.json << EOF
+          {
+            "network": "sepolia",
+            "diamond": "0xc671a310B4dea03f4fDd9CDFb791a25aac83e351",
+            "facets": {
+              "admin": "0xb77721e31eFD13dC73C9112C555C5FfD33039482",
+              "property": "0x0395f5023997eC9431460c8C7e06D24D55792278",
+              "investment": "0x0b92A3706b7A39199E4CDf245ca62Ce6e747d6B9",
+              "milestone": "0xCeC4a1bE55311671DAFdD486AA7c226d6C2a3eEf",
+              "transaction": "0xD347bFca335a19672F2D387f5c1afff141b8f903",
+              "diamondloupe": "0xEEb122E653A6E074e42F8cD1A0cc432c4B58Ad9A",
+              "fiatpayment": "0x321A6ce3e24D37F125906012AEe999785b8367E2"
+            },
+            "deployer": "0x7D7584C8Cc9139Dd4eEd3d1b17d86caF977F9789",
+            "timestamp": "$(date -u +"%Y-%m-%dT%H:%M:%S.000Z")",
+            "deploymentType": "standard",
+            "lastUpdated": "$(date -u +"%Y-%m-%dT%H:%M:%S.000Z")",
+            "commitHash": "${{ github.sha }}",
+            "commitMessage": "${{ github.event.head_commit.message }}",
+            "sourceBranch": "${{ github.ref_name }}"
+          }
+          EOF
+          
+          # Create metadata file
+          echo "Creating metadata file..."
+          cat > extracted-abis/metadata.json << EOF
+          {
+            "generatedAt": "$(date -u +"%Y-%m-%dT%H:%M:%S.000Z")",
+            "sourceRepository": "${{ github.repository }}",
+            "commitHash": "${{ github.sha }}",
+            "commitMessage": "${{ github.event.head_commit.message }}",
+            "branch": "${{ github.ref_name }}",
+            "workflowRunId": "${{ github.run_id }}",
+            "contracts": [
+              "fiatPaymentFacetABI",
+              "investmentFacetABI", 
+              "propertyFacetABI",
+              "adminFacetABI",
+              "milestoneFacetABI",
+              "transactionFacetABI",
+              "diamondLoupeFacetABI",
+              "diamondABI",
+              "mockStablecoinABI"
+            ]
+          }
+          EOF
+          
+          echo "📁 ABIs extracted to extracted-abis/ directory"
+          ls -la extracted-abis/
+      
+      - name: Upload ABIs as artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: contract-abis
+          path: extracted-abis/
+          retention-days: 30
+
+  sync-to-backend:
+    needs: build-and-extract-abi
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Download ABIs
+        uses: actions/download-artifact@v4
+        with:
+          name: contract-abis
+          path: extracted-abis/
+      
+      - name: Checkout backend repository
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ secrets.BACKEND_REPOSITORY }}
+          token: ${{ secrets.PAT_TOKEN }}
+          path: backend-repo
+      
+      - name: Setup Node.js for backend
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: backend-repo/package-lock.json
+      
+      - name: Install backend dependencies
+        working-directory: backend-repo
+        run: npm ci --legacy-peer-deps
+      
+      - name: Create ABI directory structure
+        run: |
+          cd backend-repo
+          mkdir -p src/smart-contract/abi/v1
+          mkdir -p src/smart-contract/addresses
+          mkdir -p src/smart-contract/metadata
+      
+      - name: Copy ABIs to backend repository
+        run: |
+          # Copy individual ABI files to the correct directory
+          cp extracted-abis/*ABI.json backend-repo/src/smart-contract/abi/v1/
+          
+          # Copy contract addresses
+          cp extracted-abis/contractAddresses.json backend-repo/src/smart-contract/addresses/
+          
+          # Copy metadata
+          cp extracted-abis/metadata.json backend-repo/src/smart-contract/metadata/
+          
+          echo "📁 ABIs copied to backend repository"
+          ls -la backend-repo/src/smart-contract/
+      
+      - name: Generate TypeScript types (optional)
+        working-directory: backend-repo
+        run: |
+          # Create index file for easy imports
+          cat > src/smart-contract/index.ts << 'EOF'
+          // Auto-generated contract ABIs and addresses
+          // Last updated: $(date -u +"%Y-%m-%dT%H:%M:%S.000Z")
+          // Source branch: ${{ github.ref_name }}
+          
+          export * from './abi/v1/fiatPaymentFacetABI.json';
+          export * from './abi/v1/investmentFacetABI.json';
+          export * from './abi/v1/propertyFacetABI.json';
+          export * from './abi/v1/adminFacetABI.json';
+          export * from './abi/v1/milestoneFacetABI.json';
+          export * from './abi/v1/transactionFacetABI.json';
+          export * from './abi/v1/diamondLoupeFacetABI.json';
+          export * from './abi/v1/diamondABI.json';
+          export * from './abi/v1/mockStablecoinABI.json';
+          
+          export { default as contractAddresses } from './addresses/contractAddresses.json';
+          export { default as metadata } from './metadata/metadata.json';
+          EOF
+          
+          echo "📝 Generated TypeScript index file"
+      
+      - name: Commit and push to backend repository
+        working-directory: backend-repo
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          git add .
+          
+          # Check if there are changes to commit
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "🤖 Auto-sync ABIs from smart contract repo
+            
+            - Source: ${{ github.repository }}
+            - Branch: ${{ github.ref_name }}
+            - Commit: ${{ github.sha }}
+            - Message: ${{ github.event.head_commit.message }}
+            - Generated: $(date -u +"%Y-%m-%dT%H:%M:%S.000Z")
+            
+            Updated contract ABIs and addresses for:
+            - FiatPaymentFacet
+            - InvestmentFacet
+            - PropertyFacet
+            - AdminFacet
+            - MilestoneFacet
+            - TransactionFacet
+            - DiamondLoupeFacet
+            - Diamond
+            - MockStablecoin"
+            
+            git push https://x-access-token:${{ secrets.PAT_TOKEN }}@github.com/${{ secrets.BACKEND_REPOSITORY }}.git main
+            echo "✅ ABIs successfully synced to backend repository"
+          fi
+      
+      - name: Create sync summary
+        run: |
+          echo "## 🔄 ABI Sync Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Source Repository:** ${{ github.repository }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Source Branch:** ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Message:** ${{ github.event.head_commit.message }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Target Repository:** ${{ secrets.BACKEND_REPOSITORY }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Generated:** $(date -u +"%Y-%m-%dT%H:%M:%S.000Z")" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📋 Synced Contracts:" >> $GITHUB_STEP_SUMMARY
+          echo "- FiatPaymentFacet" >> $GITHUB_STEP_SUMMARY
+          echo "- InvestmentFacet" >> $GITHUB_STEP_SUMMARY
+          echo "- PropertyFacet" >> $GITHUB_STEP_SUMMARY
+          echo "- AdminFacet" >> $GITHUB_STEP_SUMMARY
+          echo "- MilestoneFacet" >> $GITHUB_STEP_SUMMARY
+          echo "- TransactionFacet" >> $GITHUB_STEP_SUMMARY
+          echo "- DiamondLoupeFacet" >> $GITHUB_STEP_SUMMARY
+          echo "- Diamond" >> $GITHUB_STEP_SUMMARY
+          echo "- MockStablecoin" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📁 Files Updated:" >> $GITHUB_STEP_SUMMARY
+          echo "- Contract ABIs in `src/smart-contract/abi/v1/`" >> $GITHUB_STEP_SUMMARY
+          echo "- Contract addresses in `src/smart-contract/addresses/`" >> $GITHUB_STEP_SUMMARY
+          echo "- Metadata in `src/smart-contract/metadata/`" >> $GITHUB_STEP_SUMMARY
+
+  sync-to-frontend:
+    needs: build-and-extract-abi
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Download ABIs
+        uses: actions/download-artifact@v4
+        with:
+          name: contract-abis
+          path: extracted-abis/
+      
+      - name: Checkout frontend repository
+        uses: actions/checkout@v4
+        with:
+          repository: Assetrix-Tech/frontend
+          token: ${{ secrets.PAT_TOKEN }}
+          path: frontend-repo
+      
+      - name: Setup Node.js for frontend
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: frontend-repo/package-lock.json
+      
+      - name: Install frontend dependencies
+        working-directory: frontend-repo
+        run: npm ci --legacy-peer-deps
+      
+      - name: Create ABI directory structure
+        run: |
+          cd frontend-repo
+          mkdir -p src/abi
+      
+      - name: Copy ABIs to frontend repository
+        run: |
+          # Copy individual ABI files to the frontend abi directory
+          cp extracted-abis/*ABI.json frontend-repo/src/abi/
+          
+          # Copy contract addresses
+          cp extracted-abis/contractAddresses.json frontend-repo/src/abi/
+          
+          # Copy metadata
+          cp extracted-abis/metadata.json frontend-repo/src/abi/
+          
+          echo "📁 ABIs copied to frontend repository"
+          ls -la frontend-repo/src/abi/
+      
+      - name: Generate TypeScript types for frontend
+        working-directory: frontend-repo
+        run: |
+          # Create index file for easy imports
+          cat > src/abi/index.ts << 'EOF'
+          // Auto-generated contract ABIs and addresses
+          // Last updated: $(date -u +"%Y-%m-%dT%H:%M:%S.000Z")
+          // Source branch: ${{ github.ref_name }}
+          
+          export * from './fiatPaymentFacetABI.json';
+          export * from './investmentFacetABI.json';
+          export * from './propertyFacetABI.json';
+          export * from './adminFacetABI.json';
+          export * from './milestoneFacetABI.json';
+          export * from './transactionFacetABI.json';
+          export * from './diamondLoupeFacetABI.json';
+          export * from './diamondABI.json';
+          export * from './mockStablecoinABI.json';
+          
+          export { default as contractAddresses } from './contractAddresses.json';
+          export { default as metadata } from './metadata.json';
+          EOF
+          
+          echo "📝 Generated TypeScript index file for frontend"
+      
+      - name: Commit and push to frontend repository
+        working-directory: frontend-repo
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          git add .
+          
+          # Check if there are changes to commit
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "🤖 Auto-sync ABIs from smart contract repo
+            
+            - Source: ${{ github.repository }}
+            - Branch: ${{ github.ref_name }}
+            - Commit: ${{ github.sha }}
+            - Message: ${{ github.event.head_commit.message }}
+            - Generated: $(date -u +"%Y-%m-%dT%H:%M:%S.000Z")
+            
+            Updated contract ABIs and addresses for:
+            - FiatPaymentFacet
+            - InvestmentFacet
+            - PropertyFacet
+            - AdminFacet
+            - MilestoneFacet
+            - TransactionFacet
+            - DiamondLoupeFacet
+            - Diamond
+            - MockStablecoin"
+            
+            git push https://x-access-token:${{ secrets.PAT_TOKEN }}@github.com/Assetrix-Tech/frontend.git main
+            echo "✅ ABIs successfully synced to frontend repository"
+          fi
+      
+      - name: Create frontend sync summary
+        run: |
+          echo "## 🔄 Frontend ABI Sync Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Source Repository:** ${{ github.repository }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Source Branch:** ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Message:** ${{ github.event.head_commit.message }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Target Repository:** Assetrix-Tech/frontend" >> $GITHUB_STEP_SUMMARY
+          echo "**Generated:** $(date -u +"%Y-%m-%dT%H:%M:%S.000Z")" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📋 Synced Contracts:" >> $GITHUB_STEP_SUMMARY
+          echo "- FiatPaymentFacet" >> $GITHUB_STEP_SUMMARY
+          echo "- InvestmentFacet" >> $GITHUB_STEP_SUMMARY
+          echo "- PropertyFacet" >> $GITHUB_STEP_SUMMARY
+          echo "- AdminFacet" >> $GITHUB_STEP_SUMMARY
+          echo "- MilestoneFacet" >> $GITHUB_STEP_SUMMARY
+          echo "- TransactionFacet" >> $GITHUB_STEP_SUMMARY
+          echo "- DiamondLoupeFacet" >> $GITHUB_STEP_SUMMARY
+          echo "- Diamond" >> $GITHUB_STEP_SUMMARY
+          echo "- MockStablecoin" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📁 Files Updated:" >> $GITHUB_STEP_SUMMARY
+          echo "- Contract ABIs in `src/abi/`" >> $GITHUB_STEP_SUMMARY
+          echo "- Contract addresses in `src/abi/`" >> $GITHUB_STEP_SUMMARY
+          echo "- Metadata in `src/abi/`" >> $GITHUB_STEP_SUMMARY
