@@ -173,9 +173,10 @@ npx hardhat run test-scripts/01-test-diamond-core.js --network localhost
 npx hardhat run test-scripts/02-test-admin-facet.js --network localhost
 npx hardhat run test-scripts/03-test-property-facet.js --network localhost
 npx hardhat run test-scripts/04-test-investment-facet.js --network localhost
-npx hardhat run test-scripts/05-test-milestone-facet.js --network localhost
-npx hardhat run test-scripts/06-test-transaction-facet.js --network localhost
-npx hardhat run test-scripts/07-test-integration.js --network localhost
+npx hardhat run test-scripts/05-test-fiat-payment-facet.js --network localhost
+npx hardhat run test-scripts/06-test-milestone-facet.js --network localhost
+npx hardhat run test-scripts/07-test-transaction-facet.js --network localhost
+npx hardhat run test-scripts/08-test-integration.js --network localhost
 ```
 
 ## 📊 Test Results and Logging
