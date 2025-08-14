@@ -12,5 +12,8 @@
   },
   "deployer": "0x7D7584C8Cc9139Dd4eEd3d1b17d86caF977F9789",
   "timestamp": "2025-08-12T16:17:50.299Z",
-  "deploymentType": "standard"
+  "deploymentType": "standard",
+  "backendSigner": "0x4BabF044eDe16A8535B2C640d49eE81D73f21375",
+  "backendSignerSetAt": "2025-08-14T10:52:21.384Z",
+  "backendSignerType": "software"
 }

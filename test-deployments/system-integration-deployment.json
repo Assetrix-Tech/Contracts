@@ -3,16 +3,16 @@
     "name": "system-integration",
     "network": "localhost",
     "deploymentType": "test",
-    "timestamp": "2025-08-11T17:31:07.853Z"
+    "timestamp": "2025-08-13T16:15:22.016Z"
   },
   "deployment": {
-    "timestamp": "2025-08-11T17:31:07.853Z",
+    "timestamp": "2025-08-13T16:15:22.016Z",
     "totalGasUsed": 0
   },
   "testResults": {
     "status": "completed",
-    "startTime": "2025-08-11T17:31:07.853Z",
-    "endTime": "2025-08-11T17:31:24.196Z",
+    "startTime": "2025-08-13T16:15:22.016Z",
+    "endTime": "2025-08-13T16:15:32.931Z",
     "passed": true,
     "output": {
       "summary": "✅ Assetrix System Integration Tests Passed!",
@@ -29,7 +29,7 @@
           "results": [
             "✅ System owner: 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
             "✅ Global token price: 2500.0 Naira",
-            "✅ Stablecoin address: 0xffa7CA1AEEEbBc30C874d32C7e22F052BbEa0429",
+            "✅ Stablecoin address: 0x99dBE4AEa58E518C50a1c04aE9b48C9F6354612f",
             "✅ Backend signer: Not available in current InvestmentFacet"
           ]
         },
@@ -116,7 +116,7 @@
         "Total Properties: 1",
         "Total Transactions: 3",
         "Global Token Price: 2500.0 Naira",
-        "Stablecoin: 0xffa7CA1AEEEbBc30C874d32C7e22F052BbEa0429",
+        "Stablecoin: 0x99dBE4AEa58E518C50a1c04aE9b48C9F6354612f",
         "Property type: 1",
         "Property use: 0",
         "Token price: 2500.0 Naira",
