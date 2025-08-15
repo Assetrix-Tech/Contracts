@@ -53,8 +53,11 @@ async function main() {
         }
         
         if (contractName) {
+          // Create fully qualified name for Etherscan verification
+          const fullyQualifiedName = `contracts/${contractName}.sol:${contractName}`;
           facetsToVerify.push({
             name: contractName,
+            fullyQualifiedName: fullyQualifiedName,
             address: facetAddress,
             facetName: facetName
           });
@@ -95,9 +98,10 @@ async function main() {
         try {
           await run("verify:verify", {
             address: facet.address,
+            contract: facet.fullyQualifiedName,
             constructorArguments: [],
           });
-          console.log(`  ✅ Verified`);
+          console.log(`  ✅ Verified as ${facet.name}`);
           verifiedCount++;
         } catch (error) {
           if (error.message.toLowerCase().includes("already verified")) {
@@ -166,19 +170,27 @@ async function main() {
     
     console.log("\n🎉 Verification completed!");
     
-    // Display contract configuration
+    // Display diamond configuration (using AdminFacet)
     try {
-      const Assetrix = await ethers.getContractFactory('Assetrix');
-      const assetrix = Assetrix.attach(proxyAddress);
+      const adminFacet = await ethers.getContractAt('AdminFacet', diamondAddress);
       
-      const globalTokenPrice = await assetrix.getGlobalTokenPrice();
-      const expectedROI = await assetrix.getExpectedROIPercentage();
+      const globalTokenPrice = await adminFacet.getGlobalTokenPrice();
+      const owner = await adminFacet.owner();
+      const paused = await adminFacet.paused();
       
-      console.log("\n📋 Contract Configuration:");
+      console.log("\n📋 Diamond Configuration:");
       console.log(`Global Token Price: ${globalTokenPrice.toString()} Naira`);
-      console.log(`Expected ROI: ${expectedROI.toString()}%`);
+      console.log(`Owner: ${owner}`);
+      console.log(`Paused: ${paused}`);
+      
+      try {
+        const stablecoin = await adminFacet.getStablecoin();
+        console.log(`Stablecoin: ${stablecoin}`);
+      } catch (error) {
+        console.log(`Stablecoin: Not set`);
+      }
     } catch (error) {
-      console.log("⚠️ Could not fetch contract configuration:", error.message);
+      console.log("⚠️ Could not fetch diamond configuration:", error.message);
     }
     
   } catch (error) {
