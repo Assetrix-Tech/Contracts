@@ -3,16 +3,16 @@
     "name": "fiat-payment-facet",
     "network": "localhost",
     "deploymentType": "test",
-    "timestamp": "2025-08-15T14:54:16.476Z"
+    "timestamp": "2025-08-15T18:05:50.194Z"
   },
   "deployment": {
-    "timestamp": "2025-08-15T14:54:16.476Z",
+    "timestamp": "2025-08-15T18:05:50.194Z",
     "totalGasUsed": 0
   },
   "testResults": {
     "status": "completed",
-    "startTime": "2025-08-15T14:54:16.476Z",
-    "endTime": "2025-08-15T14:54:48.128Z",
+    "startTime": "2025-08-15T18:05:50.194Z",
+    "endTime": "2025-08-15T18:06:09.484Z",
     "passed": true,
     "output": {
       "summary": "✅ FiatPaymentFacet Tests Passed!",
@@ -36,7 +36,7 @@
           "results": [
             "✅ Domain separator initialized: false",
             "✅ Initialized domain separator",
-            "✅ Domain separator: 0xf84c6969aa6d806e1d350ef29821e0ab645e9a5fc49bec318b9841535f96d039"
+            "✅ Domain separator: 0x33d476ad5adf0ee280bafc0002725960c1044a5868d7ceac80eb3f111bdd0856"
           ]
         },
         {
@@ -68,7 +68,7 @@
           "section": "🔍 Test 7: EIP-712 Signature Verification",
           "results": [
             "✅ EIP-712 signature created successfully",
-            "✅ Signature: 0xf7a8aed0fa40afe17c0edac96cc0824ddc954af42af2f89ff5bf48764de0ca61426fd71ff59817aa8e22e33055d3581f9ee1d4ff401238b4754b9f2b6ecb50cc1c"
+            "✅ Signature: 0xf61a8452bdb060f36f26cc6efcdb4ead5faf41a7d5d3b00a755b28d5a25c7a432cae59ab897ab55dc52d941b5a585ab2aea5e6583dec016b3c680dc1dd064e9f1b"
           ]
         },
         {

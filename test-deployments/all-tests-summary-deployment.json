@@ -3,16 +3,16 @@
     "name": "all-tests-summary",
     "network": "localhost",
     "deploymentType": "test",
-    "timestamp": "2025-08-15T14:56:27.978Z"
+    "timestamp": "2025-08-15T18:07:04.745Z"
   },
   "deployment": {
-    "timestamp": "2025-08-15T14:56:27.978Z",
+    "timestamp": "2025-08-15T18:07:04.745Z",
     "totalGasUsed": 0
   },
   "testResults": {
     "status": "all_passed",
-    "startTime": "2025-08-15T14:56:27.978Z",
-    "endTime": "2025-08-15T14:56:27.982Z",
+    "startTime": "2025-08-15T18:07:04.745Z",
+    "endTime": "2025-08-15T18:07:04.756Z",
     "passed": true,
     "totalTests": 8,
     "passedTests": 8,
