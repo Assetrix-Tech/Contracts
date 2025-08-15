@@ -18,10 +18,7 @@ contract FiatPaymentFacet {
         uint256 timestamp
     );
 
-    event BackendSignerUpdated(
-        address indexed oldSigner,
-        address indexed newSigner
-    );
+
 
     event PropertyFullyFunded(
         uint256 indexed propertyId,
@@ -112,20 +109,7 @@ contract FiatPaymentFacet {
         s.domainSeparator = bytes32(0);
     }
 
-    // Set backend signer (only owner can change)
-    function setBackendSigner(address _backendSigner) external onlyOwner {
-        require(_backendSigner != address(0), "Invalid backend signer address");
-        AssetrixStorage.Layout storage s = AssetrixStorage.layout();
-        address oldSigner = s.backendSigner;
-        s.backendSigner = _backendSigner;
-        emit BackendSignerUpdated(oldSigner, _backendSigner);
-    }
 
-    // Get backend signer
-    function getBackendSigner() external view returns (address) {
-        AssetrixStorage.Layout storage s = AssetrixStorage.layout();
-        return s.backendSigner;
-    }
 
     // Main fiat-to-token distribution function
     function distributeTokensFromFiat(
