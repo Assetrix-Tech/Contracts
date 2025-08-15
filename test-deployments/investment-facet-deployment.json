@@ -3,16 +3,16 @@
     "name": "investment-facet",
     "network": "localhost",
     "deploymentType": "test",
-    "timestamp": "2025-08-15T09:27:38.516Z"
+    "timestamp": "2025-08-15T14:53:43.202Z"
   },
   "deployment": {
-    "timestamp": "2025-08-15T09:27:38.516Z",
+    "timestamp": "2025-08-15T14:53:43.202Z",
     "totalGasUsed": 0
   },
   "testResults": {
     "status": "completed",
-    "startTime": "2025-08-15T09:27:38.516Z",
-    "endTime": "2025-08-15T09:28:05.649Z",
+    "startTime": "2025-08-15T14:53:43.202Z",
+    "endTime": "2025-08-15T14:54:16.461Z",
     "passed": true,
     "output": {
       "summary": "✅ InvestmentFacet Tests Passed!",

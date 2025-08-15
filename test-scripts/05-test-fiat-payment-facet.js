@@ -15,19 +15,20 @@ async function main() {
         console.log(`👤 User1: ${user1.address}`);
         console.log(`👤 Backend Signer: ${backendSigner.address}`);
 
-        // Get FiatPaymentFacet contract
+        // Get contract interfaces
         const fiatPaymentFacet = await ethers.getContractAt("FiatPaymentFacet", deploymentData.diamond);
-        console.log("✅ Connected to FiatPaymentFacet");
+        const adminFacet = await ethers.getContractAt("AdminFacet", deploymentData.diamond);
+        console.log("✅ Connected to FiatPaymentFacet and AdminFacet");
 
         // Test 1: Backend Signer Management
         console.log("\n🔍 Test 1: Backend Signer Management");
         
-        const currentBackendSigner = await fiatPaymentFacet.getBackendSigner();
+        const currentBackendSigner = await adminFacet.getBackendSigner();
         console.log(`✅ Current backend signer: ${currentBackendSigner}`);
         
         // Set backend signer if not already set
         if (currentBackendSigner === ethers.ZeroAddress) {
-            await fiatPaymentFacet.setBackendSigner(backendSigner.address);
+            await adminFacet.setBackendSigner(backendSigner.address);
             console.log("✅ Set backend signer");
         }
 
@@ -69,7 +70,7 @@ async function main() {
         
         // Test that non-owner cannot set backend signer
         try {
-            await fiatPaymentFacet.connect(user1).setBackendSigner(user1.address);
+            await adminFacet.connect(user1).setBackendSigner(user1.address);
             console.log("❌ Non-owner was able to set backend signer (should fail)");
         } catch (error) {
             console.log("✅ Non-owner cannot set backend signer (expected)");
@@ -150,15 +151,15 @@ async function main() {
         console.log("\n🔍 Test 9: Backend Signer Update");
         
         const newBackendSigner = user1.address;
-        await fiatPaymentFacet.setBackendSigner(newBackendSigner);
+        await adminFacet.setBackendSigner(newBackendSigner);
         console.log("✅ Backend signer updated");
         
-        const updatedSigner = await fiatPaymentFacet.getBackendSigner();
+        const updatedSigner = await adminFacet.getBackendSigner();
         console.log(`✅ Updated backend signer: ${updatedSigner}`);
         console.log(`✅ Matches new signer: ${updatedSigner === newBackendSigner}`);
 
         // Restore original backend signer
-        await fiatPaymentFacet.setBackendSigner(backendSigner.address);
+        await adminFacet.setBackendSigner(backendSigner.address);
         console.log("✅ Restored original backend signer");
 
         console.log("\n✅ FiatPaymentFacet Tests Passed!");

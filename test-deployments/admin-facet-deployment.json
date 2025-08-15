@@ -3,16 +3,16 @@
     "name": "admin-facet",
     "network": "localhost",
     "deploymentType": "test",
-    "timestamp": "2025-08-15T09:26:41.111Z"
+    "timestamp": "2025-08-15T14:52:40.033Z"
   },
   "deployment": {
-    "timestamp": "2025-08-15T09:26:41.111Z",
+    "timestamp": "2025-08-15T14:52:40.033Z",
     "totalGasUsed": 0
   },
   "testResults": {
     "status": "completed",
-    "startTime": "2025-08-15T09:26:41.111Z",
-    "endTime": "2025-08-15T09:27:14.102Z",
+    "startTime": "2025-08-15T14:52:40.033Z",
+    "endTime": "2025-08-15T14:53:08.873Z",
     "passed": true,
     "output": {
       "summary": "✅ AdminFacet Tests Passed!",
@@ -40,7 +40,7 @@
         {
           "section": "🔍 Test 3: Stablecoin Configuration",
           "results": [
-            "✅ Stablecoin address: 0x26B862f640357268Bd2d9E95bc81553a2Aa81D7E",
+            "✅ Stablecoin address: 0xC6c5Ab5039373b0CBa7d0116d9ba7fb9831C3f42",
             "✅ Matches deployment: true"
           ]
         },
@@ -71,16 +71,6 @@
           "results": [
             "✅ New owner set global token price",
             "✅ Final token price: 2500.0 Naira"
-          ]
-        },
-        {
-          "section": "🔍 Test 8: Backend Signer Management",
-          "results": [
-            "✅ Current backend signer: 0x0000000000000000000000000000000000000000",
-            "✅ Backend signer is zero address: true",
-            "✅ Set new backend signer",
-            "✅ New backend signer: 0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
-            "✅ Backend signer updated correctly: true"
           ]
         }
       ],

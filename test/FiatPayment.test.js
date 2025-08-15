@@ -44,7 +44,7 @@ describe("Fiat Payment Integration", function () {
       "0x92b582e0", "0xd6c7d918", "0x8456cb59", "0x3f4ba83a", "0xf2fde38b",
       "0x5c975abb", "0x842f6221", "0xe088bfc0", "0xfe9d0872", "0x2750b0d2",
       "0xeb659dc1", "0x96241c97", "0xe109516b", "0xeec723bc", "0xdeba19e2",
-      "0x80521c91", "0xc4c5f624"
+      "0x80521c91", "0xc4c5f624", "0x36f95670", "0xd9e359cd"
     ];
 
     const investmentSelectors = [
@@ -74,9 +74,8 @@ describe("Fiat Payment Integration", function () {
     ];
 
     const fiatPaymentSelectors = [
-      "0xe474f042", "0xf7770056", "0xd9e359cd", "0x5cf0e8a4", "0xed24911d",
-      "0x6834e3a8", "0x2ff79161", "0x591723fd", "0x149f2e88", "0x85e69128",
-      "0x36f95670"
+      "0xe474f042", "0xf7770056", "0x5cf0e8a4", "0xed24911d",
+      "0x6834e3a8", "0x2ff79161", "0x591723fd", "0x149f2e88", "0x85e69128"
     ];
 
     // Add facets to diamond
@@ -135,7 +134,7 @@ describe("Fiat Payment Integration", function () {
     await adminFacet.setMinTokensPerInvestment(1);
     await adminFacet.setMinTokensPerProperty(100);
     await adminFacet.setMaxTokensPerProperty(10000);
-    await fiatPaymentFacet.setBackendSigner(backendSigner.address);
+    await adminFacet.setBackendSigner(backendSigner.address);
 
     // Mint some Naira to owner for testing
     await mockStablecoin.mint(owner.address, ethers.parseEther("1000000"));
@@ -208,26 +207,26 @@ describe("Fiat Payment Integration", function () {
 
   describe("Backend Signer Management", function () {
     it("Should set and get backend signer correctly", async function () {
-      const signer = await fiatPaymentFacet.getBackendSigner();
+      const signer = await adminFacet.getBackendSigner();
       expect(signer).to.equal(backendSigner.address);
     });
 
     it("Should only allow owner to set backend signer", async function () {
       await expect(
-        fiatPaymentFacet.connect(user).setBackendSigner(user.address)
+        adminFacet.connect(user).setBackendSigner(user.address)
       ).to.be.revertedWith("Ownable: caller is not the owner");
     });
 
     it("Should prevent setting zero address as backend signer", async function () {
       await expect(
-        fiatPaymentFacet.setBackendSigner(ethers.ZeroAddress)
+        adminFacet.setBackendSigner(ethers.ZeroAddress)
       ).to.be.revertedWith("Invalid backend signer address");
     });
 
     it("Should emit event when backend signer is updated", async function () {
       const newSigner = user.address;
-      await expect(fiatPaymentFacet.setBackendSigner(newSigner))
-        .to.emit(fiatPaymentFacet, "BackendSignerUpdated")
+      await expect(adminFacet.setBackendSigner(newSigner))
+        .to.emit(adminFacet, "BackendSignerUpdated")
         .withArgs(backendSigner.address, newSigner);
     });
   });
