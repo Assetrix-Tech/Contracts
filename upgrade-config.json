@@ -1,5 +1,5 @@
 {
-  "upgradeFacets": ["property", "admin", "investment", "milestone", "transaction", "fiatpayment", "diamondloupe"],
+  "upgradeFacets": ["admin", "investment", "milestone", "transaction", "fiatPayment", "diamondLoupe", "property"],
   "addFacets": [],
   "skipFacets": [],
 
