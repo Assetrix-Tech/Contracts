@@ -251,7 +251,7 @@ contract AdminFacet {
         return s.paused;
     }
 
-    // Emergency withdrawal function for admin to recover stablecoin funds
+    // withdrawal function for admin to recover stablecoin funds
     function withdrawStablecoin(
         address _to,
         uint256 _amount
