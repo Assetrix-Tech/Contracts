@@ -4,7 +4,7 @@
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 [![Diamond Pattern](https://img.shields.io/badge/diamond%20pattern-EIP--2535-orange)](https://eips.ethereum.org/EIPS/eip-2535)
 
-A decentralized real estate investment platform built on Ethereum using the **Diamond Pattern (EIP-2535)** that enables property developers to raise funds and investors to participate in real estate opportunities with milestone-based fund releases and dual payment support (stablecoins and fiat payments).
+A decentralized real estate investment platform built on Ethereum using the **Diamond Pattern (EIP-2535)** that enables property developers to raise funds and investors to participate in real estate opportunities with milestone-based fund releases and dual payment support (stablecoins and fiat payments). Features **EIP-2771 gasless transactions** and **EIP-712 secure signatures** for seamless user experience.
 
 ## 🏗️ Architecture
 
@@ -21,6 +21,9 @@ The platform uses a **modular diamond pattern** architecture for scalability and
 | **TransactionFacet.sol** | Transaction recording and history |
 | **FiatPaymentFacet.sol** | Fiat payment processing with EIP-712 signatures |
 | **DiamondLoupeFacet.sol** | Diamond structure querying (EIP-2535 standard) |
+| **TrustedForwarder.sol** | EIP-2771 gasless transaction relay |
+| **EIP2771Context.sol** | Base contract for EIP-2771 support |
+| **TransactionEncoder.sol** | Utility for encoding gasless transactions |
 
 ## 🚀 Features
 
@@ -47,6 +50,8 @@ The platform uses a **modular diamond pattern** architecture for scalability and
 - **Milestone-Based Funding**: Automated fund releases based on project milestones
 - **Tokenized Real Estate**: Fractional ownership of real estate properties
 - **Fiat Payment Integration**: Secure fiat payment processing with backend verification
+- **Gasless Transactions (EIP-2771)**: Users can interact without paying gas fees
+- **Secure Signatures (EIP-712)**: Type-safe, secure signature verification for fiat payments
 - **Multi-Network Support**: Deployable on any EVM-compatible blockchain
 - **Security First**: Comprehensive security measures and audit-ready code
 
@@ -120,6 +125,21 @@ npx hardhat run scripts/verify.js --network [network-name]
 
 ## 🔧 Backend Integration
 
+### Gasless Transactions (EIP-2771)
+
+The platform supports gasless transactions through EIP-2771 trusted forwarder:
+
+```bash
+# Deploy TrustedForwarder
+npx hardhat run scripts/deploy-forwarder.js --network [network-name]
+
+# Set trusted forwarder in Diamond
+npx hardhat run scripts/set-trusted-forwarder.js --network [network-name]
+
+# Authorize backend as relayer
+npx hardhat run scripts/authorize-relayer.js --network [network-name]
+```
+
 ### Fiat Payment Setup
 
 The platform supports fiat payments through a secure backend signer system:
@@ -136,6 +156,10 @@ npx hardhat run scripts/set-backend-signer.js --network mainnet
 ### Backend Integration Guide
 
 See [BACKEND_SIGNER_SETUP.md](./BACKEND_SIGNER_SETUP.md) for detailed backend integration instructions.
+
+### Gasless Transaction Integration
+
+See [EIP-2771.md](./docs/EIP-2771.md) for complete EIP-2771 integration guide and examples.
 
 ## 🧪 Testing
 
@@ -174,6 +198,7 @@ node test-scripts/run-all-tests.js
 - **Pausable**: Emergency stop functionality for crisis management
 - **Access Control**: Role-based permissions for sensitive operations
 - **EIP-712 Signatures**: Secure fiat payment verification
+- **EIP-2771 Trusted Forwarder**: Secure gasless transaction relay
 - **Input Validation**: Comprehensive validation on all user inputs
 - **Secure Fund Handling**: Checks-effects-interactions pattern implementation
 - **Upgradeable Architecture**: Safe upgrade mechanisms for continuous improvement
@@ -182,6 +207,7 @@ node test-scripts/run-all-tests.js
 
 - [FIAT_PAYMENT_INTEGRATION.md](./FIAT_PAYMENT_INTEGRATION.md) - Fiat payment system documentation
 - [BACKEND_SIGNER_SETUP.md](./BACKEND_SIGNER_SETUP.md) - Backend integration guide
+- [EIP-2771.md](./docs/EIP-2771.md) - Gasless transaction integration guide
 - [DEPLOYMENT_GUIDE.md](./DEPLOYMENT_GUIDE.md) - Detailed deployment instructions
 - [TEST_DOCUMENTATION.md](./TEST_DOCUMENTATION.md) - Testing guide and results
 
@@ -203,3 +229,5 @@ MIT License - see [LICENSE](LICENSE) file for details
 - [Ethereum Foundation](https://ethereum.org/)
 - [Hardhat](https://hardhat.org/)
 - [Diamond Pattern (EIP-2535)](https://eips.ethereum.org/EIPS/eip-2535)
+- [EIP-2771 (Trusted Forwarder)](https://eips.ethereum.org/EIPS/eip-2771)
+- [EIP-712 (Typed Structured Data)](https://eips.ethereum.org/EIPS/eip-712)

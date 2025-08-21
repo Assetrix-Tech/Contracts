@@ -4,8 +4,9 @@ pragma solidity ^0.8.28;
 import "./LibDiamond.sol";
 import "./IDiamondCut.sol";
 import "./IDiamondLoupe.sol";
+import "./EIP2771Context.sol";
 
-contract Diamond {
+contract Diamond is EIP2771Context {
     constructor(address _contractOwner) {
         LibDiamond.setContractOwner(_contractOwner);
     }

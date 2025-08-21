@@ -208,6 +208,9 @@ library AssetrixStorage {
         // EIP-712 domain separator
         bytes32 domainSeparator;
         bool domainSeparatorInitialized;
+        
+        // EIP-2771 Trusted Forwarder
+        address trustedForwarder;
     }
 
     bytes32 internal constant STORAGE_SLOT = keccak256("assetrix.storage.v1");

@@ -4,13 +4,14 @@ pragma solidity ^0.8.28;
 import "./AssetrixStorage.sol";
 import "./ITransactionFacet.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "./EIP2771Context.sol";
 
-contract MilestoneFacet {
+contract MilestoneFacet is EIP2771Context {
     using AssetrixStorage for AssetrixStorage.Layout;
 
     modifier onlyOwner() {
         AssetrixStorage.Layout storage s = AssetrixStorage.layout();
-        require(msg.sender == s.owner, "Ownable: caller is not the owner");
+        require(_msgSender() == s.owner, "Ownable: caller is not the owner");
         _;
     }
 
@@ -81,7 +82,7 @@ contract MilestoneFacet {
             "Developer address not set"
         );
         require(
-            msg.sender == prop.developerAddress,
+            _msgSender() == prop.developerAddress,
             "Only property developer can request funds"
         );
         require(
@@ -111,7 +112,7 @@ contract MilestoneFacet {
         }
         milestone.fundsRequested = true;
         milestone.requestedAt = block.timestamp;
-        emit MilestoneFundsRequested(_propertyId, _milestoneId, msg.sender);
+        emit MilestoneFundsRequested(_propertyId, _milestoneId, _msgSender());
     }
 
     // Mark milestone as completed
@@ -134,7 +135,7 @@ contract MilestoneFacet {
             "Developer address not set"
         );
         require(
-            msg.sender == prop.developerAddress,
+            _msgSender() == prop.developerAddress,
             "Only developer can mark completed"
         );
         require(!milestone.fundsReleased, "Funds already released");
@@ -220,7 +221,7 @@ contract MilestoneFacet {
             _milestoneId,
             netReleaseAmount,
             prop.developerAddress,
-            msg.sender
+            _msgSender()
         );
     }
 

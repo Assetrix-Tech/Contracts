@@ -2,8 +2,9 @@
 pragma solidity ^0.8.28;
 
 import "./AssetrixStorage.sol";
+import "./EIP2771Context.sol";
 
-contract TransactionFacet {
+contract TransactionFacet is EIP2771Context {
     using AssetrixStorage for AssetrixStorage.Layout;
 
     event TransactionRecorded(
@@ -19,7 +20,7 @@ contract TransactionFacet {
     //Only owner can record transactions
     modifier onlyOwner() {
         AssetrixStorage.Layout storage s = AssetrixStorage.layout();
-        require(msg.sender == s.owner, "Ownable: caller is not the owner");
+        require(_msgSender() == s.owner, "Ownable: caller is not the owner");
         _;
     }
 
@@ -49,7 +50,7 @@ contract TransactionFacet {
     modifier onlyAuthorized() {
         AssetrixStorage.Layout storage s = AssetrixStorage.layout();
         require(
-            msg.sender == s.owner || msg.sender == address(this),
+            _msgSender() == s.owner || _msgSender() == address(this),
             "Only authorized contracts can record transactions"
         );
         _;

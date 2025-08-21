@@ -4,8 +4,9 @@ pragma solidity ^0.8.28;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "./AssetrixStorage.sol";
 import "./ITransactionFacet.sol";
+import "./EIP2771Context.sol";
 
-contract FiatPaymentFacet {
+contract FiatPaymentFacet is EIP2771Context {
     using AssetrixStorage for AssetrixStorage.Layout;
 
     // Fiat payment events
@@ -34,7 +35,7 @@ contract FiatPaymentFacet {
 
     modifier onlyOwner() {
         AssetrixStorage.Layout storage s = AssetrixStorage.layout();
-        require(msg.sender == s.owner, "Ownable: caller is not the owner");
+        require(_msgSender() == s.owner, "Ownable: caller is not the owner");
         _;
     }
 
@@ -125,7 +126,7 @@ contract FiatPaymentFacet {
         AssetrixStorage.Property storage prop = s.properties[_propertyId];
 
         require(
-            msg.sender == _user || msg.sender == s.backendSigner,
+            _msgSender() == _user || _msgSender() == s.backendSigner,
             "Unauthorized caller"
         );
 

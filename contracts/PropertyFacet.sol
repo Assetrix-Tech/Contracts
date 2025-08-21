@@ -2,8 +2,9 @@
 pragma solidity ^0.8.28;
 
 import "./AssetrixStorage.sol";
+import "./EIP2771Context.sol";
 
-contract PropertyFacet {
+contract PropertyFacet is EIP2771Context {
     using AssetrixStorage for AssetrixStorage.Layout;
 
     event PropertyCreated(
@@ -23,8 +24,8 @@ contract PropertyFacet {
     modifier onlyDeveloperOrOwner(uint256 _propertyId) {
         AssetrixStorage.Layout storage s = AssetrixStorage.layout();
         require(
-            msg.sender == s.properties[_propertyId].developerAddress ||
-                msg.sender == s.owner,
+            _msgSender() == s.properties[_propertyId].developerAddress ||
+                _msgSender() == s.owner,
             "Unauthorized: Only property developer or admin can update"
         );
         _;
@@ -32,7 +33,7 @@ contract PropertyFacet {
 
     modifier onlyOwner() {
         AssetrixStorage.Layout storage s = AssetrixStorage.layout();
-        require(msg.sender == s.owner, "Ownable: caller is not the owner");
+        require(_msgSender() == s.owner, "Ownable: caller is not the owner");
         _;
     }
 
@@ -71,7 +72,7 @@ contract PropertyFacet {
             "Invalid developer address"
         );
         require(
-            msg.sender == _data.developerAddress || msg.sender == s.owner,
+            _msgSender() == _data.developerAddress || _msgSender() == s.owner,
             "Sender must be the developer or admin"
         );
         require(bytes(_data.city).length > 0, "City required");
@@ -376,7 +377,7 @@ contract PropertyFacet {
         returns (AssetrixStorage.PropertyView[] memory)
     {
         AssetrixStorage.Layout storage s = AssetrixStorage.layout();
-        uint256[] memory propertyIds = s.developerProperties[msg.sender];
+        uint256[] memory propertyIds = s.developerProperties[_msgSender()];
         AssetrixStorage.PropertyView[]
             memory result = new AssetrixStorage.PropertyView[](
                 propertyIds.length
@@ -395,7 +396,7 @@ contract PropertyFacet {
         returns (AssetrixStorage.PropertyView[] memory)
     {
         AssetrixStorage.Layout storage s = AssetrixStorage.layout();
-        uint256[] memory propertyIds = s.tokenHolderProperties[msg.sender];
+        uint256[] memory propertyIds = s.tokenHolderProperties[_msgSender()];
         AssetrixStorage.PropertyView[]
             memory result = new AssetrixStorage.PropertyView[](
                 propertyIds.length

@@ -4,8 +4,9 @@ pragma solidity ^0.8.28;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "./AssetrixStorage.sol";
 import "./ITransactionFacet.sol";
+import "./EIP2771Context.sol";
 
-contract InvestmentFacet {
+contract InvestmentFacet is EIP2771Context {
     using AssetrixStorage for AssetrixStorage.Layout;
 
     event TokensPurchased(
@@ -52,7 +53,7 @@ contract InvestmentFacet {
 
     modifier onlyOwner() {
         AssetrixStorage.Layout storage s = AssetrixStorage.layout();
-        require(msg.sender == s.owner, "Ownable: caller is not the owner");
+        require(_msgSender() == s.owner, "Ownable: caller is not the owner");
         _;
     }
 
@@ -110,18 +111,18 @@ contract InvestmentFacet {
 
         require(
             IERC20(s.stablecoin).transferFrom(
-                msg.sender,
+                _msgSender(),
                 address(this),
                 totalCost
             ),
             "Transfer failed"
         );
-        if (prop.tokenBalance[msg.sender] == 0) {
-            prop.tokenHolders.push(msg.sender);
+        if (prop.tokenBalance[_msgSender()] == 0) {
+            prop.tokenHolders.push(_msgSender());
             prop.holderCount++;
-            s.tokenHolderProperties[msg.sender].push(_propertyId);
+            s.tokenHolderProperties[_msgSender()].push(_propertyId);
         }
-        prop.tokenBalance[msg.sender] += _tokenAmount;
+        prop.tokenBalance[_msgSender()] += _tokenAmount;
         prop.tokensSold += _tokenAmount;
         prop.tokensLeft -= _tokenAmount;
         if (prop.tokensLeft == 0) {
@@ -130,13 +131,13 @@ contract InvestmentFacet {
         }
         ITransactionFacet(address(this)).recordTransaction(
             _propertyId,
-            msg.sender,
+            _msgSender(),
             prop.developerAddress,
             AssetrixStorage.TransactionType.Investment,
             totalCost,
             "Token purchase in property"
         );
-        emit TokensPurchased(_propertyId, msg.sender, _tokenAmount, totalCost);
+        emit TokensPurchased(_propertyId, _msgSender(), _tokenAmount, totalCost);
     }
 
     //Payout investment for token holders
@@ -182,7 +183,7 @@ contract InvestmentFacet {
 
         ITransactionFacet(address(this)).recordTransaction(
             _propertyId,
-            msg.sender,
+            _msgSender(),
             _tokenHolder,
             AssetrixStorage.TransactionType.PayoutAvailable,
             _amount,
@@ -229,7 +230,7 @@ contract InvestmentFacet {
     ) external whenNotPaused nonReentrant {
         AssetrixStorage.Layout storage s = AssetrixStorage.layout();
         AssetrixStorage.Property storage prop = s.properties[_propertyId];
-        require(prop.tokenBalance[msg.sender] > 0, "No tokens to exit");
+        require(prop.tokenBalance[_msgSender()] > 0, "No tokens to exit");
         require(s.earlyExitFeePercentage <= 10, "Exit fee cannot exceed 10%");
 
         if (prop.isFullyFunded) {
@@ -249,13 +250,13 @@ contract InvestmentFacet {
             block.timestamp < getInvestmentEndTime(_propertyId),
             "Investment period has ended, use final payout instead"
         );
-        uint256 tokenAmount = prop.tokenBalance[msg.sender];
+        uint256 tokenAmount = prop.tokenBalance[_msgSender()];
         uint256 investmentAmount = tokenAmount * prop.tokenPrice;
         uint256 exitFee = (investmentAmount * s.earlyExitFeePercentage) / 100;
         uint256 refundAmount = investmentAmount - exitFee;
 
         // Emit event for backend to handle dashboard balance update
-        emit EarlyExitAvailable(_propertyId, msg.sender, refundAmount, exitFee);
+        emit EarlyExitAvailable(_propertyId, _msgSender(), refundAmount, exitFee);
 
         // Update token balances
         prop.tokensSold -= tokenAmount;
@@ -263,25 +264,25 @@ contract InvestmentFacet {
         if (prop.isFullyFunded && prop.tokensLeft > 0) {
             prop.isFullyFunded = false;
         }
-        _removeTokenHolderFromProperty(_propertyId, msg.sender);
+        _removeTokenHolderFromProperty(_propertyId, _msgSender());
 
         ITransactionFacet(address(this)).recordTransaction(
             _propertyId,
             address(this),
-            msg.sender,
+            _msgSender(),
             AssetrixStorage.TransactionType.EarlyExitAvailable,
             refundAmount,
             "Early exit refund available in dashboard"
         );
         ITransactionFacet(address(this)).recordTransaction(
             _propertyId,
-            msg.sender,
+            _msgSender(),
             address(this),
             AssetrixStorage.TransactionType.EarlyExitFee,
             exitFee,
             "Early exit fee"
         );
-        emit Refunded(_propertyId, msg.sender, refundAmount);
+        emit Refunded(_propertyId, _msgSender(), refundAmount);
     }
 
     //Emergency refund for token holder

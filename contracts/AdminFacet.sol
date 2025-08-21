@@ -3,8 +3,9 @@ pragma solidity ^0.8.28;
 
 import "./AssetrixStorage.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "./EIP2771Context.sol";
 
-contract AdminFacet {
+contract AdminFacet is EIP2771Context {
     using AssetrixStorage for AssetrixStorage.Layout;
 
     event StablecoinUpdated(address indexed newStablecoin);
@@ -25,7 +26,7 @@ contract AdminFacet {
 
     modifier onlyOwner() {
         AssetrixStorage.Layout storage s = AssetrixStorage.layout();
-        require(msg.sender == s.owner, "Ownable: caller is not the owner");
+        require(_msgSender() == s.owner, "Ownable: caller is not the owner");
         _;
     }
 
@@ -74,14 +75,14 @@ contract AdminFacet {
         AssetrixStorage.Layout storage s = AssetrixStorage.layout();
         require(!s.paused, "Pausable: already paused");
         s.paused = true;
-        emit Paused(msg.sender);
+        emit Paused(_msgSender());
     }
 
     function unpause() external onlyOwner {
         AssetrixStorage.Layout storage s = AssetrixStorage.layout();
         require(s.paused, "Pausable: not paused");
         s.paused = false;
-        emit Unpaused(msg.sender);
+        emit Unpaused(_msgSender());
     }
 
     function setStablecoin(
@@ -291,5 +292,20 @@ contract AdminFacet {
     function getBackendSigner() external view returns (address) {
         AssetrixStorage.Layout storage s = AssetrixStorage.layout();
         return s.backendSigner;
+    }
+
+    // ============ EIP-2771 TRUSTED FORWARDER MANAGEMENT ============
+
+    // Set trusted forwarder (only owner can call)
+    function setTrustedForwarder(address _trustedForwarder) external onlyOwner {
+        require(_trustedForwarder != address(0), "Invalid trusted forwarder address");
+        AssetrixStorage.Layout storage s = AssetrixStorage.layout();
+        s.trustedForwarder = _trustedForwarder;
+    }
+
+    // Get trusted forwarder
+    function getTrustedForwarder() external view override returns (address) {
+        AssetrixStorage.Layout storage s = AssetrixStorage.layout();
+        return s.trustedForwarder;
     }
 }
