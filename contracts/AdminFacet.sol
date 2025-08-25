@@ -22,6 +22,7 @@ contract AdminFacet is BaseMetaTransactionFacet {
     event MaxTokensPerPropertyUpdated(uint256 newValue);
     event MinTokensPerInvestmentUpdated(uint256 newValue);
     event StablecoinWithdrawn(address indexed to, uint256 amount);
+    event BackendSignerUpdated(address indexed oldSigner, address indexed newSigner);
 
     modifier onlyOwner() {
         AssetrixStorage.Layout storage s = AssetrixStorage.layout();
@@ -258,7 +259,7 @@ contract AdminFacet is BaseMetaTransactionFacet {
         return s.paused;
     }
 
-    // Emergency withdrawal function for admin to recover stablecoin funds
+    // withdrawal function for admin to recover stablecoin funds
     function withdrawStablecoin(
         address _to,
         uint256 _amount,
@@ -287,5 +288,22 @@ contract AdminFacet is BaseMetaTransactionFacet {
         );
 
         emit StablecoinWithdrawn(_to, _amount);
+    }
+
+    // ============ BACKEND SIGNER MANAGEMENT ============
+
+    // Set backend signer (only owner can change)
+    function setBackendSigner(address _backendSigner) external onlyOwner {
+        require(_backendSigner != address(0), "Invalid backend signer address");
+        AssetrixStorage.Layout storage s = AssetrixStorage.layout();
+        address oldSigner = s.backendSigner;
+        s.backendSigner = _backendSigner;
+        emit BackendSignerUpdated(oldSigner, _backendSigner);
+    }
+
+    // Get backend signer
+    function getBackendSigner() external view returns (address) {
+        AssetrixStorage.Layout storage s = AssetrixStorage.layout();
+        return s.backendSigner;
     }
 }

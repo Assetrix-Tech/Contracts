@@ -21,7 +21,7 @@
           "section": "🔍 Testing FiatPaymentFacet Functionality",
           "results": [
             "✅ Loaded deployment data",
-            "✅ Connected to FiatPaymentFacet"
+            "✅ Connected to FiatPaymentFacet and AdminFacet"
           ]
         },
         {

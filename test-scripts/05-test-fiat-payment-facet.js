@@ -17,12 +17,13 @@ async function main() {
         console.log(`👤 User1: ${user1.address}`);
         console.log(`👤 Backend Signer: ${backendSigner.address}`);
 
-        // Get FiatPaymentFacet contract
+        // Get contract interfaces
         const fiatPaymentFacet = await ethers.getContractAt("FiatPaymentFacet", deploymentData.diamond);
-        console.log("✅ Connected to FiatPaymentFacet");
+        const adminFacet = await ethers.getContractAt("AdminFacet", deploymentData.diamond);
+        console.log("✅ Connected to FiatPaymentFacet and AdminFacet");
 
         // Check current owner
-        const adminFacet = await ethers.getContractAt("AdminFacet", deploymentData.diamond);
+       // const adminFacet = await ethers.getContractAt("AdminFacet", deploymentData.diamond);
         const currentOwner = await adminFacet.owner();
         console.log(`👑 Current owner: ${currentOwner}`);
 
@@ -33,12 +34,13 @@ async function main() {
         // Test 1: Backend Signer Management
         console.log("\n🔍 Test 1: Backend Signer Management");
         
-        const currentBackendSigner = await fiatPaymentFacet.getBackendSigner();
+        const currentBackendSigner = await adminFacet.getBackendSigner();
         console.log(`✅ Current backend signer: ${currentBackendSigner}`);
         
         // Set backend signer if not already set
         if (currentBackendSigner === ethers.ZeroAddress) {
             await fiatPaymentFacet.connect(adminSigner).setBackendSigner(backendSigner.address, adminSigner.address);
+            await adminFacet.setBackendSigner(backendSigner.address);
             console.log("✅ Set backend signer");
         }
 
@@ -80,7 +82,8 @@ async function main() {
         
         // Test that non-owner cannot set backend signer
         try {
-            await fiatPaymentFacet.connect(user1).setBackendSigner(user1.address, user1.address);
+          //  await fiatPaymentFacet.connect(user1).setBackendSigner(user1.address, user1.address);
+            await adminFacet.connect(user1).setBackendSigner(user1.address);
             console.log("❌ Non-owner was able to set backend signer (should fail)");
         } catch (error) {
             console.log("✅ Non-owner cannot set backend signer (expected)");
@@ -162,14 +165,16 @@ async function main() {
         
         const newBackendSigner = user1.address;
         await fiatPaymentFacet.connect(adminSigner).setBackendSigner(newBackendSigner, adminSigner.address);
+        await adminFacet.setBackendSigner(newBackendSigner);
         console.log("✅ Backend signer updated");
         
-        const updatedSigner = await fiatPaymentFacet.getBackendSigner();
+        const updatedSigner = await adminFacet.getBackendSigner();
         console.log(`✅ Updated backend signer: ${updatedSigner}`);
         console.log(`✅ Matches new signer: ${updatedSigner === newBackendSigner}`);
 
         // Restore original backend signer
         await fiatPaymentFacet.connect(adminSigner).setBackendSigner(backendSigner.address, adminSigner.address);
+        await adminFacet.setBackendSigner(backendSigner.address);
         console.log("✅ Restored original backend signer");
 
         // Test 10: Fiat Payment Distribution - Updated for EIP-2771

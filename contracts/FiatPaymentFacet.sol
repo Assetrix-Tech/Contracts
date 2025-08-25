@@ -19,10 +19,11 @@ contract FiatPaymentFacet is BaseMetaTransactionFacet {
         uint256 timestamp
     );
 
-    event BackendSignerUpdated(
+     event BackendSignerUpdated(
         address indexed oldSigner,
         address indexed newSigner
     );
+
 
     event PropertyFullyFunded(
         uint256 indexed propertyId,
@@ -122,11 +123,6 @@ contract FiatPaymentFacet is BaseMetaTransactionFacet {
         emit BackendSignerUpdated(oldSigner, _backendSigner);
     }
 
-    // Get backend signer
-    function getBackendSigner() external view returns (address) {
-        AssetrixStorage.Layout storage s = AssetrixStorage.layout();
-        return s.backendSigner;
-    }
 
     // Main fiat-to-token distribution function (EIP-2771 enabled)
     function distributeTokensFromFiat(

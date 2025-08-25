@@ -171,7 +171,7 @@ describe("Token Supply Tracking", function () {
     await adminFacet.setMinTokensPerInvestment(1);
     await adminFacet.setMinTokensPerProperty(100);
     await adminFacet.setMaxTokensPerProperty(10000);
-    await fiatPaymentFacet.setBackendSigner(backendSigner.address);
+    await adminFacet.setBackendSigner(backendSigner.address);
     await fiatPaymentFacet.initializeDomainSeparator();
 
     // Mint some Naira to owner for testing

@@ -1,5 +1,9 @@
 {
+<<<<<<< HEAD
   "upgradeFacets": ["property", "admin", "investment", "milestone", "transaction", "fiatPayment", "diamondLoupe", "metaTransaction"],
+=======
+  "upgradeFacets": ["admin", "investment", "milestone", "transaction", "fiatPayment", "diamondLoupe", "property"],
+>>>>>>> origin/dev
   "addFacets": [],
   "skipFacets": [],
 

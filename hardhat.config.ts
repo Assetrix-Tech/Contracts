@@ -20,18 +20,25 @@ module.exports = {
     localhost: {
       url: "http://127.0.0.1:8545",
       chainId: 31337,
-      timeout: 120000, // 2 minutes timeout
+      timeout: 120000,
     },
     sepolia: {
       url: process.env.SEPOLIA_RPC_URL || "",
       accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
       chainId: 11155111,
-      timeout: 120000, // 2 minutes timeout
+      timeout: 120000,
+    },
+    mainnet: {
+      url: process.env.MAINNET_RPC_URL || "",
+      accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
+      chainId: 1,
+      timeout: 120000,
     }
   },
   etherscan: {
     apiKey: {
       sepolia: process.env.ETHERSCAN_API_KEY || "",
+      mainnet: process.env.ETHERSCAN_API_KEY || "",
     },
   },
   paths: {
@@ -41,7 +48,7 @@ module.exports = {
     artifacts: "./artifacts",
   },
   mocha: {
-    timeout: 120000, // 2 minutes
+    timeout: 120000,
   },
 
 };
