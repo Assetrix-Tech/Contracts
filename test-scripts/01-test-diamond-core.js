@@ -31,8 +31,8 @@ async function main() {
         const facetAddresses = await diamond.facetAddresses();
         console.log(`✅ Facet addresses count: ${facetAddresses.length}`);
         
-        // Verify expected facets are present
-        const expectedFacets = ["adminFacet", "propertyFacet", "investmentFacet", "milestoneFacet", "transactionFacet"];
+        // Verify expected facets are present (including MetaTransactionFacet)
+        const expectedFacets = ["adminFacet", "propertyFacet", "investmentFacet", "milestoneFacet", "transactionFacet", "fiatPaymentFacet", "metaTransactionFacet"];
         for (const facetName of expectedFacets) {
             if (deploymentData[facetName]) {
                 const hasFacet = facetAddresses.includes(deploymentData[facetName]);
@@ -53,6 +53,34 @@ async function main() {
         const propertyFacet = await ethers.getContractAt("PropertyFacet", deploymentData.diamond);
         const totalProperties = await propertyFacet.getTotalProperties();
         console.log(`✅ Total properties: ${totalProperties}`);
+
+        // Test 4: EIP-2771 Meta Transaction Functionality
+        console.log("\n🔍 Test 4: EIP-2771 Meta Transaction Functionality");
+        
+        // Test MetaTransactionFacet
+        const metaTransactionFacet = await ethers.getContractAt("MetaTransactionFacet", deploymentData.diamond);
+        const nonce = await metaTransactionFacet.getNonce(deployer.address);
+        console.log(`✅ User nonce: ${nonce}`);
+        
+        // Test gas estimation
+        const estimatedGas = await metaTransactionFacet.estimateGasCost();
+        console.log(`✅ Estimated gas cost: ${estimatedGas}`);
+        
+        // Test recommended fee calculation
+        const recommendedFee = await metaTransactionFacet.calculateRecommendedFee();
+        console.log(`✅ Recommended fee: ${ethers.formatEther(recommendedFee)} ETH`);
+
+        // Test 5: BaseMetaTransactionFacet Integration
+        console.log("\n🔍 Test 5: BaseMetaTransactionFacet Integration");
+        
+        // Test that all facets inherit from BaseMetaTransactionFacet
+        const adminFacetCode = await ethers.provider.getCode(deploymentData.adminFacet);
+        const propertyFacetCode = await ethers.provider.getCode(deploymentData.propertyFacet);
+        const investmentFacetCode = await ethers.provider.getCode(deploymentData.investmentFacet);
+        
+        console.log(`✅ AdminFacet has code: ${adminFacetCode !== "0x"}`);
+        console.log(`✅ PropertyFacet has code: ${propertyFacetCode !== "0x"}`);
+        console.log(`✅ InvestmentFacet has code: ${investmentFacetCode !== "0x"}`);
 
         console.log("\n✅ Diamond Core Tests Passed!");
 

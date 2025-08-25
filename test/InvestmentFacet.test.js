@@ -54,7 +54,7 @@ describe("InvestmentFacet", function () {
         action: 0, // Add
         functionSelectors: [
           "0x17aaf5ed", // getTotalProperties
-          "0x1f346f07", // createProperty
+          "0xeb2220e9", // createProperty
           "0x32665ffb", // getProperty
           "0xb16aa470", // getProperties
           "0x397f7952", // getMyProperties
@@ -62,21 +62,21 @@ describe("InvestmentFacet", function () {
           "0x4835ec06", // getDeveloperProperties
           "0x759c7de8", // getDeveloperPropertyCount
           "0x17fc2f96", // getPropertyTokenHolders
-          "0xe52097a0", // updateProperty
-          "0x7ca28bc6", // deactivateProperty
-          "0xc2f6f25c", // adminActivateProperty
-          "0x5ec231ba"  // adminDeactivateProperty
+          "0xd4cb6ba1", // updateProperty
+          "0xcecf20cd", // deactivateProperty
+          "0x6e03b57d", // adminActivateProperty
+          "0x380b6b29"  // adminDeactivateProperty
         ]
       },
       {
         facetAddress: await investmentFacetContract.getAddress(),
         action: 0, // Add
         functionSelectors: [
-          "0x8bf0af3e", // purchaseTokens
-          "0x8682c64d", // payoutInvestment
-          "0x7ad226dc", // refund
-          "0xb8af3d3e", // earlyExit
-          "0xdae21c58", // emergencyRefund
+          "0x0334f811", // purchaseTokens
+          "0x414b4eea", // payoutInvestment
+          "0x96e83a40", // refund
+          "0x5d76f829", // earlyExit
+          "0xfa2b3963", // emergencyRefund
           "0x93838cdb", // canAcceptTokenPurchases
           "0x0117b0ed", // calculateTokensFromAmount
           "0x1b48a3b0", // calculateAmountFromTokens
@@ -137,7 +137,7 @@ describe("InvestmentFacet", function () {
       roiPercentage: 20
     };
 
-    await propertyFacet.connect(developer).createProperty(propertyData);
+    await propertyFacet.connect(developer).createProperty(propertyData, developer.address);
     propertyId = 1; // First property
 
     // Fund the investor with stablecoin
@@ -193,7 +193,7 @@ describe("InvestmentFacet", function () {
 
       // Should fail
       await expect(
-        investmentFacet.connect(investor).purchaseTokens(propertyId, tokensToPurchase)
+        investmentFacet.connect(investor).purchaseTokens(propertyId, tokensToPurchase, investor.address)
       ).to.be.revertedWith("Not enough tokens left");
     });
   });
@@ -202,14 +202,14 @@ describe("InvestmentFacet", function () {
     it("Should allow emergency refund by admin", async function () {
       // This should be callable by admin but requires tokens to exist
       await expect(
-        investmentFacet.connect(owner).emergencyRefund(propertyId, investor.address)
+        investmentFacet.connect(owner).emergencyRefund(propertyId, investor.address, owner.address)
       ).to.be.revertedWith("Token holder has no tokens to refund");
     });
 
     it("Should allow early exit with fee", async function () {
       // This test ensures the function exists but may revert due to prerequisites
       await expect(
-        investmentFacet.connect(investor).earlyExit(propertyId)
+        investmentFacet.connect(investor).earlyExit(propertyId, investor.address)
       ).to.be.reverted;
     });
   });
@@ -262,14 +262,14 @@ describe("InvestmentFacet", function () {
     it("Should allow payout investment", async function () {
       // This test ensures the function exists but may revert due to prerequisites
       await expect(
-        investmentFacet.connect(owner).payoutInvestment(propertyId, investor.address, 1000000)
+        investmentFacet.connect(owner).payoutInvestment(propertyId, investor.address, 1000000, owner.address)
       ).to.be.reverted;
     });
 
     it("Should allow refund", async function () {
       // This test ensures the function exists but may revert due to prerequisites
       await expect(
-        investmentFacet.connect(owner).refund(propertyId, investor.address)
+        investmentFacet.connect(owner).refund(propertyId, investor.address, owner.address)
       ).to.be.reverted;
     });
   });

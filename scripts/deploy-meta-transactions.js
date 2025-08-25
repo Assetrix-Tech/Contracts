@@ -14,13 +14,6 @@ async function main() {
     await metaTransactionFacet.deployed();
     console.log("✅ MetaTransactionFacet deployed to:", metaTransactionFacet.address);
 
-    // Deploy InvestmentFacetMeta
-    console.log("📦 Deploying InvestmentFacetMeta...");
-    const InvestmentFacetMeta = await ethers.getContractFactory("InvestmentFacetMeta");
-    const investmentFacetMeta = await InvestmentFacetMeta.deploy();
-    await investmentFacetMeta.deployed();
-    console.log("✅ InvestmentFacetMeta deployed to:", investmentFacetMeta.address);
-
     // Load existing diamond address from deployment file
     const fs = require('fs');
     const deploymentPath = './deployments/deployment-sepolia.json';
@@ -43,17 +36,13 @@ async function main() {
     
     // Get function selectors for MetaTransactionFacet
     const metaTransactionSelectors = [
-        "executeMetaTransaction(address,bytes,bytes32,bytes32,uint8)",
+        "executeMetaTransaction(address,bytes,bytes32,bytes32,uint8,uint256)",
+        "executeMetaTransactionWithStablecoinFee(address,bytes,bytes32,bytes32,uint8,uint256)",
         "getNonce(address)",
         "msgSender()",
-        "_msgSender()"
-    ].map(sig => ethers.utils.id(sig).slice(0, 10));
-
-    // Get function selectors for InvestmentFacetMeta
-    const investmentMetaSelectors = [
-        "purchaseTokens(uint256,uint256)",
-        "requestRefund(uint256)",
-        "claimPayout(uint256)"
+        "_msgSender()",
+        "estimateGasCost()",
+        "calculateRecommendedFee()"
     ].map(sig => ethers.utils.id(sig).slice(0, 10));
 
     // Prepare facet cuts
@@ -62,11 +51,6 @@ async function main() {
             facetAddress: metaTransactionFacet.address,
             action: IDiamondCut.FacetCutAction.Add,
             functionSelectors: metaTransactionSelectors
-        },
-        {
-            facetAddress: investmentFacetMeta.address,
-            action: IDiamondCut.FacetCutAction.Add,
-            functionSelectors: investmentMetaSelectors
         }
     ];
 
@@ -87,8 +71,7 @@ async function main() {
         network: "sepolia",
         diamond: diamondAddress,
         facets: {
-            metaTransaction: metaTransactionFacet.address,
-            investmentMeta: investmentFacetMeta.address
+            metaTransaction: metaTransactionFacet.address
         },
         deployer: deployer.address,
         timestamp: new Date().toISOString(),
@@ -107,12 +90,12 @@ async function main() {
     console.log("================================================");
     console.log("Diamond Address:", diamondAddress);
     console.log("MetaTransactionFacet:", metaTransactionFacet.address);
-    console.log("InvestmentFacetMeta:", investmentFacetMeta.address);
     console.log("\n📋 Next Steps:");
-    console.log("1. Test meta transactions using the executeMetaTransaction function");
-    console.log("2. Update frontend to support gasless transactions");
-    console.log("3. Implement signature generation on the backend");
-    console.log("4. Add meta transaction support to other facets as needed");
+    console.log("1. All existing facets now support EIP-2771 meta transactions");
+    console.log("2. No duplicate functions - single implementation per function");
+    console.log("3. Users can use gasless transactions for all operations");
+    console.log("4. Update frontend to support meta transactions");
+    console.log("5. Implement signature generation on the backend");
 }
 
 main()

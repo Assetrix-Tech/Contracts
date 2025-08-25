@@ -59,17 +59,20 @@ async function main() {
   await fiatPaymentFacet.waitForDeployment();
   console.log(`✅ FiatPaymentFacet deployed to: ${await fiatPaymentFacet.getAddress()}`);
 
-
+  const MetaTransactionFacet = await ethers.getContractFactory("MetaTransactionFacet");
+  const metaTransactionFacet = await MetaTransactionFacet.deploy();
+  await metaTransactionFacet.waitForDeployment();
+  console.log(`✅ MetaTransactionFacet deployed to: ${await metaTransactionFacet.getAddress()}`);
 
   // Get function selectors for each facet
   console.log("\n🔍 Getting function selectors...");
   
   const adminSelectors = [
     "0x8da5cb5b", "0x1794bb3c", "0x5cd9205f", "0xcc7ac330", "0xb6f67312",
-    "0x92b582e0", "0xd6c7d918", "0x8456cb59", "0x3f4ba83a", "0xf2fde38b",
-    "0x5c975abb", "0x842f6221", "0xe088bfc0", "0xfe9d0872", "0x2750b0d2",
-    "0xeb659dc1", "0x96241c97", "0xe109516b", "0xeec723bc", "0xdeba19e2",
-    "0x80521c91", "0xc4c5f624"
+    "0x92b582e0", "0xd6c7d918", "0x76a67a51", "0x57b001f9", "0x6d435421",
+    "0x5c975abb", "0x0b8e33db", "0xe12c735f", "0x1ae265d1", "0xd21c55e2",
+    "0x918dc7f3", "0xc7c52652", "0xacc8cf7b", "0xeec723bc", "0xdeba19e2",
+    "0x80521c91", "0xd511b289"
   ];
 
   const investmentSelectors = [
@@ -80,8 +83,8 @@ async function main() {
   ];
 
   const propertySelectors = [
-    "0x1f346f07", "0x5ccd8ca0", "0xb16aa470", "0x32665ffb", "0x17fc2f96", "0x17aaf5ed",
-    "0xe52097a0"
+    "0xeb2220e9", "0x5ccd8ca0", "0xb16aa470", "0x32665ffb", "0x17fc2f96", "0x17aaf5ed",
+    "0xd4cb6ba1", "0xcecf20cd", "0x6e03b57d", "0x380b6b29"
   ];
 
   const transactionSelectors = [
@@ -90,7 +93,7 @@ async function main() {
 
   const milestoneSelectors = [
     "0x359b3123", "0xe8049da1", "0xbc643619", "0x5cae48f5", "0x54d49e46",
-    "0xeb9d9a5d"
+    "0xeb9d9a5d", "0x7ca28bc6", "0x5ec231ba", "0xc2f6f25c"
   ];
 
   const diamondLoupeSelectors = [
@@ -98,12 +101,18 @@ async function main() {
   ];
 
   const fiatPaymentSelectors = [
-    "0xe474f042", "0xf7770056", "0xd9e359cd", "0x5cf0e8a4", "0xed24911d",
+    "0x0540492e", "0xf7770056", "0xd9e359cd", "0x5cf0e8a4", "0xed24911d",
     "0x6834e3a8", "0x2ff79161", "0x591723fd", "0x149f2e88", "0x85e69128",
-    "0x36f95670"
+    "0x0a9c7393" // Updated setBackendSigner
   ];
 
-
+  const metaTransactionSelectors = [
+    "0x4d81367a", // executeMetaTransaction(address,bytes,bytes32,bytes32,uint8,uint256)
+    "0x89a7231e", // executeMetaTransactionWithStablecoinFee(address,bytes,bytes32,bytes32,uint8,uint256)
+    "0x2d0335ab", // getNonce(address)
+    "0xfa4cc7c6", // estimateGasCost()
+    "0xcb309480"  // calculateRecommendedFee()
+  ];
 
   // Add facets to diamond
   console.log("\n🔗 Adding facets to diamond...");
@@ -145,7 +154,11 @@ async function main() {
       action: 0, // Add
       functionSelectors: fiatPaymentSelectors
     },
-
+    {
+      facetAddress: await metaTransactionFacet.getAddress(),
+      action: 0, // Add
+      functionSelectors: metaTransactionSelectors
+    }
   ];
 
   const tx = await diamondCut.diamondCut(cut, ethers.ZeroAddress, "0x");
@@ -217,7 +230,7 @@ async function main() {
     roiPercentage: 18
   };
 
-  await propertyFacetInterface.createProperty(propertyData);
+  await propertyFacetInterface.createProperty(propertyData, deployer.address);
   console.log("✅ Sample property created");
 
   // Save deployment data to file
@@ -232,6 +245,7 @@ async function main() {
     milestoneFacet: await milestoneFacet.getAddress(),
     diamondLoupeFacet: await diamondLoupeFacet.getAddress(),
     fiatPaymentFacet: await fiatPaymentFacet.getAddress(),
+    metaTransactionFacet: await metaTransactionFacet.getAddress(),
 
     deployer: deployer.address,
     backendSigner: deployer.address,
@@ -257,6 +271,7 @@ async function main() {
   console.log(`📊 MilestoneFacet: ${await milestoneFacet.getAddress()}`);
   console.log(`🔍 DiamondLoupeFacet: ${await diamondLoupeFacet.getAddress()}`);
   console.log(`💳 FiatPaymentFacet: ${await fiatPaymentFacet.getAddress()}`);
+  console.log(`🔐 MetaTransactionFacet: ${await metaTransactionFacet.getAddress()}`);
 
   console.log(`👤 Deployer: ${deployer.address}`);
   console.log(`🔐 Backend Signer: ${deployer.address}`);

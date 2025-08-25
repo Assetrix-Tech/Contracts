@@ -5,8 +5,9 @@ import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "./AssetrixStorage.sol";
+import "./BaseMetaTransactionFacet.sol";
 
-contract MetaTransactionFacet is EIP712 {
+contract MetaTransactionFacet is EIP712, BaseMetaTransactionFacet {
     using ECDSA for bytes32;
     using AssetrixStorage for AssetrixStorage.Layout;
 
@@ -37,13 +38,15 @@ contract MetaTransactionFacet is EIP712 {
 
     modifier onlyOwner() {
         AssetrixStorage.Layout storage s = AssetrixStorage.layout();
-        require(msg.sender == s.owner, "Ownable: caller is not the owner");
+        require(getActualSender() == s.owner, "Ownable: caller is not the owner");
         _;
     }
 
     constructor() EIP712("Assetrix", "1") {}
 
     // Execute meta transaction with relayer compensation
+    // functionSignature should contain: functionSelector + encoded parameters (EXCLUDING userAddress)
+    // userAddress will be automatically appended as the last parameter for EIP-2771
     function executeMetaTransaction(
         address userAddress,
         bytes memory functionSignature,
@@ -53,6 +56,9 @@ contract MetaTransactionFacet is EIP712 {
         uint256 relayerFee
     ) external payable returns (bytes memory) {
         AssetrixStorage.Layout storage s = AssetrixStorage.layout();
+        
+        // Validate functionSignature format
+        require(functionSignature.length >= 4, "Invalid function signature");
         
         MetaTransaction memory metaTx = MetaTransaction({
             nonce: s.userNonces[userAddress],
@@ -80,13 +86,20 @@ contract MetaTransactionFacet is EIP712 {
             (bool feeSuccess, ) = payable(msg.sender).call{value: relayerFee}("");
             require(feeSuccess, "Failed to pay relayer fee");
             
+            // Refund excess ETH to user
+            uint256 excess = msg.value - relayerFee;
+            if (excess > 0) {
+                (bool refundSuccess, ) = payable(userAddress).call{value: excess}("");
+                require(refundSuccess, "Failed to refund excess ETH");
+            }
+            
             emit RelayerFeePaid(msg.sender, userAddress, relayerFee);
         }
 
-        // Append userAddress at the end to extract it from calling context
-        (bool success, bytes memory returnData) = address(this).call(
-            abi.encodePacked(functionSignature, userAddress)
-        );
+        // Execute the function with userAddress as the last parameter (EIP-2771 standard)
+        // The functionSignature should NOT include userAddress - it will be appended here
+        bytes memory callData = abi.encodePacked(functionSignature, abi.encode(userAddress));
+        (bool success, bytes memory returnData) = address(this).call(callData);
 
         require(success, "Function call not successful");
 
@@ -101,6 +114,8 @@ contract MetaTransactionFacet is EIP712 {
     }
 
     // Execute meta transaction with stablecoin fee
+    // functionSignature should contain: functionSelector + encoded parameters (EXCLUDING userAddress)
+    // userAddress will be automatically appended as the last parameter for EIP-2771
     function executeMetaTransactionWithStablecoinFee(
         address userAddress,
         bytes memory functionSignature,
@@ -110,6 +125,9 @@ contract MetaTransactionFacet is EIP712 {
         uint256 relayerFee
     ) external returns (bytes memory) {
         AssetrixStorage.Layout storage s = AssetrixStorage.layout();
+        
+        // Validate functionSignature format
+        require(functionSignature.length >= 4, "Invalid function signature");
         
         MetaTransaction memory metaTx = MetaTransaction({
             nonce: s.userNonces[userAddress],
@@ -143,10 +161,10 @@ contract MetaTransactionFacet is EIP712 {
             emit RelayerFeePaid(msg.sender, userAddress, relayerFee);
         }
 
-        // Append userAddress at the end to extract it from calling context
-        (bool success, bytes memory returnData) = address(this).call(
-            abi.encodePacked(functionSignature, userAddress)
-        );
+        // Execute the function with userAddress as the last parameter (EIP-2771 standard)
+        // The functionSignature should NOT include userAddress - it will be appended here
+        bytes memory callData = abi.encodePacked(functionSignature, abi.encode(userAddress));
+        (bool success, bytes memory returnData) = address(this).call(callData);
 
         require(success, "Function call not successful");
 
@@ -196,29 +214,6 @@ contract MetaTransactionFacet is EIP712 {
     function getNonce(address user) external view returns (uint256 nonce) {
         AssetrixStorage.Layout storage s = AssetrixStorage.layout();
         return s.userNonces[user];
-    }
-
-    // Function to get the user address from the calling context
-    function msgSender() internal view returns (address sender) {
-        if (msg.sender == address(this)) {
-            bytes memory array = msg.data;
-            uint256 index = msg.data.length;
-            assembly {
-                // Load the last 20 bytes
-                sender := and(
-                    mload(add(array, index)),
-                    0xffffffffffffffffffffffffffffffffffffffff
-                )
-            }
-        } else {
-            sender = msg.sender;
-        }
-        return sender;
-    }
-
-    // Override _msgSender to support meta transactions
-    function _msgSender() internal view returns (address) {
-        return msgSender();
     }
 
     // Estimate gas cost for meta transaction

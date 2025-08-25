@@ -55,7 +55,7 @@ describe("TransactionFacet", function () {
         action: 0, // Add
         functionSelectors: [
           "0x17aaf5ed", // getTotalProperties
-          "0x1f346f07", // createProperty
+          "0xeb2220e9", // createProperty
           "0x32665ffb", // getProperty
           "0xb16aa470", // getProperties
           "0x397f7952", // getMyProperties
@@ -63,10 +63,10 @@ describe("TransactionFacet", function () {
           "0x4835ec06", // getDeveloperProperties
           "0x759c7de8", // getDeveloperPropertyCount
           "0x17fc2f96", // getPropertyTokenHolders
-          "0xe52097a0", // updateProperty
-          "0x7ca28bc6", // deactivateProperty
-          "0xc2f6f25c", // adminActivateProperty
-          "0x5ec231ba"  // adminDeactivateProperty
+          "0xd4cb6ba1", // updateProperty
+          "0xcecf20cd", // deactivateProperty
+          "0x6e03b57d", // adminActivateProperty
+          "0x380b6b29"  // adminDeactivateProperty
         ]
       },
       {
@@ -125,7 +125,7 @@ describe("TransactionFacet", function () {
       roiPercentage: 20
     };
 
-    await propertyFacet.connect(developer).createProperty(propertyData);
+    await propertyFacet.connect(developer).createProperty(propertyData, developer.address);
     propertyId = 1; // First property
 
     // Fund the investor with stablecoin

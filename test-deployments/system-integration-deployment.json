@@ -3,16 +3,16 @@
     "name": "system-integration",
     "network": "localhost",
     "deploymentType": "test",
-    "timestamp": "2025-08-11T17:31:07.853Z"
+    "timestamp": "2025-08-25T09:54:32.894Z"
   },
   "deployment": {
-    "timestamp": "2025-08-11T17:31:07.853Z",
+    "timestamp": "2025-08-25T09:54:32.894Z",
     "totalGasUsed": 0
   },
   "testResults": {
     "status": "completed",
-    "startTime": "2025-08-11T17:31:07.853Z",
-    "endTime": "2025-08-11T17:31:24.196Z",
+    "startTime": "2025-08-25T09:54:32.894Z",
+    "endTime": "2025-08-25T09:54:54.039Z",
     "passed": true,
     "output": {
       "summary": "✅ Assetrix System Integration Tests Passed!",
@@ -29,77 +29,98 @@
           "results": [
             "✅ System owner: 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
             "✅ Global token price: 2500.0 Naira",
-            "✅ Stablecoin address: 0xffa7CA1AEEEbBc30C874d32C7e22F052BbEa0429",
-            "✅ Backend signer: Not available in current InvestmentFacet"
+            "✅ Stablecoin address: 0x3aAde2dCD2Df6a8cAc689EE797591b2913658659"
           ]
         },
         {
-          "section": "🔍 Test 2: Property Creation and Management",
+          "section": "🔍 Test 2: EIP-2771 Meta Transaction Setup",
           "results": [
-            "✅ Total properties available: 1",
-            "✅ Using existing property with ID: 1",
-            "✅ Property title: Luxury Residential Tower - Lagos",
+            "✅ User1 nonce: 0",
+            "✅ Estimated gas cost: 60000",
+            "✅ Recommended fee: 0.0 ETH"
+          ]
+        },
+        {
+          "section": "🔍 Test 3: Property Creation and Management",
+          "results": [
+            "✅ Integration property created with ID: 2",
+            "✅ Property title: Integration Test Property",
             "✅ Property ROI: 18%"
           ]
         },
         {
-          "section": "🔍 Test 3: Milestone Creation and Tracking",
+          "section": "🔍 Test 4: Milestone Creation and Tracking",
           "results": [
-            "✅ Property has 4 milestones",
+            "✅ Property has 3 milestones",
             "✅ First milestone title: Foundation",
-            "✅ First milestone percentage: 25%"
+            "✅ First milestone percentage: 30%"
           ]
         },
         {
-          "section": "🔍 Test 4: Investment Process",
+          "section": "🔍 Test 5: Investment Process",
           "results": [
             "✅ Property investment status:",
-            "✅ Minted Naira to users",
-            "✅ User1 investment successful"
+            "✅ Minted Naira to users"
           ]
         },
         {
-          "section": "🔍 Test 5: Transaction Recording",
+          "section": "🔍 Test 6: Transaction Recording",
           "results": [
             "✅ Property creation transaction recorded",
             "✅ Milestone creation transaction recorded"
           ]
         },
         {
-          "section": "🔍 Test 6: Cross-Facet Data Consistency",
+          "section": "🔍 Test 7: Cross-Facet Data Consistency",
           "results": [
-            "✅ Property exists in PropertyFacet: Luxury Residential Tower - Lagos",
-            "✅ Property has 4 milestones in MilestoneFacet",
+            "✅ Property exists in PropertyFacet: Integration Test Property",
+            "✅ Property has 3 milestones in MilestoneFacet",
             "✅ First milestone title: Foundation",
-            "✅ First milestone percentage: 25%"
+            "✅ First milestone percentage: 30%"
           ]
         },
         {
-          "section": "🔍 Test 7: System State Queries",
+          "section": "🔍 Test 8: System State Queries",
           "results": [
             "✅ System Statistics:"
           ]
         },
         {
-          "section": "🔍 Test 8: Business Logic Validation",
+          "section": "🔍 Test 9: Business Logic Validation",
           "results": [
             "✅ Property validation:",
             "✅ First milestone validation:"
           ]
         },
         {
-          "section": "🔍 Test 9: Error Handling and Edge Cases",
+          "section": "🔍 Test 10: Error Handling and Edge Cases",
           "results": [
             "✅ Correctly handled non-existent property access",
             "✅ Correctly handled non-existent property milestones"
           ]
         },
         {
-          "section": "🔍 Test 10: System Scalability",
+          "section": "🔍 Test 11: System Scalability",
           "results": [
             "✅ Current system capacity:"
           ]
+        },
+        {
+          "section": "🔍 Test 12: EIP-2771 Complete Integration",
+          "results": [
+            "✅ All facets inherit from BaseMetaTransactionFacet",
+            "✅ All functions support EIP-2771 meta transactions",
+            "✅ Access control works with EIP-2771",
+            "✅ Cross-facet calls work with EIP-2771",
+            "✅ Transaction recording works with EIP-2771",
+            "✅ Meta transaction functionality is available",
+            "✅ User1 nonce: 0",
+            "✅ User2 nonce: 0"
+          ]
         }
+      ],
+      "errors": [
+        "ℹ️ User1 investment failed: Error: Transaction reverted and Hardhat couldn't infer the reason."
       ],
       "info": [
         "======================================",
@@ -107,30 +128,32 @@
         "👤 User1: 0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
         "👤 User2: 0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC",
         "👤 User3: 0x90F79bf6EB2c4f870365E785982E1f101E93b906",
-        "Total tokens: 1000",
+        "👑 Current owner: 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+        "🔧 Using admin signer: 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+        "Total tokens: 100",
         "Sold tokens: 0",
-        "Remaining tokens: 1000",
+        "Remaining tokens: 100",
         "Investment amount: 20000.0 Naira",
         "Token price: 2500.0 Naira",
         "Tokens to purchase: 8",
-        "Total Properties: 1",
-        "Total Transactions: 3",
+        "Total Properties: 2",
+        "Total Transactions: 2",
         "Global Token Price: 2500.0 Naira",
-        "Stablecoin: 0xffa7CA1AEEEbBc30C874d32C7e22F052BbEa0429",
+        "Stablecoin: 0x3aAde2dCD2Df6a8cAc689EE797591b2913658659",
         "Property type: 1",
         "Property use: 0",
         "Token price: 2500.0 Naira",
-        "Total tokens: 1000",
+        "Total tokens: 100",
         "ROI percentage: 18%",
         "Title: Foundation",
-        "Percentage: 25%",
+        "Percentage: 30%",
         "Funds requested: false",
         "Funds released: false",
         "Is completed: false",
-        "Total Properties: 1",
-        "Total Transactions: 3",
+        "Total Properties: 2",
+        "Total Transactions: 2",
         "System is ready for additional properties and transactions",
-        "🎉 All facets are working together seamlessly!"
+        "🎉 All facets are working together seamlessly with EIP-2771!"
       ]
     }
   }

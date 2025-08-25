@@ -44,20 +44,44 @@ describe("Token Supply Tracking", function () {
       "0x92b582e0", "0xd6c7d918", "0x8456cb59", "0x3f4ba83a", "0xf2fde38b",
       "0x5c975abb", "0x842f6221", "0xe088bfc0", "0xfe9d0872", "0x2750b0d2",
       "0xeb659dc1", "0x96241c97", "0xe109516b", "0xeec723bc", "0xdeba19e2",
-      "0x80521c91", "0xc4c5f624"
+      "0x80521c91", "0xd511b289"  // withdrawStablecoin (updated for EIP-2771)
     ];
 
     const investmentSelectors = [
-      "0x8bf0af3e", "0xef57e2d2", "0xe2d253c9", "0xf2934a02", "0xda2a1bb5",
-      "0x0117b0ed", "0x1b48a3b0", "0x19580150", "0x93838cdb", "0xb8af3d3e",
-      "0xdae21c58", "0xad41f119", "0x93ffcce3", "0xb79f9f67", "0xb7ddac87",
-      "0x1a4847e9", "0x372896f1", "0x8682c64d", "0x7ad226dc"
+      "0x0334f811", // purchaseTokens
+      "0x414b4eea", // payoutInvestment
+      "0x96e83a40", // refund
+      "0x5d76f829", // earlyExit
+      "0xfa2b3963", // emergencyRefund
+      "0x93838cdb", // canAcceptTokenPurchases
+      "0x0117b0ed", // calculateTokensFromAmount
+      "0x1b48a3b0", // calculateAmountFromTokens
+      "0x19580150", // calculateExpectedROI
+      "0x1a4847e9", // isInvestmentPeriodActive
+      "0xad41f119", // getExpectedROIPercentage
+      "0xe2d253c9", // getTokenGap
+      "0xf2934a02", // getTokenSalePercentage
+      "0xef57e2d2", // getTokenBalance
+      "0xda2a1bb5", // getTokenValue
+      "0xb7ddac87", // getPropertyAmountToRaise
+      "0x93ffcce3", // getInvestmentEndTime
+      "0xb79f9f67"  // getInvestmentPeriodRemaining
     ];
 
     const propertySelectors = [
-      "0x1f346f07", "0x32665ffb", "0xb16aa470", "0x17aaf5ed", "0x4835ec06",
-      "0x759c7de8", "0x17fc2f96", "0x7ca28bc6", "0xc2f6f25c", "0x5ec231ba",
-      "0xe52097a0"
+      "0x17aaf5ed", // getTotalProperties
+      "0xeb2220e9", // createProperty
+      "0x32665ffb", // getProperty
+      "0xb16aa470", // getProperties
+      "0x397f7952", // getMyProperties
+      "0x5ccd8ca0", // getMyTokenProperties
+      "0x4835ec06", // getDeveloperProperties
+      "0x759c7de8", // getDeveloperPropertyCount
+      "0x17fc2f96", // getPropertyTokenHolders
+      "0xd4cb6ba1", // updateProperty
+      "0xcecf20cd", // deactivateProperty
+      "0x6e03b57d", // adminActivateProperty
+      "0x380b6b29"  // adminDeactivateProperty
     ];
 
     const transactionSelectors = [
@@ -65,8 +89,12 @@ describe("Token Supply Tracking", function () {
     ];
 
     const milestoneSelectors = [
-      "0x359b3123", "0xe8049da1", "0xbc643619", "0x5cae48f5", "0x54d49e46",
-      "0xeb9d9a5d"
+      "0x1cecea23", // requestMilestoneFunds
+      "0xd47f4f69", // verifyAndMarkMilestoneCompleted
+      "0x359b3123", // getMilestoneDashboard
+      "0xe8049da1", // getMilestoneStatus
+      "0xef8103f5", // markMilestoneCompleted
+      "0xbc643619"  // getPropertyMilestones
     ];
 
     const diamondLoupeSelectors = [
@@ -74,9 +102,17 @@ describe("Token Supply Tracking", function () {
     ];
 
     const fiatPaymentSelectors = [
-      "0xe474f042", "0xf7770056", "0xd9e359cd", "0x5cf0e8a4", "0xed24911d",
-      "0x6834e3a8", "0x2ff79161", "0x591723fd", "0x149f2e88", "0x85e69128",
-      "0x36f95670"
+      "0x0540492e", // distributeTokensFromFiat
+      "0xf7770056", // getBackendSigner
+      "0xd9e359cd", // getCurrentChainId
+      "0x5cf0e8a4", // getDomainSeparator
+      "0xed24911d", // getUserNonce
+      "0x6834e3a8", // initializeDomainSeparator
+      "0x2ff79161", // isDomainSeparatorInitialized
+      "0x591723fd", // isPaymentProcessed
+      "0x149f2e88", // resetDomainSeparator
+      "0x85e69128", // setBackendSigner
+      "0x36f95670"  // FIAT_PAYMENT_TYPEHASH
     ];
 
     // Add facets to diamond
@@ -169,7 +205,7 @@ describe("Token Supply Tracking", function () {
       roiPercentage: 15
     };
 
-    await propertyFacet.createProperty(propertyData);
+    await propertyFacet.createProperty(propertyData, owner.address);
   });
 
   describe("Initial Token Supply", function () {
@@ -231,7 +267,7 @@ describe("Token Supply Tracking", function () {
 
       // Process the fiat payment
       await fiatPaymentFacet.connect(backendSigner).distributeTokensFromFiat(
-        propertyId, user1.address, tokenAmount, fiatAmount, paymentReference, nonce, signature
+        propertyId, user1.address, tokenAmount, fiatAmount, paymentReference, nonce, signature, backendSigner.address
       );
 
       // Check property token supply
@@ -285,7 +321,7 @@ describe("Token Supply Tracking", function () {
       const signature1 = await backendSigner.signTypedData(domain, types, value1);
 
       await fiatPaymentFacet.connect(backendSigner).distributeTokensFromFiat(
-        propertyId, user1.address, tokenAmount1, fiatAmount1, paymentReference1, nonce1, signature1
+        propertyId, user1.address, tokenAmount1, fiatAmount1, paymentReference1, nonce1, signature1, backendSigner.address
       );
 
       // Second purchase: 25 tokens by different user
@@ -306,7 +342,7 @@ describe("Token Supply Tracking", function () {
       const signature2 = await backendSigner.signTypedData(domain, types, value2);
 
       await fiatPaymentFacet.connect(backendSigner).distributeTokensFromFiat(
-        propertyId, user2.address, tokenAmount2, fiatAmount2, paymentReference2, nonce2, signature2
+        propertyId, user2.address, tokenAmount2, fiatAmount2, paymentReference2, nonce2, signature2, backendSigner.address
       );
 
       // Check final property token supply
@@ -363,7 +399,7 @@ describe("Token Supply Tracking", function () {
 
       // Process the fiat payment
       await fiatPaymentFacet.connect(backendSigner).distributeTokensFromFiat(
-        propertyId, user1.address, tokenAmount, fiatAmount, paymentReference, nonce, signature
+        propertyId, user1.address, tokenAmount, fiatAmount, paymentReference, nonce, signature, backendSigner.address
       );
 
       // Check property is now fully funded
@@ -421,7 +457,7 @@ describe("Token Supply Tracking", function () {
       // Should revert with "Not enough tokens left"
       await expect(
         fiatPaymentFacet.connect(backendSigner).distributeTokensFromFiat(
-          propertyId, user1.address, tokenAmount, fiatAmount, paymentReference, nonce, signature
+          propertyId, user1.address, tokenAmount, fiatAmount, paymentReference, nonce, signature, backendSigner.address
         )
       ).to.be.revertedWith("Not enough tokens left");
     });
@@ -465,7 +501,7 @@ describe("Token Supply Tracking", function () {
       const signature1 = await backendSigner.signTypedData(domain, types, value1);
 
       await fiatPaymentFacet.connect(backendSigner).distributeTokensFromFiat(
-        propertyId, user1.address, tokenAmount1, fiatAmount1, paymentReference1, nonce1, signature1
+        propertyId, user1.address, tokenAmount1, fiatAmount1, paymentReference1, nonce1, signature1, backendSigner.address
       );
 
       // Buy 15 more tokens
@@ -486,7 +522,7 @@ describe("Token Supply Tracking", function () {
       const signature2 = await backendSigner.signTypedData(domain, types, value2);
 
       await fiatPaymentFacet.connect(backendSigner).distributeTokensFromFiat(
-        propertyId, user1.address, tokenAmount2, fiatAmount2, paymentReference2, nonce2, signature2
+        propertyId, user1.address, tokenAmount2, fiatAmount2, paymentReference2, nonce2, signature2, backendSigner.address
       );
 
       // Verify total balance and remaining tokens
@@ -540,7 +576,7 @@ describe("Token Supply Tracking", function () {
       const signature = await backendSigner.signTypedData(domain, types, value);
 
       await fiatPaymentFacet.connect(backendSigner).distributeTokensFromFiat(
-        propertyId, user1.address, tokenAmount, fiatAmount, paymentReference, nonce, signature
+        propertyId, user1.address, tokenAmount, fiatAmount, paymentReference, nonce, signature, backendSigner.address
       );
 
       // Check funding status

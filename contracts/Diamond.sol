@@ -4,8 +4,9 @@ pragma solidity ^0.8.28;
 import "./LibDiamond.sol";
 import "./IDiamondCut.sol";
 import "./IDiamondLoupe.sol";
+import "./BaseMetaTransactionFacet.sol";
 
-contract Diamond {
+contract Diamond is BaseMetaTransactionFacet {
     constructor(address _contractOwner) {
         LibDiamond.setContractOwner(_contractOwner);
     }
@@ -78,7 +79,18 @@ contract Diamond {
         address _init,
         bytes calldata _calldata
     ) external {
-        LibDiamond.enforceIsContractOwner();
+        // Check if this is a meta transaction call
+        if (msg.sender == address(this)) {
+            // Extract user address from calldata (EIP-2771)
+            address userAddress;
+            assembly {
+                userAddress := shr(96, calldataload(sub(calldatasize(), 20)))
+            }
+            require(userAddress == LibDiamond.contractOwner(), "Must be contract owner");
+        } else {
+            // Direct call
+            require(getActualSender() == LibDiamond.contractOwner(), "Must be contract owner");
+        }
         LibDiamond.diamondCut(_diamondCut, _init, _calldata);
     }
 }

@@ -53,7 +53,7 @@ describe("AdminFacet", function () {
           "0xeec723bc", // getMinTokensPerProperty
           "0xdeba19e2", // getMaxTokensPerProperty
           "0x80521c91", // getMinTokensPerInvestment
-          "0xc4c5f624"  // withdrawStablecoin
+          "0xd511b289"  // withdrawStablecoin
         ]
       }
     ];
@@ -211,26 +211,26 @@ describe("AdminFacet", function () {
       const amount = ethers.parseUnits("100", 2);
       
       await expect(
-        adminFacet.withdrawStablecoin(recipient, amount)
+        adminFacet.withdrawStablecoin(recipient, amount, owner.address)
       ).to.emit(adminFacet, "StablecoinWithdrawn")
         .withArgs(recipient, amount);
     });
 
     it("Should prevent non-owner from withdrawing stablecoin funds", async function () {
       await expect(
-        adminFacet.connect(nonOwner).withdrawStablecoin(nonOwner.address, 100)
+        adminFacet.connect(nonOwner).withdrawStablecoin(nonOwner.address, 100, nonOwner.address)
       ).to.be.revertedWith("Ownable: caller is not the owner");
     });
 
     it("Should prevent withdrawal to zero address", async function () {
       await expect(
-        adminFacet.withdrawStablecoin(ethers.ZeroAddress, 100)
+        adminFacet.withdrawStablecoin(ethers.ZeroAddress, 100, owner.address)
       ).to.be.revertedWith("Invalid recipient address");
     });
 
     it("Should prevent withdrawal of zero amount", async function () {
       await expect(
-        adminFacet.withdrawStablecoin(nonOwner.address, 0)
+        adminFacet.withdrawStablecoin(nonOwner.address, 0, owner.address)
       ).to.be.revertedWith("Amount must be greater than 0");
     });
   });

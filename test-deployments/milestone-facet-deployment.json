@@ -3,16 +3,16 @@
     "name": "milestone-facet",
     "network": "localhost",
     "deploymentType": "test",
-    "timestamp": "2025-08-11T17:30:33.239Z"
+    "timestamp": "2025-08-25T09:53:50.126Z"
   },
   "deployment": {
-    "timestamp": "2025-08-11T17:30:33.239Z",
+    "timestamp": "2025-08-25T09:53:50.126Z",
     "totalGasUsed": 0
   },
   "testResults": {
     "status": "completed",
-    "startTime": "2025-08-11T17:30:33.239Z",
-    "endTime": "2025-08-11T17:30:46.042Z",
+    "startTime": "2025-08-25T09:53:50.126Z",
+    "endTime": "2025-08-25T09:54:12.292Z",
     "passed": true,
     "output": {
       "tests": [
@@ -56,10 +56,35 @@
         {
           "section": "🔍 Test 6: Test Milestone Functions",
           "results": [
-            "✅ Property status: Active=true, FullyFunded=false",
+            "✅ Property status: Active=true, FullyFunded=false"
+          ]
+        },
+        {
+          "section": "🔍 Test 7: Mark Milestone Completed"
+        },
+        {
+          "section": "🔍 Test 8: Verify and Mark Milestone Completed"
+        },
+        {
+          "section": "🔍 Test 9: Milestone Status After Operations",
+          "results": [
+            "✅ Updated first milestone status: false,false,false,0,0,0"
+          ]
+        },
+        {
+          "section": "🔍 Test 10: EIP-2771 Integration",
+          "results": [
+            "✅ MilestoneFacet inherits from BaseMetaTransactionFacet",
+            "✅ Milestone functions support EIP-2771 meta transactions",
+            "✅ Admin functions support EIP-2771 meta transactions",
+            "✅ Developer access control works with EIP-2771",
             "✅ MilestoneFacet testing completed!"
           ]
         }
+      ],
+      "errors": [
+        "ℹ️ Error marking milestone completed (this may be expected): Error: Transaction reverted and Hardhat couldn't infer the reason.",
+        "ℹ️ Error verifying milestone (this may be expected): Error: Transaction reverted and Hardhat couldn't infer the reason."
       ],
       "warnings": [
         "⚠️ Property not fully funded, skipping milestone function tests"
