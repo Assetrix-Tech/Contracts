@@ -166,12 +166,12 @@ describe("Fiat Payment Integration", function () {
 
     // Initialize the platform
     await adminFacet.initializeOwnership(owner.address);
-    await adminFacet.setStablecoin(await mockStablecoin.getAddress());
-            await adminFacet.setGlobalTokenPrice(ethers.parseEther("100000"));
-    await adminFacet.setMinTokensPerInvestment(1);
-    await adminFacet.setMinTokensPerProperty(100);
-    await adminFacet.setMaxTokensPerProperty(10000);
-    await adminFacet.setBackendSigner(backendSigner.address);
+    await adminFacet.setStablecoin(await mockStablecoin.getAddress(), owner.address);
+            await adminFacet.setGlobalTokenPrice(ethers.parseEther("100000"), owner.address);
+    await adminFacet.setMinTokensPerInvestment(1, owner.address);
+    await adminFacet.setMinTokensPerProperty(100, owner.address);
+    await adminFacet.setMaxTokensPerProperty(10000, owner.address);
+    await fiatPaymentFacet.setBackendSigner(backendSigner.address, owner.address);
 
     // Mint some Naira to owner for testing
     await mockStablecoin.mint(owner.address, ethers.parseEther("1000000"));

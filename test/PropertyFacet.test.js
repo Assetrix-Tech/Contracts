@@ -81,8 +81,8 @@ describe("PropertyFacet", function () {
     );
 
     // Set min and max tokens per property
-    await adminFacet.setMinTokensPerProperty(1000);
-    await adminFacet.setMaxTokensPerProperty(1000000);
+    await adminFacet.setMinTokensPerProperty(1000, owner.address);
+    await adminFacet.setMaxTokensPerProperty(1000000, owner.address);
   });
 
   describe("Property Creation", function () {

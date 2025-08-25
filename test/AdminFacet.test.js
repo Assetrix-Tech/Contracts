@@ -97,58 +97,58 @@ describe("AdminFacet", function () {
     });
 
     it("Should allow owner to transfer ownership", async function () {
-      await adminFacet.transferOwnership(nonOwner.address);
+      await adminFacet.transferOwnership(nonOwner.address, owner.address);
       expect(await adminFacet.owner()).to.equal(nonOwner.address);
     });
 
     it("Should prevent non-owner from transferring ownership", async function () {
       await expect(
-        adminFacet.connect(nonOwner).transferOwnership(nonOwner.address)
+        adminFacet.connect(nonOwner).transferOwnership(nonOwner.address, nonOwner.address)
       ).to.be.revertedWith("Ownable: caller is not the owner");
     });
 
     it("Should prevent transfer to zero address", async function () {
       await expect(
-        adminFacet.transferOwnership(ethers.ZeroAddress)
+        adminFacet.transferOwnership(ethers.ZeroAddress, owner.address)
       ).to.be.revertedWith("Ownable: new owner is the zero address");
     });
   });
 
   describe("Pausable", function () {
     it("Should allow owner to pause", async function () {
-      await adminFacet.pause();
+      await adminFacet.pause(owner.address);
       expect(await adminFacet.paused()).to.equal(true);
     });
 
     it("Should allow owner to unpause", async function () {
-      await adminFacet.pause();
-      await adminFacet.unpause();
+      await adminFacet.pause(owner.address);
+      await adminFacet.unpause(owner.address);
       expect(await adminFacet.paused()).to.equal(false);
     });
 
     it("Should prevent non-owner from pausing", async function () {
       await expect(
-        adminFacet.connect(nonOwner).pause()
+        adminFacet.connect(nonOwner).pause(nonOwner.address)
       ).to.be.revertedWith("Ownable: caller is not the owner");
     });
 
     it("Should prevent non-owner from unpausing", async function () {
-      await adminFacet.pause();
+      await adminFacet.pause(owner.address);
       await expect(
-        adminFacet.connect(nonOwner).unpause()
+        adminFacet.connect(nonOwner).unpause(nonOwner.address)
       ).to.be.revertedWith("Ownable: caller is not the owner");
     });
   });
 
   describe("Configuration", function () {
     it("Should allow owner to set global token price", async function () {
-      await adminFacet.setGlobalTokenPrice(200000);
+      await adminFacet.setGlobalTokenPrice(200000, owner.address);
       expect(await adminFacet.getGlobalTokenPrice()).to.equal(200000);
     });
 
     it("Should prevent non-owner from setting global token price", async function () {
       await expect(
-        adminFacet.connect(nonOwner).setGlobalTokenPrice(200000)
+        adminFacet.connect(nonOwner).setGlobalTokenPrice(200000, nonOwner.address)
       ).to.be.revertedWith("Ownable: caller is not the owner");
     });
 
@@ -156,50 +156,50 @@ describe("AdminFacet", function () {
       const newStablecoin = await ethers.getContractFactory("MockStablecoin");
       const newStablecoinContract = await newStablecoin.deploy();
       
-      await adminFacet.setStablecoin(await newStablecoinContract.getAddress());
+      await adminFacet.setStablecoin(await newStablecoinContract.getAddress(), owner.address);
       expect(await adminFacet.getStablecoin()).to.equal(await newStablecoinContract.getAddress());
     });
 
     it("Should allow owner to set admin fee percentage", async function () {
-      await adminFacet.setAdminFeePercentage(5);
+      await adminFacet.setAdminFeePercentage(5, owner.address);
       expect(await adminFacet.getAdminFeePercentage()).to.equal(5);
     });
 
     it("Should allow owner to set early exit fee percentage", async function () {
-      await adminFacet.setEarlyExitFeePercentage(3);
+      await adminFacet.setEarlyExitFeePercentage(3, owner.address);
       expect(await adminFacet.getEarlyExitFeePercentage()).to.equal(3);
     });
 
     it("Should allow owner to set min tokens per property", async function () {
-      await adminFacet.setMinTokensPerProperty(1000);
+      await adminFacet.setMinTokensPerProperty(1000, owner.address);
       expect(await adminFacet.getMinTokensPerProperty()).to.equal(1000);
     });
 
     it("Should allow owner to set max tokens per property", async function () {
-      await adminFacet.setMaxTokensPerProperty(10000);
+      await adminFacet.setMaxTokensPerProperty(10000, owner.address);
       expect(await adminFacet.getMaxTokensPerProperty()).to.equal(10000);
     });
 
     it("Should allow owner to set min tokens per investment", async function () {
-      await adminFacet.setMinTokensPerInvestment(100);
+      await adminFacet.setMinTokensPerInvestment(100, owner.address);
       expect(await adminFacet.getMinTokensPerInvestment()).to.equal(100);
     });
 
     it("Should prevent non-owner from setting min tokens per property", async function () {
       await expect(
-        adminFacet.connect(nonOwner).setMinTokensPerProperty(1000)
+        adminFacet.connect(nonOwner).setMinTokensPerProperty(1000, nonOwner.address)
       ).to.be.revertedWith("Ownable: caller is not the owner");
     });
 
     it("Should prevent non-owner from setting max tokens per property", async function () {
       await expect(
-        adminFacet.connect(nonOwner).setMaxTokensPerProperty(10000)
+        adminFacet.connect(nonOwner).setMaxTokensPerProperty(10000, nonOwner.address)
       ).to.be.revertedWith("Ownable: caller is not the owner");
     });
 
     it("Should prevent non-owner from setting min tokens per investment", async function () {
       await expect(
-        adminFacet.connect(nonOwner).setMinTokensPerInvestment(100)
+        adminFacet.connect(nonOwner).setMinTokensPerInvestment(100, nonOwner.address)
       ).to.be.revertedWith("Ownable: caller is not the owner");
     });
 

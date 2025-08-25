@@ -166,12 +166,12 @@ describe("Token Supply Tracking", function () {
 
     // Initialize the platform
     await adminFacet.initializeOwnership(owner.address);
-    await adminFacet.setStablecoin(await mockStablecoin.getAddress());
-    await adminFacet.setGlobalTokenPrice(ethers.parseEther("100000")); // 100,000 Naira per token
-    await adminFacet.setMinTokensPerInvestment(1);
-    await adminFacet.setMinTokensPerProperty(100);
-    await adminFacet.setMaxTokensPerProperty(10000);
-    await adminFacet.setBackendSigner(backendSigner.address);
+    await adminFacet.setStablecoin(await mockStablecoin.getAddress(), owner.address);
+    await adminFacet.setGlobalTokenPrice(ethers.parseEther("100000"), owner.address); // 100,000 Naira per token
+    await adminFacet.setMinTokensPerInvestment(1, owner.address);
+    await adminFacet.setMinTokensPerProperty(100, owner.address);
+    await adminFacet.setMaxTokensPerProperty(10000, owner.address);
+    await fiatPaymentFacet.setBackendSigner(backendSigner.address, owner.address);
     await fiatPaymentFacet.initializeDomainSeparator();
 
     // Mint some Naira to owner for testing
