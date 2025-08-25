@@ -39,21 +39,21 @@ describe("AdminFacet", function () {
           "0xb6f67312", // getStablecoin
           "0x92b582e0", // getAdminFeePercentage
           "0xd6c7d918", // getEarlyExitFeePercentage
-          "0x8456cb59", // pause
-          "0x3f4ba83a", // unpause
-          "0xf2fde38b", // transferOwnership
           "0x5c975abb", // paused
-          "0x842f6221", // setGlobalTokenPrice
-          "0xe088bfc0", // setStablecoin
-          "0xfe9d0872", // setAdminFeePercentage
-          "0x2750b0d2", // setEarlyExitFeePercentage
-          "0xeb659dc1", // setMinTokensPerProperty
-          "0x96241c97", // setMaxTokensPerProperty
-          "0xe109516b", // setMinTokensPerInvestment
           "0xeec723bc", // getMinTokensPerProperty
           "0xdeba19e2", // getMaxTokensPerProperty
           "0x80521c91", // getMinTokensPerInvestment
-          "0xd511b289"  // withdrawStablecoin
+          "0x6d435421", // transferOwnership(address,address)
+          "0x76a67a51", // pause(address)
+          "0x57b001f9", // unpause(address)
+          "0x0b8e33db", // setGlobalTokenPrice(uint256,address)
+          "0xe12c735f", // setStablecoin(address,address)
+          "0x1ae265d1", // setAdminFeePercentage(uint256,address)
+          "0xd21c55e2", // setEarlyExitFeePercentage(uint256,address)
+          "0x918dc7f3", // setMinTokensPerProperty(uint256,address)
+          "0xc7c52652", // setMaxTokensPerProperty(uint256,address)
+          "0xacc8cf7b", // setMinTokensPerInvestment(uint256,address)
+          "0xd511b289"  // withdrawStablecoin(address,uint256,address)
         ]
       }
     ];

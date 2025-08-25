@@ -36,15 +36,15 @@ describe("Fiat Payment Integration", function () {
     const diamondLoupeFacet = await DiamondLoupeFacet.deploy();
 
     const FiatPaymentFacet = await ethers.getContractFactory("FiatPaymentFacet");
-    const fiatPaymentFacetContract = await FiatPaymentFacet.deploy();
+    fiatPaymentFacet = await FiatPaymentFacet.deploy();
 
     // Get function selectors for each facet
     const adminSelectors = [
       "0x8da5cb5b", "0x1794bb3c", "0x5cd9205f", "0xcc7ac330", "0xb6f67312",
-      "0x92b582e0", "0xd6c7d918", "0x8456cb59", "0x3f4ba83a", "0xf2fde38b",
-      "0x5c975abb", "0x842f6221", "0xe088bfc0", "0xfe9d0872", "0x2750b0d2",
-      "0xeb659dc1", "0x96241c97", "0xe109516b", "0xeec723bc", "0xdeba19e2",
-      "0x80521c91", "0xd511b289"  // withdrawStablecoin (updated for EIP-2771)
+      "0x92b582e0", "0xd6c7d918", "0x5c975abb", "0xeec723bc", "0xdeba19e2",
+      "0x80521c91", "0x6d435421", "0x76a67a51", "0x57b001f9", "0x0b8e33db",
+      "0xe12c735f", "0x1ae265d1", "0xd21c55e2", "0x918dc7f3", "0xc7c52652",
+      "0xacc8cf7b", "0xd511b289", "0xd9e359cd"  // All updated for EIP-2771
     ];
 
     const investmentSelectors = [
@@ -102,17 +102,16 @@ describe("Fiat Payment Integration", function () {
     ];
 
     const fiatPaymentSelectors = [
-      "0x0540492e", // distributeTokensFromFiat
-      "0xf7770056", // getBackendSigner
-      "0xd9e359cd", // getCurrentChainId
-      "0x5cf0e8a4", // getDomainSeparator
-      "0xed24911d", // getUserNonce
-      "0x6834e3a8", // initializeDomainSeparator
-      "0x2ff79161", // isDomainSeparatorInitialized
-      "0x591723fd", // isPaymentProcessed
-      "0x149f2e88", // resetDomainSeparator
-      "0x85e69128", // setBackendSigner
-      "0x36f95670"  // FIAT_PAYMENT_TYPEHASH
+      "0x0540492e", // distributeTokensFromFiat(uint256,address,uint256,uint256,string,uint256,bytes,address)
+      "0x5cf0e8a4", // getCurrentChainId()
+      "0xed24911d", // getDomainSeparator()
+      "0x6834e3a8", // getUserNonce(address)
+      "0x2ff79161", // initializeDomainSeparator()
+      "0x591723fd", // isDomainSeparatorInitialized()
+      "0x149f2e88", // isPaymentProcessed(string)
+      "0x85e69128", // resetDomainSeparator()
+      "0x0a9c7393", // setBackendSigner(address,address)
+      "0xe474f042"  // FIAT_PAYMENT_TYPEHASH()
     ];
 
     // Add facets to diamond
@@ -150,7 +149,7 @@ describe("Fiat Payment Integration", function () {
         functionSelectors: diamondLoupeSelectors
       },
       {
-        facetAddress: await fiatPaymentFacetContract.getAddress(),
+        facetAddress: await fiatPaymentFacet.getAddress(),
         action: 0, // Add
         functionSelectors: fiatPaymentSelectors
       }
@@ -250,20 +249,20 @@ describe("Fiat Payment Integration", function () {
 
     it("Should only allow owner to set backend signer", async function () {
       await expect(
-        adminFacet.connect(user).setBackendSigner(user.address)
+        fiatPaymentFacet.connect(user).setBackendSigner(user.address, user.address)
       ).to.be.revertedWith("Ownable: caller is not the owner");
     });
 
     it("Should prevent setting zero address as backend signer", async function () {
       await expect(
-        adminFacet.setBackendSigner(ethers.ZeroAddress)
+        fiatPaymentFacet.setBackendSigner(ethers.ZeroAddress, owner.address)
       ).to.be.revertedWith("Invalid backend signer address");
     });
 
     it("Should emit event when backend signer is updated", async function () {
       const newSigner = user.address;
-      await expect(adminFacet.setBackendSigner(newSigner))
-        .to.emit(adminFacet, "BackendSignerUpdated")
+      await expect(fiatPaymentFacet.setBackendSigner(newSigner, owner.address))
+        .to.emit(fiatPaymentFacet, "BackendSignerUpdated")
         .withArgs(backendSigner.address, newSigner);
     });
   });

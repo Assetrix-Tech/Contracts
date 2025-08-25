@@ -41,8 +41,8 @@ describe("PropertyFacet", function () {
           "0x1794bb3c", // initialize
           "0xcc7ac330", // getGlobalTokenPrice
           "0xb6f67312", // getStablecoin
-          "0xeb659dc1", // setMinTokensPerProperty
-          "0x96241c97"  // setMaxTokensPerProperty
+          "0x918dc7f3", // setMinTokensPerProperty(uint256,address)
+          "0xc7c52652"  // setMaxTokensPerProperty(uint256,address)
         ]
       },
       {
