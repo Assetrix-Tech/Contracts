@@ -3,8 +3,9 @@ pragma solidity ^0.8.28;
 
 import "./AssetrixStorage.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "./BaseMetaTransactionFacet.sol";
 
-contract AdminFacet {
+contract AdminFacet is BaseMetaTransactionFacet {
     using AssetrixStorage for AssetrixStorage.Layout;
 
     event StablecoinUpdated(address indexed newStablecoin);
@@ -25,7 +26,7 @@ contract AdminFacet {
 
     modifier onlyOwner() {
         AssetrixStorage.Layout storage s = AssetrixStorage.layout();
-        require(msg.sender == s.owner, "Ownable: caller is not the owner");
+        require(getActualSender() == s.owner, "Ownable: caller is not the owner");
         _;
     }
 
@@ -59,7 +60,7 @@ contract AdminFacet {
         s.owner = _owner;
     }
 
-    function transferOwnership(address newOwner) external onlyOwner {
+    function transferOwnership(address newOwner, address userAddress) external onlyOwner {
         require(
             newOwner != address(0),
             "Ownable: new owner is the zero address"
@@ -70,22 +71,23 @@ contract AdminFacet {
         emit OwnershipTransferred(oldOwner, newOwner);
     }
 
-    function pause() external onlyOwner {
+    function pause(address userAddress) external onlyOwner {
         AssetrixStorage.Layout storage s = AssetrixStorage.layout();
         require(!s.paused, "Pausable: already paused");
         s.paused = true;
-        emit Paused(msg.sender);
+        emit Paused(getActualSender());
     }
 
-    function unpause() external onlyOwner {
+    function unpause(address userAddress) external onlyOwner {
         AssetrixStorage.Layout storage s = AssetrixStorage.layout();
         require(s.paused, "Pausable: not paused");
         s.paused = false;
-        emit Unpaused(msg.sender);
+        emit Unpaused(getActualSender());
     }
 
     function setStablecoin(
-        address _newStablecoin
+        address _newStablecoin,
+        address userAddress
     ) external onlyOwner whenNotPaused {
         AssetrixStorage.Layout storage s = AssetrixStorage.layout();
         require(_newStablecoin != address(0), "Invalid address");
@@ -95,7 +97,8 @@ contract AdminFacet {
     }
 
     function setGlobalTokenPrice(
-        uint256 _newTokenPrice
+        uint256 _newTokenPrice,
+        address userAddress
     ) external onlyOwner whenNotPaused {
         AssetrixStorage.Layout storage s = AssetrixStorage.layout();
         require(_newTokenPrice > 0, "Token price must be greater than 0");
@@ -105,7 +108,8 @@ contract AdminFacet {
 
     //Set admin fee percentage
     function setAdminFeePercentage(
-        uint256 _newFeePercentage
+        uint256 _newFeePercentage,
+        address userAddress
     ) external onlyOwner whenNotPaused {
         require(_newFeePercentage <= 10, "Fee cannot exceed 10%");
 
@@ -121,7 +125,8 @@ contract AdminFacet {
 
     //Set the early exit fee percentage for users who exit before the investment duration
     function setEarlyExitFeePercentage(
-        uint256 _newFeePercentage
+        uint256 _newFeePercentage,
+        address userAddress
     ) external onlyOwner whenNotPaused {
         require(_newFeePercentage <= 10, "Fee cannot exceed 10%");
 
@@ -137,7 +142,8 @@ contract AdminFacet {
 
     // Set the minimum number of tokens required for any property
     function setMinTokensPerProperty(
-        uint256 value
+        uint256 value,
+        address userAddress
     ) external onlyOwner whenNotPaused {
         AssetrixStorage.Layout storage s = AssetrixStorage.layout();
         require(value > 0, "Minimum must be greater than 0");
@@ -147,7 +153,8 @@ contract AdminFacet {
 
     // Set the maximum number of tokens allowed per property
     function setMaxTokensPerProperty(
-        uint256 value
+        uint256 value,
+        address userAddress
     ) external onlyOwner whenNotPaused {
         AssetrixStorage.Layout storage s = AssetrixStorage.layout();
         require(value > 0, "Maximum must be greater than 0");
@@ -157,7 +164,8 @@ contract AdminFacet {
 
     // Set the minimum number of tokens an investor can purchase per investment
     function setMinTokensPerInvestment(
-        uint256 value
+        uint256 value,
+        address userAddress
     ) external onlyOwner whenNotPaused {
         AssetrixStorage.Layout storage s = AssetrixStorage.layout();
         require(value > 0, "Minimum must be greater than 0");
@@ -254,12 +262,18 @@ contract AdminFacet {
     // withdrawal function for admin to recover stablecoin funds
     function withdrawStablecoin(
         address _to,
-        uint256 _amount
+        uint256 _amount,
+        address userAddress
     ) external onlyOwner whenNotPaused nonReentrant {
+        AssetrixStorage.Layout storage s = AssetrixStorage.layout();
+        address actualSender = getActualSender();
+        
+        // For EIP-2771: if called via meta transaction, use userAddress; otherwise use actualSender
+        address admin = (msg.sender == address(this)) ? userAddress : actualSender;
+        
         require(_to != address(0), "Invalid recipient address");
         require(_amount > 0, "Amount must be greater than 0");
 
-        AssetrixStorage.Layout storage s = AssetrixStorage.layout();
         require(s.stablecoin != address(0), "Stablecoin not set");
 
         IERC20 stablecoin = IERC20(s.stablecoin);

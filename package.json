@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "compile": "hardhat compile",
-    "test": "hardhat test tests/**",
+    "test": "hardhat test test/**",
     "deploy": "hardhat compile && hardhat run scripts/deploy.js --network",
     "deployTest": "hardhat run scripts/deploytest.js --network",
     "upgrade": "hardhat run scripts/upgrade.js --network",

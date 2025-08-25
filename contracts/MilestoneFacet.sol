@@ -4,13 +4,14 @@ pragma solidity ^0.8.28;
 import "./AssetrixStorage.sol";
 import "./ITransactionFacet.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "./BaseMetaTransactionFacet.sol";
 
-contract MilestoneFacet {
+contract MilestoneFacet is BaseMetaTransactionFacet {
     using AssetrixStorage for AssetrixStorage.Layout;
 
     modifier onlyOwner() {
         AssetrixStorage.Layout storage s = AssetrixStorage.layout();
-        require(msg.sender == s.owner, "Ownable: caller is not the owner");
+        require(getActualSender() == s.owner, "Ownable: caller is not the owner");
         _;
     }
 
@@ -71,17 +72,23 @@ contract MilestoneFacet {
 
     function requestMilestoneFunds(
         uint256 _propertyId,
-        uint256 _milestoneId
+        uint256 _milestoneId,
+        address userAddress
     ) external whenNotPaused nonReentrant {
         AssetrixStorage.Layout storage s = AssetrixStorage.layout();
         AssetrixStorage.Property storage prop = s.properties[_propertyId];
+        address actualSender = getActualSender();
+        
+        // For EIP-2771: if called via meta transaction, use userAddress; otherwise use actualSender
+        address developer = (msg.sender == address(this)) ? userAddress : actualSender;
+        
         require(prop.isFullyFunded, "Property must be fully funded");
         require(
             prop.developerAddress != address(0),
             "Developer address not set"
         );
         require(
-            msg.sender == prop.developerAddress,
+            developer == prop.developerAddress,
             "Only property developer can request funds"
         );
         require(
@@ -111,16 +118,22 @@ contract MilestoneFacet {
         }
         milestone.fundsRequested = true;
         milestone.requestedAt = block.timestamp;
-        emit MilestoneFundsRequested(_propertyId, _milestoneId, msg.sender);
+        emit MilestoneFundsRequested(_propertyId, _milestoneId, developer);
     }
 
-    // Mark milestone as completed
+    // Mark milestone as completed (EIP-2771 enabled)
     function markMilestoneCompleted(
         uint256 _propertyId,
-        uint256 _milestoneId
+        uint256 _milestoneId,
+        address userAddress
     ) external whenNotPaused nonReentrant {
         AssetrixStorage.Layout storage s = AssetrixStorage.layout();
         AssetrixStorage.Property storage prop = s.properties[_propertyId];
+        address actualSender = getActualSender();
+        
+        // For EIP-2771: if called via meta transaction, use userAddress; otherwise use actualSender
+        address developer = (msg.sender == address(this)) ? userAddress : actualSender;
+        
         require(prop.isFullyFunded, "Property must be fully funded");
         require(
             _milestoneId < prop.milestones.length,
@@ -134,7 +147,7 @@ contract MilestoneFacet {
             "Developer address not set"
         );
         require(
-            msg.sender == prop.developerAddress,
+            developer == prop.developerAddress,
             "Only developer can mark completed"
         );
         require(!milestone.fundsReleased, "Funds already released");
@@ -144,13 +157,19 @@ contract MilestoneFacet {
         emit MilestoneMarkedCompleted(_propertyId, _milestoneId);
     }
 
-    // Verify and mark milestone as completed by admin after developer has marked it as completed
+    // Verify and mark milestone as completed by admin after developer has marked it as completed (EIP-2771 enabled)
     function verifyAndMarkMilestoneCompleted(
         uint256 _propertyId,
-        uint256 _milestoneId
+        uint256 _milestoneId,
+        address userAddress
     ) external onlyOwner whenNotPaused nonReentrant {
         AssetrixStorage.Layout storage s = AssetrixStorage.layout();
         AssetrixStorage.Property storage prop = s.properties[_propertyId];
+        address actualSender = getActualSender();
+        
+        // For EIP-2771: if called via meta transaction, use userAddress; otherwise use actualSender
+        address admin = (msg.sender == address(this)) ? userAddress : actualSender;
+        
         require(prop.isFullyFunded, "Property must be fully funded");
         require(
             _milestoneId < prop.milestones.length,
@@ -220,7 +239,7 @@ contract MilestoneFacet {
             _milestoneId,
             netReleaseAmount,
             prop.developerAddress,
-            msg.sender
+            getActualSender()
         );
     }
 

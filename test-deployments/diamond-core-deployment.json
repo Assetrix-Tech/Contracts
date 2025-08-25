@@ -3,16 +3,16 @@
     "name": "diamond-core",
     "network": "localhost",
     "deploymentType": "test",
-    "timestamp": "2025-08-15T18:04:29.827Z"
+    "timestamp": "2025-08-25T09:52:03.885Z"
   },
   "deployment": {
-    "timestamp": "2025-08-15T18:04:29.828Z",
+    "timestamp": "2025-08-25T09:52:03.885Z",
     "totalGasUsed": 0
   },
   "testResults": {
     "status": "completed",
-    "startTime": "2025-08-15T18:04:29.828Z",
-    "endTime": "2025-08-15T18:04:55.618Z",
+    "startTime": "2025-08-25T09:52:03.885Z",
+    "endTime": "2025-08-25T09:52:25.253Z",
     "passed": true,
     "output": {
       "summary": "✅ Diamond Core Tests Passed!",
@@ -32,13 +32,15 @@
         {
           "section": "🔍 Test 2: DiamondLoupe Functions",
           "results": [
-            "✅ Facets count: 7",
-            "✅ Facet addresses count: 7",
+            "✅ Facets count: 8",
+            "✅ Facet addresses count: 8",
             "✅ adminFacet: Present",
             "✅ propertyFacet: Present",
             "✅ investmentFacet: Present",
             "✅ milestoneFacet: Present",
-            "✅ transactionFacet: Present"
+            "✅ transactionFacet: Present",
+            "✅ fiatPaymentFacet: Present",
+            "✅ metaTransactionFacet: Present"
           ]
         },
         {
@@ -47,6 +49,22 @@
             "✅ Owner: 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
             "✅ Owner matches deployer: true",
             "✅ Total properties: 1"
+          ]
+        },
+        {
+          "section": "🔍 Test 4: EIP-2771 Meta Transaction Functionality",
+          "results": [
+            "✅ User nonce: 0",
+            "✅ Estimated gas cost: 60000",
+            "✅ Recommended fee: 0.0 ETH"
+          ]
+        },
+        {
+          "section": "🔍 Test 5: BaseMetaTransactionFacet Integration",
+          "results": [
+            "✅ AdminFacet has code: true",
+            "✅ PropertyFacet has code: true",
+            "✅ InvestmentFacet has code: true"
           ]
         }
       ],

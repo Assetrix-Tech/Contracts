@@ -3,16 +3,16 @@
     "name": "transaction-facet",
     "network": "localhost",
     "deploymentType": "test",
-    "timestamp": "2025-08-15T18:06:30.103Z"
+    "timestamp": "2025-08-25T09:54:12.295Z"
   },
   "deployment": {
-    "timestamp": "2025-08-15T18:06:30.103Z",
+    "timestamp": "2025-08-25T09:54:12.295Z",
     "totalGasUsed": 0
   },
   "testResults": {
     "status": "completed",
-    "startTime": "2025-08-15T18:06:30.103Z",
-    "endTime": "2025-08-15T18:06:47.718Z",
+    "startTime": "2025-08-25T09:54:12.295Z",
+    "endTime": "2025-08-25T09:54:32.889Z",
     "passed": true,
     "output": {
       "summary": "✅ TransactionFacet Tests Passed!",
@@ -31,63 +31,71 @@
           ]
         },
         {
-          "section": "🔍 Test 2: Get Test Property",
+          "section": "🔍 Test 2: Create Test Property",
           "results": [
-            "✅ Using existing property with ID: 1"
+            "✅ Test property created with ID: 2"
           ]
         },
         {
-          "section": "🔍 Test 3: Record Property Creation Transaction",
+          "section": "🔍 Test 3: Access Control Test",
           "results": [
-            "✅ Property creation transaction recorded"
+            "❌ Direct call to recordTransaction succeeded (should fail)"
           ]
         },
         {
-          "section": "🔍 Test 4: Record Investment Transaction",
+          "section": "🔍 Test 4: Transaction Count After Property Creation",
           "results": [
-            "✅ Minted Naira to user1",
-            "✅ Investment transaction recorded"
-          ]
-        },
-        {
-          "section": "🔍 Test 5: Record Withdrawal Transaction",
-          "results": [
-            "✅ Withdrawal transaction recorded"
-          ]
-        },
-        {
-          "section": "🔍 Test 6: Verify Transaction Recording",
-          "results": [
-            "✅ New transaction count: 3",
+            "✅ Transaction count after property creation: 1",
             "✅ Transaction count increased: true"
           ]
         },
         {
-          "section": "🔍 Test 7: Retrieve Transactions",
+          "section": "🔍 Test 5: Verify Transaction Recording",
           "results": [
-            "✅ Transaction 1: Type 6, Amount: 0.0 Naira",
-            "✅ Transaction 2: Type 0, Amount: 600.0 Naira",
-            "✅ Transaction 3: Type 2, Amount: 100.0 Naira"
+            "✅ New transaction count: 1",
+            "✅ Transaction count increased: true"
           ]
         },
         {
-          "section": "🔍 Test 8: Property Transaction Queries",
+          "section": "🔍 Test 6: Retrieve Transactions",
           "results": [
-            "✅ Property 1 transactions count: 3",
+            "✅ Transaction 1: Type 6, Amount: 0.0 Naira"
+          ]
+        },
+        {
+          "section": "🔍 Test 7: Property Transaction Queries",
+          "results": [
+            "✅ Property 2 transactions count: 1",
             "✅ All transactions belong to property: true"
           ]
         },
         {
-          "section": "🔍 Test 9: User Transaction Queries",
+          "section": "🔍 Test 8: User Transaction Queries",
           "results": [
-            "✅ User1 transactions count: 2",
-            "✅ Deployer transactions count: 3"
+            "✅ User1 transactions count: 0",
+            "✅ Deployer transactions count: 1"
           ]
         },
         {
-          "section": "🔍 Test 10: Transaction Validation",
+          "section": "🔍 Test 9: Transaction Validation",
           "results": [
             "✅ Transaction data validation:"
+          ]
+        },
+        {
+          "section": "🔍 Test 10: Access Control",
+          "results": [
+            "✅ Non-authorized user cannot record transactions (expected)",
+            "✅ Owner can record transactions"
+          ]
+        },
+        {
+          "section": "🔍 Test 11: EIP-2771 Integration",
+          "results": [
+            "✅ TransactionFacet inherits from BaseMetaTransactionFacet",
+            "✅ onlyAuthorized modifier supports EIP-2771 meta transactions",
+            "✅ Internal calls from other facets work correctly",
+            "✅ Owner access control works with EIP-2771"
           ]
         }
       ],
@@ -98,9 +106,7 @@
         "👤 User2: 0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC",
         "First transaction type: 6",
         "First transaction amount: 0.0 Naira",
-        "First transaction propertyId: 1",
-        "User1 transaction type: 0",
-        "User1 transaction amount: 600.0 Naira"
+        "First transaction propertyId: 2"
       ]
     }
   }

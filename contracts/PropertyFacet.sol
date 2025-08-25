@@ -2,8 +2,9 @@
 pragma solidity ^0.8.28;
 
 import "./AssetrixStorage.sol";
+import "./BaseMetaTransactionFacet.sol";
 
-contract PropertyFacet {
+contract PropertyFacet is BaseMetaTransactionFacet {
     using AssetrixStorage for AssetrixStorage.Layout;
 
     event PropertyCreated(
@@ -23,8 +24,8 @@ contract PropertyFacet {
     modifier onlyDeveloperOrOwner(uint256 _propertyId) {
         AssetrixStorage.Layout storage s = AssetrixStorage.layout();
         require(
-            msg.sender == s.properties[_propertyId].developerAddress ||
-                msg.sender == s.owner,
+            getActualSender() == s.properties[_propertyId].developerAddress ||
+                getActualSender() == s.owner,
             "Unauthorized: Only property developer or admin can update"
         );
         _;
@@ -32,7 +33,7 @@ contract PropertyFacet {
 
     modifier onlyOwner() {
         AssetrixStorage.Layout storage s = AssetrixStorage.layout();
-        require(msg.sender == s.owner, "Ownable: caller is not the owner");
+        require(getActualSender() == s.owner, "Ownable: caller is not the owner");
         _;
     }
 
@@ -58,9 +59,15 @@ contract PropertyFacet {
 
     // ============ PROPERTY CREATION ============
     function createProperty(
-        AssetrixStorage.PropertyCreationData memory _data
+        AssetrixStorage.PropertyCreationData memory _data,
+        address userAddress
     ) external whenNotPaused nonReentrant returns (uint256) {
         AssetrixStorage.Layout storage s = AssetrixStorage.layout();
+        address actualSender = getActualSender();
+        
+        // For EIP-2771: if called via meta transaction, use userAddress; otherwise use actualSender
+        address developer = (msg.sender == address(this)) ? userAddress : actualSender;
+        
         require(bytes(_data.title).length > 0, "Title cannot be empty");
         require(
             bytes(_data.developerName).length > 0,
@@ -71,7 +78,7 @@ contract PropertyFacet {
             "Invalid developer address"
         );
         require(
-            msg.sender == _data.developerAddress || msg.sender == s.owner,
+            developer == _data.developerAddress || developer == s.owner,
             "Sender must be the developer or admin"
         );
         require(bytes(_data.city).length > 0, "City required");
@@ -187,10 +194,16 @@ contract PropertyFacet {
     // ============ PROPERTY UPDATE ============
     function updateProperty(
         uint256 _propertyId,
-        AssetrixStorage.PropertyUpdateData memory _data
+        AssetrixStorage.PropertyUpdateData memory _data,
+        address userAddress
     ) external onlyDeveloperOrOwner(_propertyId) whenNotPaused nonReentrant {
         AssetrixStorage.Layout storage s = AssetrixStorage.layout();
         AssetrixStorage.Property storage prop = s.properties[_propertyId];
+        address actualSender = getActualSender();
+        
+        // For EIP-2771: if called via meta transaction, use userAddress; otherwise use actualSender
+        address developer = (msg.sender == address(this)) ? userAddress : actualSender;
+        
         require(!prop.isFullyFunded, "Cannot update a fully funded property");
         require(
             _data.milestoneTitles.length ==
@@ -265,10 +278,16 @@ contract PropertyFacet {
 
     // Deactivate Property by developer or admin only if not fully funded
     function deactivateProperty(
-        uint256 _propertyId
+        uint256 _propertyId,
+        address userAddress
     ) external onlyDeveloperOrOwner(_propertyId) whenNotPaused nonReentrant {
         AssetrixStorage.Layout storage s = AssetrixStorage.layout();
         AssetrixStorage.Property storage prop = s.properties[_propertyId];
+        address actualSender = getActualSender();
+        
+        // For EIP-2771: if called via meta transaction, use userAddress; otherwise use actualSender
+        address developer = (msg.sender == address(this)) ? userAddress : actualSender;
+        
         require(
             !prop.isFullyFunded,
             "Cannot deactivate a fully funded property"
@@ -281,10 +300,16 @@ contract PropertyFacet {
 
     // Activate Property by admin before active for funding
     function adminActivateProperty(
-        uint256 _propertyId
+        uint256 _propertyId,
+        address userAddress
     ) external onlyOwner whenNotPaused nonReentrant {
         AssetrixStorage.Layout storage s = AssetrixStorage.layout();
         AssetrixStorage.Property storage prop = s.properties[_propertyId];
+        address actualSender = getActualSender();
+        
+        // For EIP-2771: if called via meta transaction, use userAddress; otherwise use actualSender
+        address admin = (msg.sender == address(this)) ? userAddress : actualSender;
+        
         require(
             _propertyId > 0 && _propertyId <= s.propertyCount,
             "Property does not exist"
@@ -295,10 +320,16 @@ contract PropertyFacet {
 
     // forcefully deactivate Property by admin for emergency cases
     function adminDeactivateProperty(
-        uint256 _propertyId
+        uint256 _propertyId,
+        address userAddress
     ) external onlyOwner whenNotPaused nonReentrant {
         AssetrixStorage.Layout storage s = AssetrixStorage.layout();
         AssetrixStorage.Property storage prop = s.properties[_propertyId];
+        address actualSender = getActualSender();
+        
+        // For EIP-2771: if called via meta transaction, use userAddress; otherwise use actualSender
+        address admin = (msg.sender == address(this)) ? userAddress : actualSender;
+        
         require(
             _propertyId > 0 && _propertyId <= s.propertyCount,
             "Property does not exist"
@@ -376,7 +407,7 @@ contract PropertyFacet {
         returns (AssetrixStorage.PropertyView[] memory)
     {
         AssetrixStorage.Layout storage s = AssetrixStorage.layout();
-        uint256[] memory propertyIds = s.developerProperties[msg.sender];
+        uint256[] memory propertyIds = s.developerProperties[getActualSender()];
         AssetrixStorage.PropertyView[]
             memory result = new AssetrixStorage.PropertyView[](
                 propertyIds.length
@@ -395,7 +426,7 @@ contract PropertyFacet {
         returns (AssetrixStorage.PropertyView[] memory)
     {
         AssetrixStorage.Layout storage s = AssetrixStorage.layout();
-        uint256[] memory propertyIds = s.tokenHolderProperties[msg.sender];
+        uint256[] memory propertyIds = s.tokenHolderProperties[getActualSender()];
         AssetrixStorage.PropertyView[]
             memory result = new AssetrixStorage.PropertyView[](
                 propertyIds.length

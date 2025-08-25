@@ -4,8 +4,9 @@ pragma solidity ^0.8.28;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "./AssetrixStorage.sol";
 import "./ITransactionFacet.sol";
+import "./BaseMetaTransactionFacet.sol";
 
-contract FiatPaymentFacet {
+contract FiatPaymentFacet is BaseMetaTransactionFacet {
     using AssetrixStorage for AssetrixStorage.Layout;
 
     // Fiat payment events
@@ -18,6 +19,10 @@ contract FiatPaymentFacet {
         uint256 timestamp
     );
 
+     event BackendSignerUpdated(
+        address indexed oldSigner,
+        address indexed newSigner
+    );
 
 
     event PropertyFullyFunded(
@@ -34,7 +39,7 @@ contract FiatPaymentFacet {
 
     modifier onlyOwner() {
         AssetrixStorage.Layout storage s = AssetrixStorage.layout();
-        require(msg.sender == s.owner, "Ownable: caller is not the owner");
+        require(getActualSender() == s.owner, "Ownable: caller is not the owner");
         _;
     }
 
@@ -109,9 +114,17 @@ contract FiatPaymentFacet {
         s.domainSeparator = bytes32(0);
     }
 
+    // Set backend signer (only owner can change)
+    function setBackendSigner(address _backendSigner, address userAddress) external onlyOwner {
+        require(_backendSigner != address(0), "Invalid backend signer address");
+        AssetrixStorage.Layout storage s = AssetrixStorage.layout();
+        address oldSigner = s.backendSigner;
+        s.backendSigner = _backendSigner;
+        emit BackendSignerUpdated(oldSigner, _backendSigner);
+    }
 
 
-    // Main fiat-to-token distribution function
+    // Main fiat-to-token distribution function (EIP-2771 enabled)
     function distributeTokensFromFiat(
         uint256 _propertyId,
         address _user,
@@ -119,13 +132,18 @@ contract FiatPaymentFacet {
         uint256 _fiatAmount,
         string memory _paymentReference,
         uint256 _nonce,
-        bytes memory _signature
+        bytes memory _signature,
+        address userAddress
     ) external whenNotPaused nonReentrant {
         AssetrixStorage.Layout storage s = AssetrixStorage.layout();
         AssetrixStorage.Property storage prop = s.properties[_propertyId];
+        address actualSender = getActualSender();
+        
+        // For EIP-2771: if called via meta transaction, use userAddress; otherwise use actualSender
+        address caller = (msg.sender == address(this)) ? userAddress : actualSender;
 
         require(
-            msg.sender == _user || msg.sender == s.backendSigner,
+            caller == _user || caller == s.backendSigner,
             "Unauthorized caller"
         );
 

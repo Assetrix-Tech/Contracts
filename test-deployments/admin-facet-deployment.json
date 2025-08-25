@@ -3,16 +3,16 @@
     "name": "admin-facet",
     "network": "localhost",
     "deploymentType": "test",
-    "timestamp": "2025-08-15T18:04:55.630Z"
+    "timestamp": "2025-08-25T09:52:25.266Z"
   },
   "deployment": {
-    "timestamp": "2025-08-15T18:04:55.630Z",
+    "timestamp": "2025-08-25T09:52:25.266Z",
     "totalGasUsed": 0
   },
   "testResults": {
     "status": "completed",
-    "startTime": "2025-08-15T18:04:55.630Z",
-    "endTime": "2025-08-15T18:05:13.331Z",
+    "startTime": "2025-08-25T09:52:25.266Z",
+    "endTime": "2025-08-25T09:52:45.702Z",
     "passed": true,
     "output": {
       "summary": "✅ AdminFacet Tests Passed!",
@@ -40,7 +40,7 @@
         {
           "section": "🔍 Test 3: Stablecoin Configuration",
           "results": [
-            "✅ Stablecoin address: 0x0DCd1Bf9A1b36cE34237eEaFef220932846BCD82",
+            "✅ Stablecoin address: 0x9A676e781A523b5d0C0e43731313A708CB607508",
             "✅ Matches deployment: true"
           ]
         },
@@ -71,6 +71,35 @@
           "results": [
             "✅ New owner set global token price",
             "✅ Final token price: 2500.0 Naira"
+          ]
+        },
+        {
+          "section": "🔍 Test 8: Additional Admin Functions",
+          "results": [
+            "✅ Paused the contract",
+            "✅ Contract paused: true",
+            "✅ Unpaused the contract",
+            "✅ Contract unpaused: true",
+            "✅ Set admin fee percentage to 5%",
+            "✅ Set early exit fee percentage to 3%",
+            "✅ Set minimum tokens per property to 10",
+            "✅ Set maximum tokens per property to 1000",
+            "✅ Set minimum tokens per investment to 1"
+          ]
+        },
+        {
+          "section": "🔍 Test 9: Withdraw Stablecoin Function",
+          "results": [
+            "✅ Minted tokens to diamond contract for testing",
+            "✅ Successfully withdrew stablecoin",
+            "✅ User balance after withdrawal: 1000.0 Naira"
+          ]
+        },
+        {
+          "section": "🔍 Test 10: EIP-2771 Integration",
+          "results": [
+            "✅ AdminFacet inherits from BaseMetaTransactionFacet",
+            "✅ Owner functions support EIP-2771 meta transactions"
           ]
         }
       ],

@@ -4,8 +4,9 @@ pragma solidity ^0.8.28;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "./AssetrixStorage.sol";
 import "./ITransactionFacet.sol";
+import "./BaseMetaTransactionFacet.sol";
 
-contract InvestmentFacet {
+contract InvestmentFacet is BaseMetaTransactionFacet {
     using AssetrixStorage for AssetrixStorage.Layout;
 
     event TokensPurchased(
@@ -52,7 +53,7 @@ contract InvestmentFacet {
 
     modifier onlyOwner() {
         AssetrixStorage.Layout storage s = AssetrixStorage.layout();
-        require(msg.sender == s.owner, "Ownable: caller is not the owner");
+        require(getActualSender() == s.owner, "Ownable: caller is not the owner");
         _;
     }
 
@@ -77,13 +78,19 @@ contract InvestmentFacet {
     }
 
 
-    //Purchase tokens for users with stablecoin
+    //Purchase tokens for users with stablecoin (EIP-2771 enabled)
     function purchaseTokens(
         uint256 _propertyId,
-        uint256 _tokenAmount
+        uint256 _tokenAmount,
+        address userAddress
     ) external whenNotPaused nonReentrant {
         AssetrixStorage.Layout storage s = AssetrixStorage.layout();
         AssetrixStorage.Property storage prop = s.properties[_propertyId];
+        address actualSender = getActualSender();
+        
+        // For EIP-2771: if called via meta transaction, use userAddress; otherwise use actualSender
+        address tokenBuyer = (msg.sender == address(this)) ? userAddress : actualSender;
+        
         require(_tokenAmount > 0, "Must purchase at least 1 token");
         require(
             s.minTokensPerInvestment > 0,
@@ -110,18 +117,18 @@ contract InvestmentFacet {
 
         require(
             IERC20(s.stablecoin).transferFrom(
-                msg.sender,
+                tokenBuyer,
                 address(this),
                 totalCost
             ),
             "Transfer failed"
         );
-        if (prop.tokenBalance[msg.sender] == 0) {
-            prop.tokenHolders.push(msg.sender);
+        if (prop.tokenBalance[tokenBuyer] == 0) {
+            prop.tokenHolders.push(tokenBuyer);
             prop.holderCount++;
-            s.tokenHolderProperties[msg.sender].push(_propertyId);
+            s.tokenHolderProperties[tokenBuyer].push(_propertyId);
         }
-        prop.tokenBalance[msg.sender] += _tokenAmount;
+        prop.tokenBalance[tokenBuyer] += _tokenAmount;
         prop.tokensSold += _tokenAmount;
         prop.tokensLeft -= _tokenAmount;
         if (prop.tokensLeft == 0) {
@@ -130,23 +137,29 @@ contract InvestmentFacet {
         }
         ITransactionFacet(address(this)).recordTransaction(
             _propertyId,
-            msg.sender,
+            tokenBuyer,
             prop.developerAddress,
             AssetrixStorage.TransactionType.Investment,
             totalCost,
             "Token purchase in property"
         );
-        emit TokensPurchased(_propertyId, msg.sender, _tokenAmount, totalCost);
+        emit TokensPurchased(_propertyId, tokenBuyer, _tokenAmount, totalCost);
     }
 
-    //Payout investment for token holders
+    //Payout investment for token holders (EIP-2771 enabled)
     function payoutInvestment(
         uint256 _propertyId,
         address _tokenHolder,
-        uint256 _amount
+        uint256 _amount,
+        address userAddress
     ) external onlyOwner whenNotPaused nonReentrant {
         AssetrixStorage.Layout storage s = AssetrixStorage.layout();
         AssetrixStorage.Property storage prop = s.properties[_propertyId];
+        address actualSender = getActualSender();
+        
+        // For EIP-2771: if called via meta transaction, use userAddress; otherwise use actualSender
+        address admin = (msg.sender == address(this)) ? userAddress : actualSender;
+        
         require(prop.isFullyFunded, "Property must be fully funded");
         require(_tokenHolder != address(0), "Invalid token holder address");
         require(
@@ -182,7 +195,7 @@ contract InvestmentFacet {
 
         ITransactionFacet(address(this)).recordTransaction(
             _propertyId,
-            msg.sender,
+            admin,
             _tokenHolder,
             AssetrixStorage.TransactionType.PayoutAvailable,
             _amount,
@@ -190,13 +203,19 @@ contract InvestmentFacet {
         );
     }
 
-    //Refund investment for token holders
+    //Refund investment for token holders (EIP-2771 enabled)
     function refund(
         uint256 _propertyId,
-        address _tokenHolder
+        address _tokenHolder,
+        address userAddress
     ) external onlyOwner whenNotPaused nonReentrant {
         AssetrixStorage.Layout storage s = AssetrixStorage.layout();
         AssetrixStorage.Property storage prop = s.properties[_propertyId];
+        address actualSender = getActualSender();
+        
+        // For EIP-2771: if called via meta transaction, use userAddress; otherwise use actualSender
+        address admin = (msg.sender == address(this)) ? userAddress : actualSender;
+        
         require(_tokenHolder != address(0), "Invalid token holder address");
         require(
             prop.tokenBalance[_tokenHolder] > 0,
@@ -225,11 +244,17 @@ contract InvestmentFacet {
     }
 
     function earlyExit(
-        uint256 _propertyId
+        uint256 _propertyId,
+        address userAddress
     ) external whenNotPaused nonReentrant {
         AssetrixStorage.Layout storage s = AssetrixStorage.layout();
         AssetrixStorage.Property storage prop = s.properties[_propertyId];
-        require(prop.tokenBalance[msg.sender] > 0, "No tokens to exit");
+        address actualSender = getActualSender();
+        
+        // For EIP-2771: if called via meta transaction, use userAddress; otherwise use actualSender
+        address tokenHolder = (msg.sender == address(this)) ? userAddress : actualSender;
+        
+        require(prop.tokenBalance[tokenHolder] > 0, "No tokens to exit");
         require(s.earlyExitFeePercentage <= 10, "Exit fee cannot exceed 10%");
 
         if (prop.isFullyFunded) {
@@ -249,13 +274,13 @@ contract InvestmentFacet {
             block.timestamp < getInvestmentEndTime(_propertyId),
             "Investment period has ended, use final payout instead"
         );
-        uint256 tokenAmount = prop.tokenBalance[msg.sender];
+        uint256 tokenAmount = prop.tokenBalance[tokenHolder];
         uint256 investmentAmount = tokenAmount * prop.tokenPrice;
         uint256 exitFee = (investmentAmount * s.earlyExitFeePercentage) / 100;
         uint256 refundAmount = investmentAmount - exitFee;
 
         // Emit event for backend to handle dashboard balance update
-        emit EarlyExitAvailable(_propertyId, msg.sender, refundAmount, exitFee);
+        emit EarlyExitAvailable(_propertyId, tokenHolder, refundAmount, exitFee);
 
         // Update token balances
         prop.tokensSold -= tokenAmount;
@@ -263,34 +288,40 @@ contract InvestmentFacet {
         if (prop.isFullyFunded && prop.tokensLeft > 0) {
             prop.isFullyFunded = false;
         }
-        _removeTokenHolderFromProperty(_propertyId, msg.sender);
+        _removeTokenHolderFromProperty(_propertyId, tokenHolder);
 
         ITransactionFacet(address(this)).recordTransaction(
             _propertyId,
             address(this),
-            msg.sender,
+            tokenHolder,
             AssetrixStorage.TransactionType.EarlyExitAvailable,
             refundAmount,
             "Early exit refund available in dashboard"
         );
         ITransactionFacet(address(this)).recordTransaction(
             _propertyId,
-            msg.sender,
+            tokenHolder,
             address(this),
             AssetrixStorage.TransactionType.EarlyExitFee,
             exitFee,
             "Early exit fee"
         );
-        emit Refunded(_propertyId, msg.sender, refundAmount);
+        emit Refunded(_propertyId, tokenHolder, refundAmount);
     }
 
-    //Emergency refund for token holder
+    //Emergency refund for token holder (EIP-2771 enabled)
     function emergencyRefund(
         uint256 _propertyId,
-        address _tokenHolder
+        address _tokenHolder,
+        address userAddress
     ) external onlyOwner whenNotPaused nonReentrant {
         AssetrixStorage.Layout storage s = AssetrixStorage.layout();
         AssetrixStorage.Property storage prop = s.properties[_propertyId];
+        address actualSender = getActualSender();
+        
+        // For EIP-2771: if called via meta transaction, use userAddress; otherwise use actualSender
+        address admin = (msg.sender == address(this)) ? userAddress : actualSender;
+        
         require(_tokenHolder != address(0), "Invalid token holder address");
         require(
             prop.tokenBalance[_tokenHolder] > 0,

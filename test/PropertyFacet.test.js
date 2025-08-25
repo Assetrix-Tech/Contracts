@@ -41,8 +41,8 @@ describe("PropertyFacet", function () {
           "0x1794bb3c", // initialize
           "0xcc7ac330", // getGlobalTokenPrice
           "0xb6f67312", // getStablecoin
-          "0xeb659dc1", // setMinTokensPerProperty
-          "0x96241c97"  // setMaxTokensPerProperty
+          "0x918dc7f3", // setMinTokensPerProperty(uint256,address)
+          "0xc7c52652"  // setMaxTokensPerProperty(uint256,address)
         ]
       },
       {
@@ -50,7 +50,7 @@ describe("PropertyFacet", function () {
         action: 0, // Add
         functionSelectors: [
           "0x17aaf5ed", // getTotalProperties
-          "0x1f346f07", // createProperty
+          "0xeb2220e9", // createProperty
           "0x32665ffb", // getProperty
           "0xb16aa470", // getProperties
           "0x397f7952", // getMyProperties
@@ -58,10 +58,10 @@ describe("PropertyFacet", function () {
           "0x4835ec06", // getDeveloperProperties
           "0x759c7de8", // getDeveloperPropertyCount
           "0x17fc2f96", // getPropertyTokenHolders
-          "0xe52097a0", // updateProperty
-          "0x7ca28bc6", // deactivateProperty
-          "0xc2f6f25c", // adminActivateProperty
-          "0x5ec231ba"  // adminDeactivateProperty
+          "0xd4cb6ba1", // updateProperty
+          "0xcecf20cd", // deactivateProperty
+          "0x6e03b57d", // adminActivateProperty
+          "0x380b6b29"  // adminDeactivateProperty
         ]
       }
     ];
@@ -81,8 +81,8 @@ describe("PropertyFacet", function () {
     );
 
     // Set min and max tokens per property
-    await adminFacet.setMinTokensPerProperty(1000);
-    await adminFacet.setMaxTokensPerProperty(1000000);
+    await adminFacet.setMinTokensPerProperty(1000, owner.address);
+    await adminFacet.setMaxTokensPerProperty(1000000, owner.address);
   });
 
   describe("Property Creation", function () {
@@ -110,7 +110,7 @@ describe("PropertyFacet", function () {
         roiPercentage: 25
       };
 
-      await propertyFacet.connect(developer).createProperty(propertyData);
+      await propertyFacet.connect(developer).createProperty(propertyData, developer.address);
 
       expect(await propertyFacet.getTotalProperties()).to.equal(1);
     });
@@ -152,7 +152,7 @@ describe("PropertyFacet", function () {
         roiPercentage: 20
       };
 
-      await propertyFacet.connect(developer).createProperty(propertyData);
+      await propertyFacet.connect(developer).createProperty(propertyData, developer.address);
     });
 
     it("Should return correct property count after creation", async function () {
@@ -214,31 +214,31 @@ describe("PropertyFacet", function () {
         roiPercentage: 20
       };
 
-      await propertyFacet.connect(developer).createProperty(propertyData);
+      await propertyFacet.connect(developer).createProperty(propertyData, developer.address);
       propertyId = 1; // First property
     });
 
     it("Should allow developer to deactivate their property", async function () {
-      await propertyFacet.connect(developer).deactivateProperty(propertyId);
+      await propertyFacet.connect(developer).deactivateProperty(propertyId, developer.address);
       // Note: We can't directly test the property state without additional view functions
       // This test ensures the function doesn't revert
     });
 
     it("Should allow admin to activate property", async function () {
-      await propertyFacet.connect(owner).adminActivateProperty(propertyId);
+      await propertyFacet.connect(owner).adminActivateProperty(propertyId, owner.address);
       // Note: We can't directly test the property state without additional view functions
       // This test ensures the function doesn't revert
     });
 
     it("Should allow admin to deactivate property", async function () {
-      await propertyFacet.connect(owner).adminDeactivateProperty(propertyId);
+      await propertyFacet.connect(owner).adminDeactivateProperty(propertyId, owner.address);
       // Note: We can't directly test the property state without additional view functions
       // This test ensures the function doesn't revert
     });
 
     it("Should prevent non-developer from deactivating property", async function () {
       await expect(
-        propertyFacet.connect(investor).deactivateProperty(propertyId)
+        propertyFacet.connect(investor).deactivateProperty(propertyId, investor.address)
       ).to.be.revertedWith("Unauthorized: Only property developer or admin can update");
     });
   });
@@ -269,7 +269,7 @@ describe("PropertyFacet", function () {
         roiPercentage: 20
       };
 
-      await propertyFacet.connect(developer).createProperty(propertyData);
+      await propertyFacet.connect(developer).createProperty(propertyData, developer.address);
     });
 
     it("Should return property details", async function () {
@@ -316,7 +316,7 @@ describe("PropertyFacet", function () {
         roiPercentage: 20
       };
 
-      await propertyFacet.connect(developer).createProperty(propertyData);
+      await propertyFacet.connect(developer).createProperty(propertyData, developer.address);
     });
 
     it("Should allow developer to update their property", async function () {
@@ -339,7 +339,7 @@ describe("PropertyFacet", function () {
         roiPercentage: 25
       };
 
-      await propertyFacet.connect(developer).updateProperty(1, updateData);
+      await propertyFacet.connect(developer).updateProperty(1, updateData, developer.address);
       
       const updatedProperty = await propertyFacet.getProperty(1);
       expect(updatedProperty.title).to.equal("Updated Property");
@@ -367,7 +367,7 @@ describe("PropertyFacet", function () {
       };
 
       await expect(
-        propertyFacet.connect(investor).updateProperty(1, updateData)
+        propertyFacet.connect(investor).updateProperty(1, updateData, investor.address)
       ).to.be.revertedWith("Unauthorized: Only property developer or admin can update");
     });
   });

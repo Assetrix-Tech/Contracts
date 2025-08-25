@@ -3,16 +3,16 @@
     "name": "fiat-payment-facet",
     "network": "localhost",
     "deploymentType": "test",
-    "timestamp": "2025-08-15T18:05:50.194Z"
+    "timestamp": "2025-08-25T09:53:28.710Z"
   },
   "deployment": {
-    "timestamp": "2025-08-15T18:05:50.194Z",
+    "timestamp": "2025-08-25T09:53:28.710Z",
     "totalGasUsed": 0
   },
   "testResults": {
     "status": "completed",
-    "startTime": "2025-08-15T18:05:50.194Z",
-    "endTime": "2025-08-15T18:06:09.484Z",
+    "startTime": "2025-08-25T09:53:28.710Z",
+    "endTime": "2025-08-25T09:53:50.116Z",
     "passed": true,
     "output": {
       "summary": "✅ FiatPaymentFacet Tests Passed!",
@@ -36,7 +36,7 @@
           "results": [
             "✅ Domain separator initialized: false",
             "✅ Initialized domain separator",
-            "✅ Domain separator: 0x33d476ad5adf0ee280bafc0002725960c1044a5868d7ceac80eb3f111bdd0856"
+            "✅ Domain separator: 0x595cf2571a96875c431ec8c411a416e7e7e688876b624a6ae5a19dbf262c983e"
           ]
         },
         {
@@ -68,7 +68,7 @@
           "section": "🔍 Test 7: EIP-712 Signature Verification",
           "results": [
             "✅ EIP-712 signature created successfully",
-            "✅ Signature: 0xf61a8452bdb060f36f26cc6efcdb4ead5faf41a7d5d3b00a755b28d5a25c7a432cae59ab897ab55dc52d941b5a585ab2aea5e6583dec016b3c680dc1dd064e9f1b"
+            "✅ Signature: 0x05e1ee49a8187160f280fb48f9b48c7af42bd09d33517f193155092642938daa793eafa60df78922c3d94efaaa2487d86779c07a3093f4d45267410b2f3e7b141c"
           ]
         },
         {
@@ -87,13 +87,32 @@
             "✅ Matches new signer: true",
             "✅ Restored original backend signer"
           ]
+        },
+        {
+          "section": "🔍 Test 10: Fiat Payment Distribution",
+          "results": [
+            "✅ Test property created with ID: 2",
+            "✅ Fiat payment signature created successfully",
+            "✅ Fiat payment distribution successful",
+            "✅ Payment processed: true"
+          ]
+        },
+        {
+          "section": "🔍 Test 11: EIP-2771 Integration",
+          "results": [
+            "✅ FiatPaymentFacet inherits from BaseMetaTransactionFacet",
+            "✅ Fiat payment functions support EIP-2771 meta transactions",
+            "✅ Admin functions support EIP-2771 meta transactions"
+          ]
         }
       ],
       "info": [
         "==========================================",
         "👤 Deployer: 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
         "👤 User1: 0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
-        "👤 Backend Signer: 0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC"
+        "👤 Backend Signer: 0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC",
+        "👑 Current owner: 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+        "🔧 Using admin signer: 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"
       ]
     }
   }

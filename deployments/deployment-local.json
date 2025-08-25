@@ -1,15 +1,16 @@
 {
-  "diamond": "0xc0F115A19107322cFBf1cDBC7ea011C19EbDB4F8",
-  "mockStablecoin": "0xF8e31cb472bc70500f08Cd84917E5A1912Ec8397",
-  "adminFacet": "0xc96304e3c037f81dA488ed9dEa1D8F2a48278a75",
-  "investmentFacet": "0x34B40BA116d5Dec75548a9e9A8f15411461E8c70",
-  "propertyFacet": "0xD0141E899a65C95a556fE2B27e5982A6DE7fDD7A",
-  "transactionFacet": "0x07882Ae1ecB7429a84f1D53048d35c4bB2056877",
-  "milestoneFacet": "0x22753E4264FDDc6181dc7cce468904A80a363E44",
-  "diamondLoupeFacet": "0xA7c59f010700930003b33aB25a7a0679C860f29c",
-  "fiatPaymentFacet": "0xfaAddC93baf78e89DCf37bA67943E1bE8F37Bb8c",
+  "diamond": "0xab16A69A5a8c12C732e0DEFF4BE56A70bb64c926",
+  "mockStablecoin": "0x3aAde2dCD2Df6a8cAc689EE797591b2913658659",
+  "adminFacet": "0xE3011A37A904aB90C8881a99BD1F6E21401f1522",
+  "investmentFacet": "0x1f10F3Ba7ACB61b2F50B9d6DdCf91a6f787C0E82",
+  "propertyFacet": "0x457cCf29090fe5A24c19c1bc95F492168C0EaFdb",
+  "transactionFacet": "0x525C7063E7C20997BaaE9bDa922159152D0e8417",
+  "milestoneFacet": "0x38a024C0b412B9d1db8BC398140D00F5Af3093D4",
+  "diamondLoupeFacet": "0x5fc748f1FEb28d7b76fa1c6B07D8ba2d5535177c",
+  "fiatPaymentFacet": "0xB82008565FdC7e44609fA118A4a681E92581e680",
+  "metaTransactionFacet": "0x2a810409872AfC346F9B5b26571Fd6eC42EA4849",
   "deployer": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
   "backendSigner": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
   "network": "localhost",
-  "deployedAt": "2025-08-15T18:06:56.609Z"
+  "deployedAt": "2025-08-25T09:54:43.626Z"
 }

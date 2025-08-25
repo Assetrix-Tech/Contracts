@@ -45,8 +45,8 @@ describe("MilestoneFacet", function () {
           "0x1794bb3c", // initialize
           "0xcc7ac330", // getGlobalTokenPrice
           "0xb6f67312", // getStablecoin
-          "0xeb659dc1", // setMinTokensPerProperty
-          "0x96241c97"  // setMaxTokensPerProperty
+          "0x918dc7f3", // setMinTokensPerProperty(uint256,address)
+          "0xc7c52652"  // setMaxTokensPerProperty(uint256,address)
         ]
       },
       {
@@ -54,7 +54,7 @@ describe("MilestoneFacet", function () {
         action: 0, // Add
         functionSelectors: [
           "0x17aaf5ed", // getTotalProperties
-          "0x1f346f07", // createProperty
+          "0xeb2220e9", // createProperty
           "0x32665ffb", // getProperty
           "0xb16aa470", // getProperties
           "0x397f7952", // getMyProperties
@@ -62,21 +62,21 @@ describe("MilestoneFacet", function () {
           "0x4835ec06", // getDeveloperProperties
           "0x759c7de8", // getDeveloperPropertyCount
           "0x17fc2f96", // getPropertyTokenHolders
-          "0xe52097a0", // updateProperty
-          "0x7ca28bc6", // deactivateProperty
-          "0xc2f6f25c", // adminActivateProperty
-          "0x5ec231ba"  // adminDeactivateProperty
+          "0xd4cb6ba1", // updateProperty
+          "0xcecf20cd", // deactivateProperty
+          "0x6e03b57d", // adminActivateProperty
+          "0x380b6b29"  // adminDeactivateProperty
         ]
       },
       {
         facetAddress: await milestoneFacetContract.getAddress(),
         action: 0, // Add
         functionSelectors: [
-          "0x54d49e46", // requestMilestoneFunds
-          "0xeb9d9a5d", // verifyAndMarkMilestoneCompleted
+          "0x1cecea23", // requestMilestoneFunds
+          "0xd47f4f69", // verifyAndMarkMilestoneCompleted
           "0x359b3123", // getMilestoneDashboard
           "0xe8049da1", // getMilestoneStatus
-          "0x5cae48f5", // markMilestoneCompleted
+          "0xef8103f5", // markMilestoneCompleted
           "0xbc643619"  // getPropertyMilestones
         ]
       }
@@ -98,8 +98,8 @@ describe("MilestoneFacet", function () {
     );
 
     // Set min and max tokens per property
-    await adminFacet.setMinTokensPerProperty(1000);
-    await adminFacet.setMaxTokensPerProperty(1000000);
+    await adminFacet.setMinTokensPerProperty(1000, owner.address);
+    await adminFacet.setMaxTokensPerProperty(1000000, owner.address);
 
     // Create a test property with multiple milestones
     const propertyData = {
@@ -125,7 +125,7 @@ describe("MilestoneFacet", function () {
       roiPercentage: 20
     };
 
-    await propertyFacet.connect(developer).createProperty(propertyData);
+    await propertyFacet.connect(developer).createProperty(propertyData, developer.address);
     propertyId = 1; // First property
 
     // Fund the investor with stablecoin
@@ -137,14 +137,14 @@ describe("MilestoneFacet", function () {
       // This requires the property to be fully funded
       // For now, we test that the function exists but expect it to revert
       await expect(
-        milestoneFacet.connect(developer).requestMilestoneFunds(propertyId, 0)
+        milestoneFacet.connect(developer).requestMilestoneFunds(propertyId, 0, developer.address)
       ).to.be.revertedWith("Property must be fully funded");
     });
 
     it("Should allow admin to verify and release milestone funds", async function () {
       // This should be callable by admin but requires property to be fully funded
       await expect(
-        milestoneFacet.connect(owner).verifyAndMarkMilestoneCompleted(propertyId, 0)
+        milestoneFacet.connect(owner).verifyAndMarkMilestoneCompleted(propertyId, 0, owner.address)
       ).to.be.revertedWith("Property must be fully funded");
     });
 
@@ -161,7 +161,7 @@ describe("MilestoneFacet", function () {
     it("Should allow marking milestone as completed", async function () {
       // This test ensures the function exists but may revert due to prerequisites
       await expect(
-        milestoneFacet.connect(developer).markMilestoneCompleted(propertyId, 0)
+        milestoneFacet.connect(developer).markMilestoneCompleted(propertyId, 0, developer.address)
       ).to.be.reverted;
     });
   });

@@ -27,6 +27,7 @@ async function main() {
         const [deployer] = await ethers.getSigners();
         console.log(`👤 Deployer (Owner): ${deployer.address}`);
 
+        // Get AdminFacet contract for owner check
         // Get AdminFacet contract for backend signer management
         const adminFacet = await ethers.getContractAt("AdminFacet", deploymentData.diamond);
         console.log("✅ Connected to AdminFacet");
@@ -44,8 +45,14 @@ async function main() {
             console.log("✅ Platform already initialized");
         }
 
+        // Get FiatPaymentFacet contract for backend signer management
+        const fiatPaymentFacet = await ethers.getContractAt("FiatPaymentFacet", deploymentData.diamond);
+        console.log("✅ Connected to FiatPaymentFacet");
+
         // Check current backend signer
-        const currentBackendSigner = await adminFacet.getBackendSigner();
+        const currentBackendSigner = await adminFacet.getBackendSigner() ?? await fiatPaymentFacet.getBackendSigner();
+        // Check current backend signer
+       // const currentBackendSigner = await adminFacet.getBackendSigner();
         console.log(`📋 Current backend signer: ${currentBackendSigner}`);
 
         if (currentBackendSigner === ethers.ZeroAddress) {
@@ -83,17 +90,23 @@ async function main() {
 
         // Set backend signer
         console.log("\n🔧 Setting backend signer...");
-        const tx = await adminFacet.setBackendSigner(backendSignerAddress);
+        //const tx = 
+        const tx = await adminFacet.setBackendSigner(backendSignerAddress) ?? await fiatPaymentFacet.setBackendSigner(backendSignerAddress, deployer.address);
         await tx.wait();
         console.log("✅ Backend signer set successfully!");
 
         // Verify the change
-        const newBackendSigner = await adminFacet.getBackendSigner();
+       // const newBackendSigner = 
+        console.log(`✅ Verified new backend signer: ${newBackendSigner}`);
+        console.log(`✅ Matches expected: ${newBackendSigner === backendSignerAddress}`);
+
+        // Initialize domain separator if not already done
+        const newBackendSigner = await adminFacet.getBackendSigner() ?? await fiatPaymentFacet.getBackendSigner();;
         console.log(`✅ Verified new backend signer: ${newBackendSigner}`);
         console.log(`✅ Matches expected: ${newBackendSigner === backendSignerAddress}`);
 
         // Initialize domain separator if not already done (using FiatPaymentFacet)
-        const fiatPaymentFacet = await ethers.getContractAt("FiatPaymentFacet", deploymentData.diamond);
+      //  const fiatPaymentFacet = await ethers.getContractAt("FiatPaymentFacet", deploymentData.diamond);
         const isInitialized = await fiatPaymentFacet.isDomainSeparatorInitialized();
         if (!isInitialized) {
             console.log("\n🔧 Initializing domain separator...");

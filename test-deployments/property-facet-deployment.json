@@ -3,16 +3,16 @@
     "name": "property-facet",
     "network": "localhost",
     "deploymentType": "test",
-    "timestamp": "2025-08-15T18:05:13.337Z"
+    "timestamp": "2025-08-25T09:52:45.714Z"
   },
   "deployment": {
-    "timestamp": "2025-08-15T18:05:13.337Z",
+    "timestamp": "2025-08-25T09:52:45.714Z",
     "totalGasUsed": 0
   },
   "testResults": {
     "status": "completed",
-    "startTime": "2025-08-15T18:05:13.337Z",
-    "endTime": "2025-08-15T18:05:29.891Z",
+    "startTime": "2025-08-25T09:52:45.714Z",
+    "endTime": "2025-08-25T09:53:07.341Z",
     "passed": true,
     "output": {
       "summary": "✅ PropertyFacet Tests Passed!",
@@ -31,21 +31,19 @@
           ]
         },
         {
-          "section": "🔍 Test 2: Use Existing Property",
+          "section": "🔍 Test 2: Create New Property",
           "results": [
-            "✅ Using existing property with ID: 1",
-            "✅ Property title: Luxury Residential Tower - Lagos",
-            "✅ Property developer: Assetrix Development Ltd",
-            "✅ Property ROI: 18%",
-            "✅ Property title: Luxury Residential Tower - Lagos",
-            "✅ Property developer: Assetrix Development Ltd",
-            "✅ Property ROI: 18%"
+            "✅ New property created",
+            "✅ New total properties: 2",
+            "✅ Property title: EIP-2771 Test Property",
+            "✅ Property developer: Test Developer",
+            "✅ Property ROI: 12%"
           ]
         },
         {
           "section": "🔍 Test 3: Verify Property Exists",
           "results": [
-            "✅ Total properties: 1",
+            "✅ Total properties: 2",
             "✅ Property exists: true"
           ]
         },
@@ -55,15 +53,15 @@
             "✅ Property is active: true",
             "✅ Property is fully funded: false",
             "✅ Property tokens sold: 0",
-            "✅ Property tokens left: 1000"
+            "✅ Property tokens left: 100"
           ]
         },
         {
           "section": "🔍 Test 5: Property Search and Filtering",
           "results": [
-            "✅ Total properties count: 1",
-            "✅ Properties retrieved: 1",
-            "✅ Property 1 is in properties list: false"
+            "✅ Total properties count: 2",
+            "✅ Properties retrieved: 2",
+            "✅ Property 2 is in properties list: true"
           ]
         },
         {
@@ -75,9 +73,39 @@
         {
           "section": "🔍 Test 7: Property Queries",
           "results": [
-            "✅ Properties retrieved: 1",
-            "✅ Total count: 1",
-            "✅ Property 1 in list: true"
+            "✅ Properties retrieved: 2",
+            "✅ Total count: 2",
+            "✅ Property 2 in list: true"
+          ]
+        },
+        {
+          "section": "🔍 Test 8: Property Update",
+          "results": [
+            "✅ Property updated successfully",
+            "✅ Updated property title: Updated EIP-2771 Test Property",
+            "✅ Updated property ROI: 15%"
+          ]
+        },
+        {
+          "section": "🔍 Test 9: Property Deactivation",
+          "results": [
+            "✅ Property deactivated successfully",
+            "✅ Property is active after deactivation: false"
+          ]
+        },
+        {
+          "section": "🔍 Test 10: Admin Property Activation",
+          "results": [
+            "✅ Property activated by admin",
+            "✅ Property is active after reactivation: true"
+          ]
+        },
+        {
+          "section": "🔍 Test 11: EIP-2771 Integration",
+          "results": [
+            "✅ PropertyFacet inherits from BaseMetaTransactionFacet",
+            "✅ Property functions support EIP-2771 meta transactions",
+            "✅ Developer and owner access control works with EIP-2771"
           ]
         }
       ],
@@ -85,12 +113,14 @@
         "======================================",
         "👤 Deployer: 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
         "👤 User1: 0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
-        "Title: ✅ (Luxury Residential Tower - Lagos)",
-        "City: ✅ (Lagos)",
-        "Developer: ✅ (Assetrix Development Ltd)",
+        "👑 Current owner: 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+        "🔧 Using admin signer: 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+        "Title: ✅ (EIP-2771 Test Property)",
+        "City: ✅ (Test City)",
+        "Developer: ✅ (Test Developer)",
         "Property Type: ✅ (1)",
         "Property Use: ✅ (0)",
-        "ROI: ✅ (18%)"
+        "ROI: ✅ (12%)"
       ]
     }
   }

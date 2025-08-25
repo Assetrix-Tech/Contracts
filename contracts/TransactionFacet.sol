@@ -2,8 +2,9 @@
 pragma solidity ^0.8.28;
 
 import "./AssetrixStorage.sol";
+import "./BaseMetaTransactionFacet.sol";
 
-contract TransactionFacet {
+contract TransactionFacet is BaseMetaTransactionFacet {
     using AssetrixStorage for AssetrixStorage.Layout;
 
     event TransactionRecorded(
@@ -19,7 +20,7 @@ contract TransactionFacet {
     //Only owner can record transactions
     modifier onlyOwner() {
         AssetrixStorage.Layout storage s = AssetrixStorage.layout();
-        require(msg.sender == s.owner, "Ownable: caller is not the owner");
+        require(getActualSender() == s.owner, "Ownable: caller is not the owner");
         _;
     }
 
@@ -49,7 +50,7 @@ contract TransactionFacet {
     modifier onlyAuthorized() {
         AssetrixStorage.Layout storage s = AssetrixStorage.layout();
         require(
-            msg.sender == s.owner || msg.sender == address(this),
+            getActualSender() == s.owner || msg.sender == address(this),
             "Only authorized contracts can record transactions"
         );
         _;

@@ -114,6 +114,7 @@ async function main() {
             facetName.charAt(0).toUpperCase() + facetName.slice(1) + 'Facet',
             facetName === 'fiatpayment' ? 'FiatPaymentFacet' : null,
             facetName === 'diamondloupe' ? 'DiamondLoupeFacet' : null,
+            facetName === 'metatransaction' ? 'MetaTransactionFacet' : null,
             facetName.toUpperCase() + 'FACET',
             facetName + 'Facet'
           ].filter(Boolean);
@@ -222,6 +223,7 @@ async function main() {
             facetName.charAt(0).toUpperCase() + facetName.slice(1) + 'Facet',
             facetName === 'fiatpayment' ? 'FiatPaymentFacet' : null,
             facetName === 'diamondloupe' ? 'DiamondLoupeFacet' : null,
+            facetName === 'metatransaction' ? 'MetaTransactionFacet' : null,
             facetName.toUpperCase() + 'FACET',
             facetName + 'Facet'
           ].filter(Boolean);
